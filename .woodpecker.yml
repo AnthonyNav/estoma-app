@@ -1,0 +1,19 @@
+when:
+  event:
+    - pull_request
+    - push
+
+steps:
+  validate:
+    image: node:22-bookworm
+    environment:
+      CHROME_BIN: /usr/bin/chromium
+    commands:
+      - apt-get update
+      - apt-get install --yes --no-install-recommends chromium
+      - corepack enable
+      - pnpm install --frozen-lockfile
+      - pnpm format:check
+      - pnpm lint
+      - pnpm test:ci
+      - pnpm build

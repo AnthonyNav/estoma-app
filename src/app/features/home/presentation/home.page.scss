@@ -1,0 +1,27 @@
+.home {
+  max-width: 42rem;
+}
+
+.eyebrow {
+  color: var(--color-accent);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+h1 {
+  font-size: clamp(2.5rem, 8vw, 5rem);
+  letter-spacing: -0.06em;
+  line-height: 0.95;
+  margin: 0.5rem 0 1.5rem;
+}
+
+p {
+  color: var(--color-muted);
+  font-size: 1.125rem;
+}
+
+a {
+  color: var(--color-accent);
+  font-weight: 700;
+}

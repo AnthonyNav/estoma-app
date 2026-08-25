@@ -1,0 +1,10 @@
+.angular
+.git
+.github
+.husky
+dist
+node_modules
+coverage
+.env
+.env.*
+!README.md
