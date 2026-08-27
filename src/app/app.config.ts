@@ -34,6 +34,10 @@ import { MockStudentWashHomeAdapter } from './features/wash-student-home/infrast
 import { WASH_SUPERVISION_GATEWAY } from './features/wash-supervision/domain/ports/wash-supervision.gateway';
 import { HttpWashSupervisionAdapter } from './features/wash-supervision/infrastructure/api/http-wash-supervision.adapter';
 import { MockWashSupervisionAdapter } from './features/wash-supervision/infrastructure/mock/mock-wash-supervision.adapter';
+import { JORNADAS_GATEWAY } from './features/jornadas/domain/ports/jornadas.gateway';
+import { HttpJornadasAdapter } from './features/jornadas/infrastructure/api/http-jornadas.adapter';
+import { REGISTROS_GATEWAY } from './features/registros/domain/ports/registros.gateway';
+import { HttpRegistrosAdapter } from './features/registros/infrastructure/api/http-registros.adapter';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -80,6 +84,14 @@ export const appConfig: ApplicationConfig = {
     {
       provide: WASH_SUPERVISION_GATEWAY,
       useClass: environment.useMockApi ? MockWashSupervisionAdapter : HttpWashSupervisionAdapter,
+    },
+    {
+      provide: JORNADAS_GATEWAY,
+      useClass: HttpJornadasAdapter,
+    },
+    {
+      provide: REGISTROS_GATEWAY,
+      useClass: HttpRegistrosAdapter,
     },
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),

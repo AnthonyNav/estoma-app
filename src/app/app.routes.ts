@@ -134,6 +134,11 @@ export const routes: Routes = [
         (m) => m.WashEntrySupervisionPage,
       ),
   },
+  {
+    path: 'jornadas',
+    loadChildren: () =>
+      import('./features/jornadas/jornadas.routes').then((m) => m.JORNADAS_ROUTES),
+  },
   { path: '', pathMatch: 'full', redirectTo: 'authentication/sign-in' },
   { path: '**', redirectTo: 'authentication/sign-in' },
 ];

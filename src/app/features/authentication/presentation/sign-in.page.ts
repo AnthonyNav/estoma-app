@@ -6,13 +6,14 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+import { LucideEye, LucideEyeOff } from '@lucide/angular';
 import { ApplicationError } from '../../../core/api/application-error';
 import { SignInUseCase } from '../application/sign-in.use-case';
 import { AuthSessionService } from '../application/auth-session.service';
 import { authMessage } from '../application/auth-messages';
 @Component({
   selector: 'app-sign-in-page',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, LucideEye, LucideEyeOff],
   templateUrl: './sign-in.page.html',
   styleUrl: './sign-in.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
