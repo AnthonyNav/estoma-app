@@ -146,14 +146,25 @@
             @if (jornada.descripcion) {
               <p class="text-body-sm jornada-descripcion">{{ jornada.descripcion }}</p>
             }
-            <button
-              class="btn btn-danger jornada-cancel"
-              type="button"
-              [disabled]="cancelingId() === jornada.jornadaId"
-              (click)="cancelar(jornada)"
-            >
-              {{ cancelingId() === jornada.jornadaId ? 'Cancelando...' : 'Cancelar Jornada' }}
-            </button>
+            <div class="jornada-actions">
+              <button
+                class="btn btn-secondary"
+                type="button"
+                [disabled]="registeringId() === jornada.jornadaId"
+                (click)="preRegistrarme(jornada)"
+              >
+                <svg lucideUserPlus [size]="16"></svg>
+                {{ registeringId() === jornada.jornadaId ? 'Enviando...' : 'Pre-registrarme' }}
+              </button>
+              <button
+                class="btn btn-danger"
+                type="button"
+                [disabled]="cancelingId() === jornada.jornadaId"
+                (click)="cancelar(jornada)"
+              >
+                {{ cancelingId() === jornada.jornadaId ? 'Cancelando...' : 'Cancelar Jornada' }}
+              </button>
+            </div>
           </article>
         }
       </div>

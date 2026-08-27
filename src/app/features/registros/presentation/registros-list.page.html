@@ -1,0 +1,72 @@
+<section class="registros-page">
+  <header>
+    <h1 class="text-h1">Validación de Registros</h1>
+    <p class="text-body-md subtitle">
+      Vista del Pasante — revisa documentación específica y confirma o rechaza
+    </p>
+  </header>
+
+  @if (loading()) {
+    <p class="text-body-md">Cargando registros...</p>
+  } @else {
+    <div class="registros-section">
+      <h2 class="text-h2">Pendientes de validación</h2>
+      @if (pendientes().length === 0) {
+        <p class="text-body-md empty">No hay Registros pendientes de validación.</p>
+      }
+      <div class="registros-table">
+        @for (registro of pendientes(); track registro.registroId) {
+          <article class="card registro-row">
+            <div class="registro-info">
+              <p class="text-h3">{{ registro.alumnoNombre }}</p>
+              <p class="text-body-sm jornada-nombre">{{ registro.jornadaNombre }}</p>
+            </div>
+            <span class="badge" [class]="badgeClass(registro.estado)">{{
+              estadoLabel(registro.estado)
+            }}</span>
+            <div class="registro-actions">
+              <button
+                class="btn btn-primary"
+                type="button"
+                [disabled]="workingId() === registro.registroId"
+                (click)="confirmar(registro)"
+              >
+                <svg lucideCheck [size]="16"></svg>
+                Confirmar
+              </button>
+              <button
+                class="btn btn-danger"
+                type="button"
+                [disabled]="workingId() === registro.registroId"
+                (click)="rechazar(registro)"
+              >
+                <svg lucideX [size]="16"></svg>
+                Rechazar
+              </button>
+            </div>
+          </article>
+        }
+      </div>
+    </div>
+
+    <div class="registros-section">
+      <h2 class="text-h2">Resueltos</h2>
+      <div class="registros-table">
+        @for (registro of resueltos(); track registro.registroId) {
+          <article class="card registro-row registro-row-muted">
+            <div class="registro-info">
+              <p class="text-h3">{{ registro.alumnoNombre }}</p>
+              <p class="text-body-sm jornada-nombre">{{ registro.jornadaNombre }}</p>
+              @if (registro.motivoRechazo) {
+                <p class="text-body-sm jornada-nombre">Motivo: {{ registro.motivoRechazo }}</p>
+              }
+            </div>
+            <span class="badge" [class]="badgeClass(registro.estado)">{{
+              estadoLabel(registro.estado)
+            }}</span>
+          </article>
+        }
+      </div>
+    </div>
+  }
+</section>

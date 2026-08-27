@@ -1,0 +1,57 @@
+<section class="estadisticas-page">
+  <header>
+    <h1 class="text-h1">Estadísticas</h1>
+    <p class="text-body-md subtitle">
+      Vista del Superusuario — conteos generales de Jornadas y Registros
+    </p>
+  </header>
+
+  @if (loading()) {
+    <p class="text-body-md">Cargando estadísticas...</p>
+  } @else {
+    <div class="stat-block">
+      <h2 class="text-h2">Jornadas</h2>
+      <div class="stat-grid">
+        @for (stat of jornadaStats(); track stat.label) {
+          <div class="card stat-card">
+            <span class="badge" [class]="'badge-' + stat.variant">{{ stat.label }}</span>
+            <p class="text-display stat-value">{{ stat.value }}</p>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="stat-block">
+      <h2 class="text-h2">Registros</h2>
+      <div class="stat-grid">
+        @for (stat of registroStats(); track stat.label) {
+          <div class="card stat-card">
+            <span class="badge" [class]="'badge-' + stat.variant">{{ stat.label }}</span>
+            <p class="text-display stat-value">{{ stat.value }}</p>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="stat-block">
+      <h2 class="text-h2">Cupo por Jornada vigente</h2>
+      <div class="cupo-table">
+        @for (row of cupoPorJornada(); track row.jornada.jornadaId) {
+          <div class="card cupo-row">
+            <p class="text-h3 cupo-nombre">{{ row.jornada.nombre }}</p>
+            <div class="cupo-bar-track">
+              <div
+                class="cupo-bar-fill"
+                [style.width.%]="(row.ocupados / row.jornada.cupoTotal) * 100"
+              ></div>
+            </div>
+            <p class="text-body-sm cupo-label">
+              {{ row.ocupados }} / {{ row.jornada.cupoTotal }} ocupados ·
+              {{ row.disponibles }} disponibles
+            </p>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</section>
