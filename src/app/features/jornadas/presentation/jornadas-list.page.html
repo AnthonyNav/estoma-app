@@ -1,0 +1,199 @@
+<section class="jornadas-page">
+  <header class="jornadas-header">
+    <div>
+      <h1 class="text-h1">Jornadas de práctica clínica</h1>
+      <p class="text-body-md subtitle">Registro de Jornadas / Prácticas Profesionales</p>
+    </div>
+    <button class="btn btn-primary" type="button" (click)="openForm()">
+      <svg lucidePlus [size]="18"></svg>
+      Publicar Jornada
+    </button>
+  </header>
+
+  @if (formOpen()) {
+    <div class="card form-card">
+      <div class="form-card-header">
+        <h2 class="text-h3">Nueva Jornada</h2>
+        <button
+          class="icon-button"
+          type="button"
+          (click)="closeForm()"
+          aria-label="Cerrar formulario"
+        >
+          <svg lucideX [size]="18"></svg>
+        </button>
+      </div>
+
+      @if (formError(); as message) {
+        <p class="toast toast-error" role="alert">{{ message }}</p>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="submit()" class="jornada-form">
+        <div class="field">
+          <label class="field-label" for="tipoJornadaId">Tipo de jornada</label>
+          <select id="tipoJornadaId" class="field-input" formControlName="tipoJornadaId">
+            <option value="" disabled>Selecciona un tipo</option>
+            @for (tipo of tipos(); track tipo.tipoJornadaId) {
+              <option [value]="tipo.tipoJornadaId">{{ tipo.nombre }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="nombre">Nombre</label>
+          <input
+            id="nombre"
+            class="field-input"
+            type="text"
+            formControlName="nombre"
+            placeholder="Jornada Intramuros Octubre"
+          />
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label" for="fecha">Fecha</label>
+            <input id="fecha" class="field-input" type="date" formControlName="fecha" />
+          </div>
+          <div class="field">
+            <label class="field-label" for="fechaLimiteDocumentos"
+              >Fecha límite de documentos</label
+            >
+            <input
+              id="fechaLimiteDocumentos"
+              class="field-input"
+              type="date"
+              formControlName="fechaLimiteDocumentos"
+            />
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label" for="horaInicio">Hora inicio</label>
+            <input id="horaInicio" class="field-input" type="time" formControlName="horaInicio" />
+          </div>
+          <div class="field">
+            <label class="field-label" for="horaFin">Hora fin</label>
+            <input id="horaFin" class="field-input" type="time" formControlName="horaFin" />
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label" for="lugar">Lugar</label>
+            <input
+              id="lugar"
+              class="field-input"
+              type="text"
+              formControlName="lugar"
+              placeholder="Clínica Smile"
+            />
+          </div>
+          <div class="field">
+            <label class="field-label" for="cupoTotal">Cupo total</label>
+            <input
+              id="cupoTotal"
+              class="field-input"
+              type="number"
+              min="0"
+              formControlName="cupoTotal"
+            />
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="descripcion">Descripción (opcional)</label>
+          <input id="descripcion" class="field-input" type="text" formControlName="descripcion" />
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-ghost" type="button" (click)="closeForm()">Cancelar</button>
+          <button class="btn btn-primary" type="submit" [disabled]="submitting()">
+            {{ submitting() ? 'Publicando...' : 'Publicar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+
+  @if (loading()) {
+    <p class="text-body-md">Cargando jornadas...</p>
+  } @else {
+    <div class="jornadas-section">
+      <h2 class="text-h2">Vigentes</h2>
+      @if (vigentes().length === 0) {
+        <p class="text-body-md empty">No hay Jornadas publicadas por el momento.</p>
+      }
+      <div class="jornadas-grid">
+        @for (jornada of vigentes(); track jornada.jornadaId) {
+          <article class="card jornada-card">
+            <div class="jornada-card-header">
+              <span class="text-label-md tipo-tag">{{ jornada.tipoNombre }}</span>
+              <span class="badge" [class]="badgeClass(jornada.estado)">{{
+                estadoLabel(jornada.estado)
+              }}</span>
+            </div>
+            <h3 class="text-h3">{{ jornada.nombre }}</h3>
+            <ul class="jornada-meta">
+              <li>
+                <svg lucideCalendarDays [size]="16"></svg> {{ jornada.fecha }} ·
+                {{ jornada.horaInicio }}–{{ jornada.horaFin }}
+              </li>
+              <li><svg lucideMapPin [size]="16"></svg> {{ jornada.lugar }}</li>
+              <li><svg lucideUsers [size]="16"></svg> Cupo: {{ jornada.cupoTotal }}</li>
+            </ul>
+            @if (jornada.descripcion) {
+              <p class="text-body-sm jornada-descripcion">{{ jornada.descripcion }}</p>
+            }
+            <div class="jornada-actions">
+              <button
+                class="btn btn-secondary"
+                type="button"
+                [disabled]="registeringId() === jornada.jornadaId"
+                (click)="preRegistrarme(jornada)"
+              >
+                <svg lucideUserPlus [size]="16"></svg>
+                {{ registeringId() === jornada.jornadaId ? 'Enviando...' : 'Pre-registrarme' }}
+              </button>
+              <button
+                class="btn btn-danger"
+                type="button"
+                [disabled]="cancelingId() === jornada.jornadaId"
+                (click)="cancelar(jornada)"
+              >
+                {{ cancelingId() === jornada.jornadaId ? 'Cancelando...' : 'Cancelar Jornada' }}
+              </button>
+            </div>
+          </article>
+        }
+      </div>
+    </div>
+
+    <div class="jornadas-section">
+      <h2 class="text-h2">Histórico</h2>
+      <div class="jornadas-grid">
+        @for (jornada of historicas(); track jornada.jornadaId) {
+          <article class="card jornada-card jornada-card-muted">
+            <div class="jornada-card-header">
+              <span class="text-label-md tipo-tag">{{ jornada.tipoNombre }}</span>
+              <span class="badge" [class]="badgeClass(jornada.estado)">{{
+                estadoLabel(jornada.estado)
+              }}</span>
+            </div>
+            <h3 class="text-h3">{{ jornada.nombre }}</h3>
+            <ul class="jornada-meta">
+              <li><svg lucideCalendarDays [size]="16"></svg> {{ jornada.fecha }}</li>
+              <li><svg lucideMapPin [size]="16"></svg> {{ jornada.lugar }}</li>
+            </ul>
+            @if (jornada.motivoCancelacion) {
+              <p class="text-body-sm jornada-descripcion">
+                Motivo: {{ jornada.motivoCancelacion }}
+              </p>
+            }
+          </article>
+        }
+      </div>
+    </div>
+  }
+</section>
