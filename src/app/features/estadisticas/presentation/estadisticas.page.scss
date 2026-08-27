@@ -1,0 +1,83 @@
+.estadisticas-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .estadisticas-page {
+    padding: var(--space-8) var(--space-6);
+  }
+}
+
+.subtitle {
+  margin: var(--space-1) 0 0;
+  color: var(--color-neutral-600);
+}
+
+.stat-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .stat-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.stat-value {
+  margin: 0;
+  color: var(--color-on-surface);
+}
+
+.cupo-table {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.cupo-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.cupo-nombre {
+  margin: 0;
+}
+
+.cupo-bar-track {
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-neutral-200);
+  overflow: hidden;
+}
+
+.cupo-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+}
+
+.cupo-label {
+  margin: 0;
+  color: var(--color-neutral-600);
+}

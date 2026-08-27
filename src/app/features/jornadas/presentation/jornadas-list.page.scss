@@ -156,7 +156,9 @@
   color: var(--color-neutral-600);
 }
 
-.jornada-cancel {
-  align-self: flex-start;
+.jornada-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
   margin-top: auto;
 }

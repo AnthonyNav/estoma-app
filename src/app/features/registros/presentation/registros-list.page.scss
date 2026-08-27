@@ -1,0 +1,65 @@
+.registros-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .registros-page {
+    padding: var(--space-8) var(--space-6);
+  }
+}
+
+.subtitle {
+  margin: var(--space-1) 0 0;
+  color: var(--color-neutral-600);
+}
+
+.registros-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.empty {
+  color: var(--color-neutral-600);
+}
+
+.registros-table {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.registro-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.registro-row-muted {
+  opacity: 0.85;
+}
+
+.registro-info {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.registro-info p {
+  margin: 0;
+}
+
+.jornada-nombre {
+  color: var(--color-neutral-600);
+  margin-top: var(--space-1) !important;
+}
+
+.registro-actions {
+  display: flex;
+  gap: var(--space-2);
+}

@@ -4,10 +4,12 @@ import {
   LucideCalendarDays,
   LucideMapPin,
   LucidePlus,
+  LucideUserPlus,
   LucideUsers,
   LucideX,
 } from '@lucide/angular';
 
+import { CrearRegistroUseCase } from '../../registros/application/crear-registro.use-case';
 import { CancelarJornadaUseCase } from '../application/cancelar-jornada.use-case';
 import { ListJornadasUseCase } from '../application/list-jornadas.use-case';
 import { PublicarJornadaUseCase } from '../application/publicar-jornada.use-case';
@@ -32,6 +34,7 @@ const LABEL_BY_ESTADO: Record<JornadaEstado, string> = {
     LucideCalendarDays,
     LucideMapPin,
     LucidePlus,
+    LucideUserPlus,
     LucideUsers,
     LucideX,
   ],
@@ -43,7 +46,10 @@ export class JornadasListPage {
   private readonly listJornadas = inject(ListJornadasUseCase);
   private readonly publicarJornada = inject(PublicarJornadaUseCase);
   private readonly cancelarJornada = inject(CancelarJornadaUseCase);
+  private readonly crearRegistro = inject(CrearRegistroUseCase);
   private readonly formBuilder = inject(FormBuilder);
+
+  readonly registeringId = signal<string | null>(null);
 
   readonly jornadas = signal<Jornada[]>([]);
   readonly tipos = signal<TipoJornada[]>([]);
@@ -136,5 +142,38 @@ export class JornadasListPage {
         this.cancelingId.set(null);
       },
     });
+  }
+
+  preRegistrarme(jornada: Jornada): void {
+    const alumnoNombre = window.prompt('Tu nombre (demo, sin sesión real todavía):');
+    if (!alumnoNombre) {
+      return;
+    }
+    const semestreTexto = window.prompt('Tu semestre actual:', '7');
+    const semestreAlumno = Number(semestreTexto);
+    if (!semestreTexto || Number.isNaN(semestreAlumno)) {
+      return;
+    }
+
+    this.registeringId.set(jornada.jornadaId);
+    this.crearRegistro
+      .execute({
+        jornadaId: jornada.jornadaId,
+        alumnoId: crypto.randomUUID(),
+        alumnoNombre,
+        semestreAlumno,
+      })
+      .subscribe({
+        next: () => {
+          this.registeringId.set(null);
+          window.alert(
+            `Pre-registro enviado para "${jornada.nombre}". Un Pasante revisará tu documentación.`,
+          );
+        },
+        error: (error: Error) => {
+          this.registeringId.set(null);
+          window.alert(`No se pudo pre-registrar: ${error.message}`);
+        },
+      });
   }
 }

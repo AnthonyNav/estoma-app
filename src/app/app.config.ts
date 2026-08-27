@@ -18,6 +18,9 @@ import { MockAuthenticationAdapter } from './features/authentication/infrastruct
 import { JORNADAS_GATEWAY } from './features/jornadas/domain/ports/jornadas.gateway';
 import { HttpJornadasAdapter } from './features/jornadas/infrastructure/api/http-jornadas.adapter';
 import { MockJornadasAdapter } from './features/jornadas/infrastructure/mock/mock-jornadas.adapter';
+import { REGISTROS_GATEWAY } from './features/registros/domain/ports/registros.gateway';
+import { HttpRegistrosAdapter } from './features/registros/infrastructure/api/http-registros.adapter';
+import { MockRegistrosAdapter } from './features/registros/infrastructure/mock/mock-registros.adapter';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -34,6 +37,11 @@ export const appConfig: ApplicationConfig = {
       // platform-bff exposes no Jornadas surface yet (see HttpJornadasAdapter's
       // docstring) — same selection mechanism as authentication regardless.
       useClass: environment.useMockApi ? MockJornadasAdapter : HttpJornadasAdapter,
+    },
+    {
+      provide: REGISTROS_GATEWAY,
+      // platform-bff exposes no Registros surface yet (same gap as Jornadas).
+      useClass: environment.useMockApi ? MockRegistrosAdapter : HttpRegistrosAdapter,
     },
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
