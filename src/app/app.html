@@ -1,11 +1,14 @@
-<header class="app-header">
-  <a class="brand" routerLink="/home">Estoma</a>
-  <nav aria-label="Primary navigation">
-    <a routerLink="/home" routerLinkActive="active">Home</a>
-    <a routerLink="/authentication/sign-in" routerLinkActive="active">Sign in</a>
-  </nav>
-</header>
+@if (!hideChrome()) {
+  <header class="app-header">
+    <a class="brand" routerLink="/home">Estoma</a>
+    <nav aria-label="Primary navigation">
+      <a routerLink="/home" routerLinkActive="active">Home</a>
+      <a routerLink="/jornadas" routerLinkActive="active">Jornadas</a>
+      <a routerLink="/authentication/sign-in" routerLinkActive="active">Sign in</a>
+    </nav>
+  </header>
+}
 
-<main class="app-content">
+<main class="app-content" [class.full-bleed]="hideChrome()">
   <router-outlet />
 </main>

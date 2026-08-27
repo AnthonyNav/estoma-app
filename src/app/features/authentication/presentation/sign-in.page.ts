@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { LucideEye, LucideEyeOff } from '@lucide/angular';
 
 import { SignInUseCase } from '../application/sign-in.use-case';
 
 @Component({
   selector: 'app-sign-in-page',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, LucideEye, LucideEyeOff],
   templateUrl: './sign-in.page.html',
   styleUrl: './sign-in.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -19,6 +20,11 @@ export class SignInPage {
   readonly error = signal<string | null>(null);
   readonly signedInAs = signal<string | null>(null);
   readonly submitting = signal(false);
+  readonly passwordVisible = signal(false);
+
+  togglePasswordVisibility(): void {
+    this.passwordVisible.update((visible) => !visible);
+  }
 
   submit(): void {
     if (this.form.invalid || this.submitting()) {

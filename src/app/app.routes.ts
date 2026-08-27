@@ -12,6 +12,11 @@ export const routes: Routes = [
     path: 'home',
     loadComponent: () => import('./features/home/presentation/home.page').then((m) => m.HomePage),
   },
+  {
+    path: 'jornadas',
+    loadChildren: () =>
+      import('./features/jornadas/jornadas.routes').then((m) => m.JORNADAS_ROUTES),
+  },
   { path: '', pathMatch: 'full', redirectTo: 'home' },
   { path: '**', redirectTo: 'home' },
 ];

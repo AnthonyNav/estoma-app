@@ -3,7 +3,7 @@
 }
 
 .eyebrow {
-  color: var(--color-accent);
+  color: var(--color-primary);
   font-size: 0.875rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -17,11 +17,11 @@ h1 {
 }
 
 p {
-  color: var(--color-muted);
+  color: var(--color-neutral-600);
   font-size: 1.125rem;
 }
 
 a {
-  color: var(--color-accent);
+  color: var(--color-primary);
   font-weight: 700;
 }
