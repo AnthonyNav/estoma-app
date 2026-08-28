@@ -1,0 +1,69 @@
+<section class="flow" aria-labelledby="regulation-title">
+  <header class="flow__header">
+    <h1 id="regulation-title">Antes de registrar tu cita</h1>
+    <p class="flow__intro">
+      Revisa las condiciones de ingreso. El reglamento se confirma antes de consultar los horarios
+      disponibles.
+    </p>
+  </header>
+
+  <ol class="stepper" aria-label="Progreso del registro de cita">
+    <li aria-current="step" data-step="1">Reglamento</li>
+    <li data-step="2">Datos</li>
+    <li data-step="3">Horario</li>
+  </ol>
+
+  <article class="flow-card">
+    <div class="flow-card__heading">
+      <span class="flow-card__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="m7 12 3.25 3.25L17.5 8" /></svg>
+      </span>
+      <div>
+        <h2>Reglamento de Lavado</h2>
+        <p>Tu cita queda sujeta a la validación del personal cuando llegues al área.</p>
+      </div>
+    </div>
+
+    <ul class="summary-list" aria-label="Puntos clave del reglamento">
+      <li>
+        <span>Material</span>
+        <strong>Presenta únicamente el instrumental registrado en tu cita.</strong>
+      </li>
+      <li>
+        <span>Horario</span>
+        <strong>Acude en el turno elegido y conserva tu código de ingreso.</strong>
+      </li>
+      <li>
+        <span>Ingreso</span>
+        <strong
+          >El Supervisor confirma tu identidad y los requisitos antes de asignar un espacio.</strong
+        >
+      </li>
+    </ul>
+
+    <div class="check-card">
+      <input
+        id="regulation-accepted"
+        type="checkbox"
+        [checked]="accepted()"
+        (change)="setAccepted($event)"
+      />
+      <label for="regulation-accepted">
+        <strong>He leído y acepto el reglamento</strong>
+        <p>Entiendo que el personal puede rechazar el ingreso si los requisitos no se cumplen.</p>
+      </label>
+    </div>
+
+    <div class="button-row">
+      <a class="button button--quiet" routerLink="/wash/student">Volver</a>
+      <button
+        class="button button--primary"
+        type="button"
+        [disabled]="!accepted()"
+        (click)="continue()"
+      >
+        Continuar
+      </button>
+    </div>
+  </article>
+</section>

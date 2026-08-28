@@ -1,0 +1,195 @@
+<section class="wash-home" aria-labelledby="wash-home-title">
+  @if (state() === 'LOADING') {
+    <div aria-busy="true" class="wash-home__skeleton" role="status">
+      <span class="sr-only">Cargando tu estado de Lavado</span>
+      <div class="skeleton skeleton--eyebrow"></div>
+      <div class="skeleton skeleton--heading"></div>
+      <div class="skeleton skeleton--identity"></div>
+      <div class="skeleton skeleton--card"></div>
+      <div class="skeleton skeleton--support"></div>
+    </div>
+  } @else if (state() === 'TEMPORARY_UNAVAILABLE') {
+    <section class="feedback-card" aria-labelledby="unavailable-title" role="status">
+      <svg aria-hidden="true" class="feedback-card__icon" viewBox="0 0 24 24">
+        <path
+          d="M12 8v5m0 3h.01M10.3 3.9 2.9 16.7A2 2 0 004.6 20h14.8a2 2 0 001.7-3.3L13.7 3.9a2 2 0 00-3.4 0Z"
+        />
+      </svg>
+      <div>
+        <h1 id="unavailable-title">No fue posible cargar tu estado</h1>
+        <p>Inténtalo de nuevo en unos momentos.</p>
+      </div>
+      <button class="button button--primary" type="button" (click)="retry()">Reintentar</button>
+    </section>
+  } @else if (state() === 'OFFLINE') {
+    <section class="feedback-card" aria-labelledby="offline-title" role="status">
+      <svg aria-hidden="true" class="feedback-card__icon" viewBox="0 0 24 24">
+        <path d="M4 17a4 4 0 010-8 6 6 0 0111.6-1.9A4.5 4.5 0 1118 17H8m3-4 2 2-2 2" />
+      </svg>
+      <div>
+        <p class="eyebrow">Sin conexión</p>
+        <h1 id="offline-title">No podemos actualizar tu estado</h1>
+        <p>Revisa tu conexión a internet e inténtalo de nuevo.</p>
+      </div>
+      <button class="button button--primary" type="button" (click)="retry()">Reintentar</button>
+    </section>
+  } @else if (state() === 'FORBIDDEN') {
+    <section class="feedback-card" aria-labelledby="forbidden-title">
+      <svg aria-hidden="true" class="feedback-card__icon" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="8" />
+        <path d="m9 9 6 6m0-6-6 6" />
+      </svg>
+      <div>
+        <p class="eyebrow">Acceso no disponible</p>
+        <h1 id="forbidden-title">No tienes acceso a Lavado Ultrasónico</h1>
+        <p>Si crees que se trata de un error, solicita apoyo al área responsable.</p>
+      </div>
+      <a class="button button--secondary" routerLink="/authentication/sign-in">Cambiar sesión</a>
+    </section>
+  } @else if (home(); as home) {
+    <header class="wash-home__header">
+      <div>
+        <h1 id="wash-home-title">Tu cita de Lavado</h1>
+        <p class="student-identity">
+          Hola, {{ home.student.firstName }} · {{ home.student.studentEnrollment }} ·
+          {{ home.student.currentSemester }}° semestre
+        </p>
+      </div>
+    </header>
+
+    <section
+      [class]="'status-card status-card--' + presentation().tone"
+      [attr.aria-label]="presentation().label"
+    >
+      <div class="status-card__topline">
+        <span class="status-card__icon" aria-hidden="true">
+          @switch (presentation().tone) {
+            @case ('success') {
+              <svg viewBox="0 0 24 24"><path d="m7 12 3.25 3.25L17.5 8" /></svg>
+            }
+            @case ('warning') {
+              <svg viewBox="0 0 24 24"><path d="M12 7v6m0 4h.01" /></svg>
+            }
+            @case ('danger') {
+              <svg viewBox="0 0 24 24"><path d="m9 9 6 6m0-6-6 6" /></svg>
+            }
+            @case ('info') {
+              <svg viewBox="0 0 24 24"><path d="M12 11v5m0-8h.01" /></svg>
+            }
+            @default {
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M7 4v3m10-3v3M5 9h14M7 6h10a2 2 0 012 2v9a2 2 0 01-2 2H7a2 2 0 01-2-2V8a2 2 0 012-2Z"
+                />
+              </svg>
+            }
+          }
+        </span>
+        <span class="status-chip">{{ presentation().label }}</span>
+      </div>
+
+      <div class="status-card__content">
+        <div class="status-card__summary">
+          <h2>{{ presentation().title }}</h2>
+          <p>{{ presentation().description }}</p>
+
+          @if (state() === 'NO_APPOINTMENT') {
+            <a class="button button--primary" routerLink="/wash/appointments/regulation">
+              + Registrar cita
+            </a>
+          }
+        </div>
+
+        @if (home.appointment; as appointment) {
+          <div class="appointment-details">
+            <dl>
+              <div>
+                <dt>Turno</dt>
+                <dd>{{ formatTimeSlot(appointment) }}</dd>
+              </div>
+              <div>
+                <dt>Tipo de lavado</dt>
+                <dd>
+                  {{ appointmentTypeLabel(appointment.appointmentType) }} ·
+                  {{ appointment.instrumentCount }} instrumentos
+                </dd>
+              </div>
+              <div>
+                <dt>Tipo de pieza</dt>
+                <dd>{{ pieceTypeLabel(appointment.pieceType) }}</dd>
+              </div>
+              <div>
+                <dt>NRC</dt>
+                <dd>{{ appointment.courseSection.nrc }} · {{ appointment.courseSection.name }}</dd>
+              </div>
+            </dl>
+
+            @if (appointment.washExecution?.activeResourceAssignment; as assignment) {
+              <div class="resource-assignment">
+                <span class="resource-assignment__label">Espacio asignado</span>
+                <strong>{{ assignment.cabinName }}</strong>
+                <span>{{ assignment.tankName }}</span>
+              </div>
+            }
+
+            @if (appointment.washExecution?.rejectionReason; as rejectionReason) {
+              <div class="rejection-reason">
+                <span>Motivo</span>
+                <p>{{ rejectionReason }}</p>
+              </div>
+            }
+          </div>
+
+          @if (appointment.qrRepresentation && presentation().qrLabel; as qrLabel) {
+            <div class="qr-panel">
+              <app-appointment-qr [qrRepresentation]="appointment.qrRepresentation" />
+              <div>
+                <h3>Código de tu cita</h3>
+                <p>{{ qrLabel }}</p>
+                <button class="button button--secondary" type="button" (click)="openQr($event)">
+                  Ampliar QR
+                </button>
+              </div>
+            </div>
+
+            <dialog
+              #qrDialog
+              aria-describedby="qr-dialog-description"
+              aria-labelledby="qr-dialog-title"
+              class="qr-dialog"
+              (close)="restoreQrFocus()"
+            >
+              <div class="qr-dialog__header">
+                <div>
+                  <h2 id="qr-dialog-title">Código de tu cita</h2>
+                  <p id="qr-dialog-description">{{ qrLabel }}</p>
+                </div>
+                <button
+                  aria-label="Cerrar código QR ampliado"
+                  class="icon-button"
+                  type="button"
+                  (click)="closeQr()"
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="m7 7 10 10m0-10L7 17" />
+                  </svg>
+                </button>
+              </div>
+              <app-appointment-qr [qrRepresentation]="appointment.qrRepresentation" size="large" />
+            </dialog>
+          }
+        }
+      </div>
+    </section>
+
+    <aside class="wash-home__support" aria-label="Información de apoyo">
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M12 3a8 8 0 100 16 8 8 0 000-16zm0 5v4l2.5 1.5M12 21v-2M12 3V1M3 12H1m22 0h-2" />
+      </svg>
+      <div>
+        <h2>Recuerda tus requisitos de ingreso</h2>
+        <p>Consulta el reglamento antes de presentarte al área de Lavado.</p>
+      </div>
+    </aside>
+  }
+</section>

@@ -5,39 +5,62 @@
 
 .app-header {
   align-items: center;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--outline-variant);
   display: flex;
   justify-content: space-between;
   margin: 0 auto;
-  max-width: 72rem;
-  padding: 1rem 1.5rem;
+  max-width: 84rem;
+  padding: 1rem max(1rem, calc((100vw - 78rem) / 2));
 }
 
 .brand {
   color: var(--color-ink);
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 700;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.02em;
   text-decoration: none;
 }
 
-nav {
-  display: flex;
-  gap: 1rem;
-}
-
-nav a {
-  color: var(--color-muted);
+.app-header__sign-out {
+  align-items: center;
+  border-radius: var(--radius-default);
+  color: var(--on-surface-variant);
+  display: inline-flex;
+  font-size: 0.875rem;
+  font-weight: 700;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
   text-decoration: none;
 }
 
-nav a.active,
-nav a:hover {
-  color: var(--color-accent);
+.app-header__sign-out:hover {
+  background: var(--surface-container-low);
+  color: var(--primary);
+}
+
+.app-header__sign-out svg {
+  fill: none;
+  height: 1.25rem;
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+  width: 1.25rem;
 }
 
 .app-content {
   margin: 0 auto;
-  max-width: 72rem;
-  padding: 3rem 1.5rem;
+  max-width: 84rem;
+  padding: clamp(1.5rem, 4vw, 3rem) max(1rem, calc((100vw - 78rem) / 2));
+}
+
+@media (max-width: 31.25rem) {
+  .app-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .app-header__sign-out {
+    padding: 0.5rem;
+  }
 }
