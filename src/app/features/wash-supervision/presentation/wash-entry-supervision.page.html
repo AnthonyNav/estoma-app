@@ -25,7 +25,11 @@
     <form class="lookup-form" [formGroup]="lookupForm" (ngSubmit)="search()" novalidate>
       <div class="field">
         <label for="lookup-type">Buscar por</label>
-        <select id="lookup-type" formControlName="lookupType">
+        <select
+          id="lookup-type"
+          formControlName="lookupType"
+          [disabled]="action() === 'ARRIVAL' || action() === 'DECISION'"
+        >
           <option value="STUDENT_ENROLLMENT">Matrícula</option>
           <option value="QR">Código QR</option>
         </select>
@@ -48,6 +52,7 @@
           type="text"
           autocomplete="off"
           formControlName="query"
+          [disabled]="action() === 'ARRIVAL' || action() === 'DECISION'"
           [placeholder]="
             lookupForm.controls.lookupType.value === 'QR'
               ? 'Escanea o pega el código'
@@ -68,7 +73,11 @@
           </p>
         }
       </div>
-      <button class="button button--primary" type="submit" [disabled]="loadingLookup()">
+      <button
+        class="button button--primary"
+        type="submit"
+        [disabled]="loadingLookup() || action() === 'ARRIVAL' || action() === 'DECISION'"
+      >
         {{ loadingLookup() ? 'Buscando…' : 'Buscar cita' }}
       </button>
     </form>
@@ -131,15 +140,23 @@
             <button
               class="button button--primary"
               type="button"
-              [disabled]="action() !== 'IDLE'"
+              [disabled]="!mayRegisterArrival()"
               (click)="registerArrival()"
             >
-              {{ action() === 'ARRIVAL' ? 'Registrando llegada…' : 'Registrar llegada' }}
+              @if (action() === 'ARRIVAL') {
+                Registrando llegada…
+              } @else if (action() === 'FAILED' && pendingAction()?.kind === 'ARRIVAL') {
+                Reintentar llegada
+              } @else {
+                Registrar llegada
+              }
             </button>
           }
           @case ('PENDING_ENTRY') {
             <div class="flow-card__heading">
-              <span class="flow-card__icon" aria-hidden="true">!</span>
+              <span class="flow-card__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 7v6m0 4h.01" /></svg>
+              </span>
               <div>
                 <h2 id="entry-title">Validación pendiente</h2>
                 <p>
@@ -152,6 +169,7 @@
                 <input
                   type="checkbox"
                   [checked]="identityConfirmed()"
+                  [disabled]="pendingAction()?.kind === 'DECISION'"
                   (change)="updateIdentityConfirmed($event)"
                 />
                 <span
@@ -163,6 +181,7 @@
                 <input
                   type="checkbox"
                   [checked]="requirementsSatisfied()"
+                  [disabled]="pendingAction()?.kind === 'DECISION'"
                   (change)="updateRequirementsSatisfied($event)"
                 />
                 <span
@@ -175,10 +194,14 @@
               <button
                 class="button button--secondary"
                 type="button"
-                [disabled]="action() !== 'IDLE'"
+                [disabled]="!mayOpenRejection()"
                 (click)="openRejection($event)"
               >
-                Rechazar ingreso
+                {{
+                  action() === 'FAILED' && pendingAction()?.kind === 'DECISION'
+                    ? 'Reintentar rechazo'
+                    : 'Rechazar ingreso'
+                }}
               </button>
               <button
                 class="button button--primary"
@@ -186,7 +209,13 @@
                 [disabled]="!mayAuthorize()"
                 (click)="authorize()"
               >
-                {{ action() === 'DECISION' ? 'Guardando…' : 'Autorizar ingreso' }}
+                @if (action() === 'DECISION') {
+                  Guardando…
+                } @else if (action() === 'FAILED' && pendingAction()?.kind === 'DECISION') {
+                  Reintentar autorización
+                } @else {
+                  Autorizar ingreso
+                }
               </button>
             </div>
           }
@@ -265,6 +294,7 @@
       aria-describedby="rejection-description"
       aria-labelledby="rejection-title"
       class="modal"
+      (cancel)="preventRejectionDismissal($event)"
       (close)="handleRejectionClosed()"
     >
       <h2 id="rejection-title">Registrar rechazo de ingreso</h2>
@@ -279,6 +309,7 @@
           [attr.aria-invalid]="rejectionTouched() && !rejectionReason().trim()"
           maxlength="500"
           [value]="rejectionReason()"
+          [disabled]="pendingAction()?.kind === 'DECISION'"
           (input)="updateRejectionReason($event)"
         ></textarea>
         <p class="field__hint" id="rejection-character-count">
@@ -300,10 +331,18 @@
         <button
           class="button button--primary"
           type="button"
-          [disabled]="!rejectionReason().trim() || action() !== 'IDLE'"
+          [disabled]="
+            !rejectionReason().trim() || action() === 'ARRIVAL' || action() === 'DECISION'
+          "
           (click)="confirmRejection()"
         >
-          {{ action() === 'DECISION' ? 'Guardando…' : 'Confirmar rechazo' }}
+          @if (action() === 'DECISION') {
+            Guardando…
+          } @else if (action() === 'FAILED' && pendingAction()?.kind === 'DECISION') {
+            Reintentar rechazo
+          } @else {
+            Confirmar rechazo
+          }
         </button>
       </div>
     </dialog>

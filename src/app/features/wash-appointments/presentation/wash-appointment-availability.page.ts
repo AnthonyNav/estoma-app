@@ -1,20 +1,24 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   ViewChild,
   computed,
   inject,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
-import { last, switchMap, takeWhile, timer } from 'rxjs';
 
 import { ApplicationError } from '../../../core/api/application-error';
+import { OperationTrackerService } from '../../../core/api/operation-tracker.service';
 import { WashAppointmentRegistrationUseCase } from '../application/wash-appointment-registration.use-case';
 import {
   AppointmentAvailability,
   AvailableTimeSlot,
+  DurableOperation,
+  ScheduleAppointmentCommand,
 } from '../domain/models/appointment-registration';
 import { AppointmentRegistrationDraftService } from './appointment-registration-draft.service';
 
@@ -41,9 +45,11 @@ const timeFormatter = new Intl.DateTimeFormat('es-MX', {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class WashAppointmentAvailabilityPage {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
   private readonly registration = inject(AppointmentRegistrationDraftService);
   private readonly appointmentRegistration = inject(WashAppointmentRegistrationUseCase);
+  private readonly operationTracker = inject(OperationTrackerService);
 
   @ViewChild('confirmationDialog') private confirmationDialog?: ElementRef<HTMLDialogElement>;
   private confirmationTrigger: HTMLElement | null = null;
@@ -55,6 +61,7 @@ export class WashAppointmentAvailabilityPage {
   readonly confirmationOpen = signal(false);
   readonly submissionState = signal<SubmissionState>('IDLE');
   readonly selectedTimeSlot = this.registration.selectedTimeSlot;
+  readonly pendingSchedule = this.registration.pendingSchedule;
   readonly canSchedule = computed(
     () => this.availability()?.canSchedule === true && this.selectedTimeSlot() !== null,
   );
@@ -70,7 +77,7 @@ export class WashAppointmentAvailabilityPage {
   }
 
   selectTimeSlot(timeSlot: AvailableTimeSlot): void {
-    if (this.submissionState() !== 'SUBMITTING') {
+    if (this.submissionState() !== 'SUBMITTING' && !this.pendingSchedule()) {
       this.registration.selectTimeSlot(timeSlot);
       this.submissionState.set('IDLE');
       this.submissionError.set(null);
@@ -108,47 +115,44 @@ export class WashAppointmentAvailabilityPage {
     this.confirmationTrigger = null;
   }
 
+  preventConfirmationDismissal(event: Event): void {
+    if (this.submissionState() === 'SUBMITTING') {
+      event.preventDefault();
+    }
+  }
+
   confirmSchedule(): void {
-    const timeSlot = this.selectedTimeSlot();
-    const availability = this.availability();
-    if (!timeSlot || !availability) {
+    if (this.submissionState() === 'SUBMITTING') {
       return;
     }
 
     this.submissionState.set('SUBMITTING');
     this.submissionError.set(null);
-    const draft = this.registration.draft();
+    const pending = this.pendingSchedule();
+    if (pending) {
+      if (pending.operationId) {
+        this.trackScheduleOperation(pending.operationId);
+      } else {
+        this.submitSchedule(pending.command);
+      }
+      return;
+    }
 
-    this.appointmentRegistration
-      .schedule({
-        ...draft,
-        appointmentTimeSlotId: timeSlot.appointmentTimeSlotId,
-        exceptionalAuthorizationId: availability.exceptionalAuthorizationId,
-        idempotencyKey: this.createIdempotencyKey(),
-      })
-      .pipe(switchMap(({ operationId }) => this.awaitOperation(operationId)))
-      .subscribe({
-        next: (operation) => {
-          if (operation.status === 'SUCCEEDED') {
-            this.registration.reset();
-            void this.router.navigate(['/wash/student']);
-            return;
-          }
+    const timeSlot = this.selectedTimeSlot();
+    const availability = this.availability();
+    if (!timeSlot || !availability) {
+      this.submissionState.set('IDLE');
+      return;
+    }
 
-          this.submissionState.set('FAILED');
-          this.submissionError.set(
-            'No fue posible confirmar la cita. Intenta seleccionar otro horario.',
-          );
-        },
-        error: (error: unknown) => {
-          this.submissionState.set('FAILED');
-          this.submissionError.set(
-            error instanceof ApplicationError
-              ? error.message
-              : 'No fue posible confirmar la cita. Inténtalo nuevamente.',
-          );
-        },
-      });
+    const command: ScheduleAppointmentCommand = {
+      ...this.registration.draft(),
+      appointmentTimeSlotId: timeSlot.appointmentTimeSlotId,
+      exceptionalAuthorizationId: availability.exceptionalAuthorizationId,
+      idempotencyKey: this.createIdempotencyKey(),
+    };
+    this.registration.beginSchedule(command);
+    this.submitSchedule(command);
   }
 
   formatSlot(timeSlot: AvailableTimeSlot): string {
@@ -166,6 +170,19 @@ export class WashAppointmentAvailabilityPage {
     this.loadAvailability();
   }
 
+  private submitSchedule(command: ScheduleAppointmentCommand): void {
+    this.appointmentRegistration
+      .schedule(command)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ({ operationId }) => {
+          this.registration.setScheduleOperation(operationId);
+          this.trackScheduleOperation(operationId);
+        },
+        error: (error: unknown) => this.failSubmission(error, false),
+      });
+  }
+
   private loadAvailability(): void {
     this.loading.set(true);
     this.loadError.set(null);
@@ -174,6 +191,7 @@ export class WashAppointmentAvailabilityPage {
 
     this.appointmentRegistration
       .getAvailability({ appointmentType, instrumentCount, pieceType, courseSectionId })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (availability) => {
           this.availability.set(availability);
@@ -190,11 +208,41 @@ export class WashAppointmentAvailabilityPage {
       });
   }
 
-  private awaitOperation(operationId: string) {
-    return timer(0, 600).pipe(
-      switchMap(() => this.appointmentRegistration.getOperation(operationId)),
-      takeWhile((operation) => operation.status === 'PENDING', true),
-      last(),
+  private trackScheduleOperation(operationId: string): void {
+    this.operationTracker
+      .trackWith(() => this.appointmentRegistration.getOperation(operationId), {
+        intervalMs: 600,
+        maxPendingPolls: 100,
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (operation) => this.completeScheduleOperation(operation),
+        error: (error: unknown) => this.failSubmission(error, true),
+      });
+  }
+
+  private completeScheduleOperation(operation: DurableOperation): void {
+    if (operation.status === 'SUCCEEDED') {
+      this.registration.reset();
+      void this.router.navigate(['/wash/student']);
+      return;
+    }
+
+    this.registration.clearPendingSchedule();
+    this.submissionState.set('FAILED');
+    this.submissionError.set(
+      'No fue posible confirmar la cita. Actualiza los horarios e inténtalo nuevamente.',
+    );
+  }
+
+  private failSubmission(error: unknown, operationAccepted: boolean): void {
+    this.submissionState.set('FAILED');
+    this.submissionError.set(
+      operationAccepted
+        ? 'No pudimos comprobar la confirmación. Reintenta para consultar la misma operación.'
+        : error instanceof ApplicationError
+          ? error.message
+          : 'No fue posible confirmar la cita. Inténtalo nuevamente.',
     );
   }
 

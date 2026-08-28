@@ -33,6 +33,19 @@
       </div>
       <button class="button button--primary" type="button" (click)="retry()">Reintentar</button>
     </section>
+  } @else if (state() === 'AUTHENTICATION') {
+    <section class="feedback-card" aria-labelledby="authentication-title" role="alert">
+      <svg aria-hidden="true" class="feedback-card__icon" viewBox="0 0 24 24">
+        <rect height="13" rx="2" width="12" x="6" y="9" />
+        <path d="M9 9V7a3 3 0 016 0v2m-3 4v2" />
+      </svg>
+      <div>
+        <p class="eyebrow">Sesión expirada</p>
+        <h1 id="authentication-title">Tu sesión terminó</h1>
+        <p>Inicia sesión nuevamente para consultar tu cita de Lavado.</p>
+      </div>
+      <a class="button button--primary" routerLink="/authentication/sign-in">Iniciar sesión</a>
+    </section>
   } @else if (state() === 'FORBIDDEN') {
     <section class="feedback-card" aria-labelledby="forbidden-title">
       <svg aria-hidden="true" class="feedback-card__icon" viewBox="0 0 24 24">

@@ -1,7 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
+import { ApplicationError } from '../../../core/api/application-error';
 import { StudentWashHome } from '../domain/models/student-wash-home';
 import {
   STUDENT_WASH_HOME_GATEWAY,
@@ -70,6 +71,20 @@ describe('StudentWashHomePage', () => {
 
     expect(fixture.nativeElement.textContent).toContain('No tienes cita registrada hoy');
     expect(fixture.nativeElement.textContent).toContain('Registrar cita');
+  });
+
+  it('asks the student to sign in again when their session has expired', () => {
+    gateway.loadHome.and.returnValue(
+      throwError(() => new ApplicationError('authentication', 'Sesión expirada', 401)),
+    );
+
+    const fixture = TestBed.createComponent(StudentWashHomePage);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Tu sesión terminó');
+    expect(
+      (fixture.nativeElement.querySelector('a.button') as HTMLAnchorElement).getAttribute('href'),
+    ).toBe('/authentication/sign-in');
   });
 
   it('shows a pending-entry status without inventing a resource assignment', () => {

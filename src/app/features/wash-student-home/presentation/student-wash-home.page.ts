@@ -25,6 +25,7 @@ type HomeState =
   | 'NO_APPOINTMENT'
   | 'APPOINTMENT_AVAILABLE'
   | 'TEMPORARY_UNAVAILABLE'
+  | 'AUTHENTICATION'
   | 'FORBIDDEN'
   | 'OFFLINE';
 
@@ -67,6 +68,9 @@ export class StudentWashHomePage {
     }
 
     const errorKind = this.errorKind();
+    if (errorKind === 'authentication') {
+      return 'AUTHENTICATION';
+    }
     if (errorKind === 'forbidden') {
       return 'FORBIDDEN';
     }

@@ -65,6 +65,7 @@
                 [checked]="
                   selectedTimeSlot()?.appointmentTimeSlotId === timeSlot.appointmentTimeSlotId
                 "
+                [disabled]="pendingSchedule() !== null"
                 (change)="selectTimeSlot(timeSlot)"
               />
               <span class="slot-option__content">
@@ -105,6 +106,7 @@
       aria-describedby="confirm-description"
       aria-labelledby="confirm-title"
       class="modal"
+      (cancel)="preventConfirmationDismissal($event)"
       (close)="handleConfirmationClosed()"
     >
       <h2 id="confirm-title">¿Confirmar esta cita?</h2>
@@ -133,7 +135,9 @@
           @if (submissionState() === 'SUBMITTING') {
             Confirmando…
           } @else if (submissionState() === 'FAILED') {
-            Reintentar confirmación
+            {{
+              pendingSchedule()?.operationId ? 'Reintentar comprobación' : 'Reintentar confirmación'
+            }}
           } @else {
             Sí, confirmar cita
           }

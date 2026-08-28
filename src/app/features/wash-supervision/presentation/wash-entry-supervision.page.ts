@@ -1,20 +1,39 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   ViewChild,
   computed,
   inject,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { last, switchMap, takeWhile, timer } from 'rxjs';
 
 import { ApplicationError } from '../../../core/api/application-error';
+import { OperationTrackerService } from '../../../core/api/operation-tracker.service';
 import { WashEntrySupervisionUseCase } from '../application/wash-entry-supervision.use-case';
-import { EntryLookupRequest, SupervisorEntryLookup } from '../domain/models/supervisor-entry';
+import {
+  DecideWashEntryCommand,
+  EntryLookupRequest,
+  RegisterWashArrivalCommand,
+  SupervisorEntryLookup,
+} from '../domain/models/supervisor-entry';
 
 type SupervisorAction = 'IDLE' | 'ARRIVAL' | 'DECISION' | 'FAILED';
+
+type PendingSupervisorAction =
+  | {
+      kind: 'ARRIVAL';
+      command: RegisterWashArrivalCommand;
+      operationId: string | null;
+    }
+  | {
+      kind: 'DECISION';
+      command: DecideWashEntryCommand;
+      operationId: string | null;
+    };
 
 const timeFormatter = new Intl.DateTimeFormat('es-MX', {
   hour: '2-digit',
@@ -31,8 +50,10 @@ const timeFormatter = new Intl.DateTimeFormat('es-MX', {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class WashEntrySupervisionPage {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly formBuilder = inject(FormBuilder);
   private readonly supervision = inject(WashEntrySupervisionUseCase);
+  private readonly operationTracker = inject(OperationTrackerService);
   private lastRequest: EntryLookupRequest | null = null;
 
   @ViewChild('rejectionDialog') private rejectionDialog?: ElementRef<HTMLDialogElement>;
@@ -47,6 +68,7 @@ export class WashEntrySupervisionPage {
   readonly lookupError = signal<string | null>(null);
   readonly action = signal<SupervisorAction>('IDLE');
   readonly actionError = signal<string | null>(null);
+  readonly pendingAction = signal<PendingSupervisorAction | null>(null);
   readonly identityConfirmed = signal(false);
   readonly requirementsSatisfied = signal(false);
   readonly rejectionOpen = signal(false);
@@ -58,8 +80,24 @@ export class WashEntrySupervisionPage {
       this.executionStatus() === 'PENDING_ENTRY' &&
       this.identityConfirmed() &&
       this.requirementsSatisfied() &&
-      this.action() === 'IDLE',
+      (this.action() === 'IDLE' ||
+        (this.action() === 'FAILED' && this.pendingAction()?.kind === 'DECISION')),
   );
+  readonly mayRegisterArrival = computed(
+    () =>
+      this.action() === 'IDLE' ||
+      (this.action() === 'FAILED' && this.pendingAction()?.kind === 'ARRIVAL'),
+  );
+  readonly mayOpenRejection = computed(() => {
+    const pending = this.pendingAction();
+    return (
+      this.executionStatus() === 'PENDING_ENTRY' &&
+      (this.action() === 'IDLE' ||
+        (this.action() === 'FAILED' &&
+          pending?.kind === 'DECISION' &&
+          pending.command.decision === 'REJECTED'))
+    );
+  });
 
   search(): void {
     if (this.lookupForm.invalid) {
@@ -72,47 +110,75 @@ export class WashEntrySupervisionPage {
     this.loadingLookup.set(true);
     this.lookupError.set(null);
     this.lookup.set(null);
+    this.action.set('IDLE');
+    this.pendingAction.set(null);
     this.resetDecisionControls();
 
-    this.supervision.lookup(request).subscribe({
-      next: (lookup) => {
-        this.lookup.set(lookup);
-        this.loadingLookup.set(false);
-      },
-      error: (error: unknown) => {
-        this.lookupError.set(
-          error instanceof ApplicationError
-            ? error.message
-            : 'No fue posible consultar la cita de hoy.',
-        );
-        this.loadingLookup.set(false);
-      },
-    });
+    this.supervision
+      .lookup(request)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (lookup) => {
+          this.lookup.set(lookup);
+          this.loadingLookup.set(false);
+        },
+        error: (error: unknown) => {
+          this.lookupError.set(
+            error instanceof ApplicationError
+              ? error.message
+              : 'No fue posible consultar la cita de hoy.',
+          );
+          this.loadingLookup.set(false);
+        },
+      });
   }
 
   registerArrival(): void {
     const appointmentId = this.lookup()?.appointment.appointmentId;
-    if (!appointmentId || this.action() !== 'IDLE') {
+    if (!appointmentId || !this.mayRegisterArrival()) {
+      return;
+    }
+
+    let pending = this.pendingAction();
+    if (!pending) {
+      pending = {
+        kind: 'ARRIVAL',
+        command: { appointmentId, idempotencyKey: this.createIdempotencyKey() },
+        operationId: null,
+      };
+      this.pendingAction.set(pending);
+    }
+    if (pending.kind !== 'ARRIVAL') {
       return;
     }
 
     this.action.set('ARRIVAL');
     this.actionError.set(null);
+    if (pending.operationId) {
+      this.trackPendingAction(pending.operationId);
+      return;
+    }
+
     this.supervision
-      .registerArrival({ appointmentId, idempotencyKey: this.createIdempotencyKey() })
-      .pipe(switchMap(({ operationId }) => this.awaitOperation(operationId)))
+      .registerArrival(pending.command)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (operation) => this.completeOperation(operation.status === 'SUCCEEDED'),
+        next: ({ operationId }) => {
+          this.setPendingOperation(operationId);
+          this.trackPendingAction(operationId);
+        },
         error: (error: unknown) => this.failAction(error),
       });
   }
 
   openRejection(event: MouseEvent): void {
-    if (this.executionStatus() === 'PENDING_ENTRY' && this.action() === 'IDLE') {
+    if (this.mayOpenRejection()) {
       this.rejectionTrigger = event.currentTarget as HTMLElement;
       this.rejectionOpen.set(true);
-      this.rejectionReason.set('');
-      this.rejectionTouched.set(false);
+      if (!this.pendingAction()) {
+        this.rejectionReason.set('');
+        this.rejectionTouched.set(false);
+      }
       setTimeout(() => {
         const dialog = this.rejectionDialog?.nativeElement;
         if (dialog && !dialog.open) {
@@ -137,6 +203,12 @@ export class WashEntrySupervisionPage {
     this.rejectionOpen.set(false);
     this.rejectionTrigger?.focus();
     this.rejectionTrigger = null;
+  }
+
+  preventRejectionDismissal(event: Event): void {
+    if (this.action() === 'DECISION') {
+      event.preventDefault();
+    }
   }
 
   updateIdentityConfirmed(event: Event): void {
@@ -173,7 +245,7 @@ export class WashEntrySupervisionPage {
 
   private sendDecision(decision: 'AUTHORIZED' | 'REJECTED', rejectionReason: string | null): void {
     const execution = this.lookup()?.washExecution;
-    if (!execution || execution.status !== 'PENDING_ENTRY' || this.action() !== 'IDLE') {
+    if (!execution || execution.status !== 'PENDING_ENTRY') {
       return;
     }
 
@@ -181,28 +253,50 @@ export class WashEntrySupervisionPage {
       return;
     }
 
+    let pending = this.pendingAction();
+    if (!pending) {
+      pending = {
+        kind: 'DECISION',
+        command: {
+          washExecutionId: execution.washExecutionId,
+          expectedVersion: execution.version ?? 1,
+          decision,
+          identityConfirmed: this.identityConfirmed(),
+          requirementsSatisfied: this.requirementsSatisfied(),
+          rejectionReason,
+          idempotencyKey: this.createIdempotencyKey(),
+        },
+        operationId: null,
+      };
+      this.pendingAction.set(pending);
+    }
+    if (pending.kind !== 'DECISION' || pending.command.decision !== decision) {
+      return;
+    }
+
     this.action.set('DECISION');
     this.actionError.set(null);
+    if (pending.operationId) {
+      this.trackPendingAction(pending.operationId);
+      return;
+    }
+
     this.supervision
-      .decideEntry({
-        washExecutionId: execution.washExecutionId,
-        expectedVersion: execution.version ?? 1,
-        decision,
-        identityConfirmed: this.identityConfirmed(),
-        requirementsSatisfied: this.requirementsSatisfied(),
-        rejectionReason,
-        idempotencyKey: this.createIdempotencyKey(),
-      })
-      .pipe(switchMap(({ operationId }) => this.awaitOperation(operationId)))
+      .decideEntry(pending.command)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (operation) => this.completeOperation(operation.status === 'SUCCEEDED'),
+        next: ({ operationId }) => {
+          this.setPendingOperation(operationId);
+          this.trackPendingAction(operationId);
+        },
         error: (error: unknown) => this.failAction(error),
       });
   }
 
   private completeOperation(succeeded: boolean): void {
+    this.pendingAction.set(null);
     if (!succeeded) {
-      this.action.set('FAILED');
+      this.action.set('IDLE');
       this.actionError.set(
         'La operación no se pudo completar. Actualiza la consulta e inténtalo otra vez.',
       );
@@ -220,21 +314,24 @@ export class WashEntrySupervisionPage {
     }
 
     this.loadingLookup.set(true);
-    this.supervision.lookup(this.lastRequest).subscribe({
-      next: (lookup) => {
-        this.lookup.set(lookup);
-        this.loadingLookup.set(false);
-        this.resetDecisionControls();
-      },
-      error: (error: unknown) => {
-        this.lookupError.set(
-          error instanceof ApplicationError
-            ? error.message
-            : 'La operación se completó, pero no pudimos actualizar la consulta.',
-        );
-        this.loadingLookup.set(false);
-      },
-    });
+    this.supervision
+      .lookup(this.lastRequest)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (lookup) => {
+          this.lookup.set(lookup);
+          this.loadingLookup.set(false);
+          this.resetDecisionControls();
+        },
+        error: (error: unknown) => {
+          this.lookupError.set(
+            error instanceof ApplicationError
+              ? error.message
+              : 'La operación se completó, pero no pudimos actualizar la consulta.',
+          );
+          this.loadingLookup.set(false);
+        },
+      });
   }
 
   private createRequest(): EntryLookupRequest {
@@ -245,20 +342,31 @@ export class WashEntrySupervisionPage {
       : { lookupType: 'STUDENT_ENROLLMENT', studentEnrollment: value };
   }
 
-  private awaitOperation(operationId: string) {
-    return timer(0, 600).pipe(
-      switchMap(() => this.supervision.getOperation(operationId)),
-      takeWhile((operation) => operation.status === 'PENDING', true),
-      last(),
-    );
+  private setPendingOperation(operationId: string): void {
+    this.pendingAction.update((pending) => (pending ? { ...pending, operationId } : pending));
+  }
+
+  private trackPendingAction(operationId: string): void {
+    this.operationTracker
+      .trackWith(() => this.supervision.getOperation(operationId), {
+        intervalMs: 600,
+        maxPendingPolls: 100,
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (operation) => this.completeOperation(operation.status === 'SUCCEEDED'),
+        error: (error: unknown) => this.failAction(error),
+      });
   }
 
   private failAction(error: unknown): void {
     this.action.set('FAILED');
     this.actionError.set(
-      error instanceof ApplicationError
-        ? error.message
-        : 'No fue posible guardar la decisión. Inténtalo nuevamente.',
+      this.pendingAction()?.operationId
+        ? 'No pudimos comprobar la operación. Reintenta para consultar la misma operación.'
+        : error instanceof ApplicationError
+          ? error.message
+          : 'No fue posible guardar la decisión. Inténtalo nuevamente.',
     );
   }
 
