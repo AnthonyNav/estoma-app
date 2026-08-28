@@ -15,6 +15,15 @@ import { routes } from './app.routes';
 import { AUTHENTICATION_GATEWAY } from './features/authentication/domain/ports/authentication.gateway';
 import { HttpAuthenticationAdapter } from './features/authentication/infrastructure/api/http-authentication.adapter';
 import { MockAuthenticationAdapter } from './features/authentication/infrastructure/mock/mock-authentication.adapter';
+import { WASH_APPOINTMENTS_GATEWAY } from './features/wash-appointments/domain/ports/wash-appointments.gateway';
+import { HttpWashAppointmentsAdapter } from './features/wash-appointments/infrastructure/api/http-wash-appointments.adapter';
+import { MockWashAppointmentsAdapter } from './features/wash-appointments/infrastructure/mock/mock-wash-appointments.adapter';
+import { STUDENT_WASH_HOME_GATEWAY } from './features/wash-student-home/domain/ports/student-wash-home.gateway';
+import { HttpStudentWashHomeAdapter } from './features/wash-student-home/infrastructure/api/http-student-wash-home.adapter';
+import { MockStudentWashHomeAdapter } from './features/wash-student-home/infrastructure/mock/mock-student-wash-home.adapter';
+import { WASH_SUPERVISION_GATEWAY } from './features/wash-supervision/domain/ports/wash-supervision.gateway';
+import { HttpWashSupervisionAdapter } from './features/wash-supervision/infrastructure/api/http-wash-supervision.adapter';
+import { MockWashSupervisionAdapter } from './features/wash-supervision/infrastructure/mock/mock-wash-supervision.adapter';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -25,6 +34,18 @@ export const appConfig: ApplicationConfig = {
     {
       provide: AUTHENTICATION_GATEWAY,
       useClass: environment.useMockApi ? MockAuthenticationAdapter : HttpAuthenticationAdapter,
+    },
+    {
+      provide: STUDENT_WASH_HOME_GATEWAY,
+      useClass: environment.useMockApi ? MockStudentWashHomeAdapter : HttpStudentWashHomeAdapter,
+    },
+    {
+      provide: WASH_APPOINTMENTS_GATEWAY,
+      useClass: environment.useMockApi ? MockWashAppointmentsAdapter : HttpWashAppointmentsAdapter,
+    },
+    {
+      provide: WASH_SUPERVISION_GATEWAY,
+      useClass: environment.useMockApi ? MockWashSupervisionAdapter : HttpWashSupervisionAdapter,
     },
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),

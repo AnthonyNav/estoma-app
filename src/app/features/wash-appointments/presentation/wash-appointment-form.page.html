@@ -1,0 +1,221 @@
+<section class="flow" aria-labelledby="appointment-form-title">
+  <header class="flow__header">
+    <h1 id="appointment-form-title">Datos de tu instrumental</h1>
+    <p class="flow__intro">
+      Usaremos estos datos únicamente para verificar la disponibilidad de hoy.
+    </p>
+  </header>
+
+  <ol class="stepper" aria-label="Progreso del registro de cita">
+    <li class="is-complete" data-step="1">Reglamento</li>
+    <li aria-current="step" data-step="2">Datos</li>
+    <li data-step="3">Horario</li>
+  </ol>
+
+  @if (loading()) {
+    <article class="flow-card" aria-busy="true" role="status">
+      <span class="sr-only">Cargando el formulario de cita</span>
+      <div class="skeleton skeleton--line"></div>
+      <div class="skeleton skeleton--large"></div>
+    </article>
+  } @else if (error(); as error) {
+    <section class="feedback feedback--error" role="alert">
+      <h2>No pudimos preparar tu cita</h2>
+      <p>{{ error }}</p>
+      <a class="button button--secondary" routerLink="/wash/student">Volver a mi estado</a>
+    </section>
+  } @else if (context(); as context) {
+    <form class="flow-card flow-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      @if (validationSummaryVisible() && form.invalid) {
+        <section
+          #validationSummary
+          aria-labelledby="appointment-form-errors-title"
+          class="feedback feedback--error"
+          role="alert"
+          tabindex="-1"
+        >
+          <h2 id="appointment-form-errors-title">Revisa los datos de tu cita</h2>
+          <ul>
+            @if (form.controls.appointmentType.invalid) {
+              <li><a href="#appointment-type-normal">Selecciona un tipo de cita.</a></li>
+            }
+            @if (form.controls.instrumentCount.invalid) {
+              <li><a href="#instrument-count">Indica una cantidad válida de instrumentos.</a></li>
+            }
+            @if (form.controls.pieceType.invalid) {
+              <li><a href="#piece-type">Selecciona el tipo de pieza.</a></li>
+            }
+            @if (form.controls.courseSectionId.invalid) {
+              <li><a href="#course-section">Selecciona tu curso y sección.</a></li>
+            }
+          </ul>
+        </section>
+      }
+
+      <div class="flow-card__heading">
+        <span class="flow-card__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M7 4h10v16H7zM9.5 8h5m-5 4h5m-5 4H12" /></svg>
+        </span>
+        <div>
+          <h2>{{ context.student.fullName }}</h2>
+          <p>
+            {{ context.student.studentEnrollment }} · {{ context.student.currentSemester }}°
+            semestre
+          </p>
+        </div>
+      </div>
+
+      <fieldset
+        [attr.aria-describedby]="
+          form.controls.appointmentType.invalid && form.controls.appointmentType.touched
+            ? 'appointment-type-error'
+            : null
+        "
+        class="fieldset"
+      >
+        <legend>Tipo de cita</legend>
+        <div class="radio-grid">
+          <label class="radio-card">
+            <input
+              id="appointment-type-normal"
+              type="radio"
+              formControlName="appointmentType"
+              value="NORMAL"
+            />
+            <span>Lavado normal</span>
+          </label>
+          <label class="radio-card">
+            <input
+              id="appointment-type-journey"
+              type="radio"
+              formControlName="appointmentType"
+              value="JOURNEY"
+            />
+            <span>Jornada clínica</span>
+          </label>
+          <label class="radio-card">
+            <input
+              id="appointment-type-immunocompromised"
+              type="radio"
+              formControlName="appointmentType"
+              value="IMMUNOCOMPROMISED"
+            />
+            <span>Inmunocomprometido</span>
+          </label>
+        </div>
+        @if (form.controls.appointmentType.invalid && form.controls.appointmentType.touched) {
+          <p class="field__error" id="appointment-type-error" role="alert">
+            Selecciona un tipo de cita.
+          </p>
+        }
+      </fieldset>
+
+      <div class="flow-form__grid">
+        <div
+          class="field"
+          [class.field--invalid]="
+            form.controls.instrumentCount.invalid && form.controls.instrumentCount.touched
+          "
+        >
+          <label for="instrument-count">Número de instrumentos</label>
+          <input
+            id="instrument-count"
+            type="number"
+            inputmode="numeric"
+            min="1"
+            [max]="instrumentMaximum()"
+            [attr.aria-describedby]="
+              form.controls.instrumentCount.invalid && form.controls.instrumentCount.touched
+                ? 'instrument-count-hint instrument-count-error'
+                : 'instrument-count-hint'
+            "
+            [attr.aria-invalid]="
+              form.controls.instrumentCount.invalid && form.controls.instrumentCount.touched
+            "
+            formControlName="instrumentCount"
+          />
+          <p class="field__hint" id="instrument-count-hint">
+            De 1 a {{ instrumentMaximum() }} instrumentos para este tipo de cita.
+          </p>
+          @if (form.controls.instrumentCount.invalid && form.controls.instrumentCount.touched) {
+            <p class="field__error" id="instrument-count-error" role="alert">
+              Indica una cantidad válida.
+            </p>
+          }
+        </div>
+
+        <div
+          class="field"
+          [class.field--invalid]="
+            form.controls.pieceType.invalid && form.controls.pieceType.touched
+          "
+        >
+          <label for="piece-type">Tipo de pieza</label>
+          <select
+            id="piece-type"
+            [attr.aria-describedby]="
+              form.controls.pieceType.invalid && form.controls.pieceType.touched
+                ? 'piece-type-error'
+                : null
+            "
+            [attr.aria-invalid]="form.controls.pieceType.invalid && form.controls.pieceType.touched"
+            formControlName="pieceType"
+          >
+            <option value="HIGH_SPEED">Alta velocidad</option>
+            <option value="LOW_SPEED">Baja velocidad</option>
+            <option value="CONTRA_ANGLE">Contra-ángulo</option>
+          </select>
+          @if (form.controls.pieceType.invalid && form.controls.pieceType.touched) {
+            <p class="field__error" id="piece-type-error" role="alert">
+              Selecciona el tipo de pieza.
+            </p>
+          }
+        </div>
+      </div>
+
+      <div
+        class="field"
+        [class.field--invalid]="
+          form.controls.courseSectionId.invalid && form.controls.courseSectionId.touched
+        "
+      >
+        <label for="course-section">Curso y sección</label>
+        <select
+          id="course-section"
+          [attr.aria-describedby]="
+            form.controls.courseSectionId.invalid && form.controls.courseSectionId.touched
+              ? 'course-section-hint course-section-error'
+              : 'course-section-hint'
+          "
+          [attr.aria-invalid]="
+            form.controls.courseSectionId.invalid && form.controls.courseSectionId.touched
+          "
+          formControlName="courseSectionId"
+        >
+          <option value="" disabled>Selecciona una sección</option>
+          @for (
+            courseSection of context.availableCourseSections;
+            track courseSection.courseSectionId
+          ) {
+            <option [value]="courseSection.courseSectionId">
+              {{ courseSection.nrc }} · {{ courseSection.name }}
+            </option>
+          }
+        </select>
+        <p class="field__hint" id="course-section-hint">
+          Solo se muestran las secciones disponibles para tu inscripción.
+        </p>
+        @if (form.controls.courseSectionId.invalid && form.controls.courseSectionId.touched) {
+          <p class="field__error" id="course-section-error" role="alert">
+            Selecciona tu curso y sección.
+          </p>
+        }
+      </div>
+
+      <div class="button-row">
+        <a class="button button--quiet" routerLink="/wash/appointments/regulation">Atrás</a>
+        <button class="button button--primary" type="submit">Ver horarios disponibles</button>
+      </div>
+    </form>
+  }
+</section>

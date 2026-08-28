@@ -1,9 +1,11 @@
 <header class="app-header">
-  <a class="brand" routerLink="/home">Estoma</a>
-  <nav aria-label="Primary navigation">
-    <a routerLink="/home" routerLinkActive="active">Home</a>
-    <a routerLink="/authentication/sign-in" routerLinkActive="active">Sign in</a>
-  </nav>
+  <a class="brand" routerLink="/wash/student">Lavado ultrasónico</a>
+  <a aria-label="Cerrar sesión" class="app-header__sign-out" routerLink="/authentication/sign-in">
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="M14 8l4 4-4 4M18 12H8M11 5H5v14h6" />
+    </svg>
+    <span>Salir</span>
+  </a>
 </header>
 
 <main class="app-content">

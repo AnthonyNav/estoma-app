@@ -1,0 +1,13 @@
+<div
+  [class]="'appointment-qr appointment-qr--' + size"
+  aria-label="Código QR de la cita"
+  role="img"
+>
+  @if (imageUrl(); as imageUrl) {
+    <img alt="" [src]="imageUrl" />
+  } @else if (unavailable()) {
+    <div class="appointment-qr__fallback" aria-hidden="true">QR</div>
+  } @else {
+    <div class="appointment-qr__skeleton" aria-hidden="true"></div>
+  }
+</div>

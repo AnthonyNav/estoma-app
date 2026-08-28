@@ -1,11 +1,92 @@
+@use './app/features/wash-appointments/presentation/wash-appointment-flow';
+
+@import '@fontsource/manrope/400.css';
+@import '@fontsource/manrope/600.css';
+@import '@fontsource/manrope/700.css';
+@import '@fontsource/manrope/800.css';
+
 :root {
-  --color-accent: #126a69;
-  --color-border: #d8e0df;
-  --color-ink: #15201f;
-  --color-muted: #596563;
-  --color-surface: #f6f8f7;
-  color: var(--color-ink);
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  --surface: #ffffff;
+  --surface-dim: #d7dadc;
+  --surface-bright: #f7fafc;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f1f4f6;
+  --surface-container: #ebeef0;
+  --surface-container-high: #e5e9eb;
+  --surface-container-highest: #e0e3e5;
+  --on-surface: #181c1e;
+  --on-surface-variant: #40484b;
+  --inverse-surface: #2d3133;
+  --inverse-on-surface: #eef1f3;
+  --outline: #70787c;
+  --outline-variant: #bfc8cc;
+  --surface-tint: #206679;
+  --primary: #004352;
+  --on-primary: #ffffff;
+  --primary-container: #0f5c6e;
+  --on-primary-container: #93d2e7;
+  --inverse-primary: #90d0e5;
+  --secondary: #00696c;
+  --on-secondary: #ffffff;
+  --secondary-container: #8bf0f3;
+  --on-secondary-container: #006e71;
+  --tertiary: #29404c;
+  --on-tertiary: #ffffff;
+  --tertiary-container: #405764;
+  --on-tertiary-container: #b4ccdb;
+  --error: #ba1a1a;
+  --on-error: #ffffff;
+  --error-container: #ffdad6;
+  --on-error-container: #93000a;
+  --primary-fixed: #b2ebff;
+  --primary-fixed-dim: #90d0e5;
+  --on-primary-fixed: #001f27;
+  --on-primary-fixed-variant: #004e5e;
+  --secondary-fixed: #8ef3f6;
+  --secondary-fixed-dim: #70d6d9;
+  --on-secondary-fixed: #002021;
+  --on-secondary-fixed-variant: #004f51;
+  --tertiary-fixed: #cde6f6;
+  --tertiary-fixed-dim: #b2cad9;
+  --on-tertiary-fixed: #041e2a;
+  --on-tertiary-fixed-variant: #334a56;
+  --background: #f7fafc;
+  --on-background: #181c1e;
+  --surface-variant: #e0e3e5;
+  --text-main: #17252e;
+  --success: #16a085;
+  --warning: #f2b94b;
+  --danger: #d9534f;
+
+  --radius-sm: 0.25rem;
+  --radius-default: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-full: 9999px;
+
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --type-headline-sm-size: 1.25rem;
+  --type-body-md-size: 1rem;
+  --type-body-sm-size: 0.875rem;
+  --type-label-lg-size: 0.875rem;
+  --type-label-md-size: 0.75rem;
+  --shadow-card: 0 1.25rem 3.5rem rgb(15 92 110 / 12%);
+
+  // Compatibility aliases for the existing foundation and authentication pilot.
+  --color-accent: var(--primary);
+  --color-border: var(--outline-variant);
+  --color-ink: var(--text-main);
+  --color-muted: var(--on-surface-variant);
+  --color-surface: var(--background);
+
+  color: var(--on-background);
+  font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  font-synthesis: none;
   line-height: 1.5;
 }
 
@@ -14,11 +95,107 @@
 }
 
 body {
-  background: var(--color-surface);
+  background: var(--background);
   margin: 0;
+  min-width: 20rem;
 }
 
 button,
 input {
   font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:not(:disabled):active,
+a.button:active {
+  opacity: 0.86;
+}
+
+a,
+button,
+input,
+select,
+textarea {
+  &:focus-visible {
+    outline: 3px solid var(--secondary-fixed-dim);
+    outline-offset: 3px;
+  }
+}
+
+.sr-only {
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.qr-dialog {
+  background: var(--surface);
+  border: 0;
+  border-radius: var(--radius-xl);
+  box-shadow: 0 1.5rem 5rem rgb(0 31 39 / 32%);
+  color: var(--on-surface);
+  margin: auto;
+  max-width: min(30rem, calc(100vw - 2rem));
+  padding: var(--space-lg);
+  width: 100%;
+}
+
+.qr-dialog::backdrop {
+  background: rgb(0 31 39 / 48%);
+}
+
+.qr-dialog__header {
+  align-items: flex-start;
+  display: flex;
+  gap: var(--space-md);
+  justify-content: space-between;
+  margin-bottom: var(--space-lg);
+}
+
+.qr-dialog h2 {
+  color: var(--text-main);
+  font-size: var(--type-headline-sm-size);
+  margin-bottom: var(--space-xs);
+}
+
+.qr-dialog p {
+  color: var(--on-surface-variant);
+  font-size: var(--type-body-sm-size);
+  margin-bottom: 0;
+}
+
+.icon-button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-md);
+  color: var(--on-surface);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 2.75rem;
+  justify-content: center;
+  padding: 0;
+  width: 2.75rem;
+}
+
+.icon-button:hover {
+  background: var(--surface-container-low);
+}
+
+.icon-button svg {
+  fill: none;
+  height: 1.25rem;
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+  width: 1.25rem;
 }

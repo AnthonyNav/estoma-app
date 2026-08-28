@@ -1,0 +1,148 @@
+<section class="flow" aria-labelledby="availability-title">
+  <header class="flow__header">
+    <h1 id="availability-title">Elige tu horario</h1>
+    <p class="flow__intro">
+      Seleccionar un horario aún no lo reserva. Confírmalo en el siguiente paso.
+    </p>
+  </header>
+
+  <ol class="stepper" aria-label="Progreso del registro de cita">
+    <li class="is-complete" data-step="1">Reglamento</li>
+    <li class="is-complete" data-step="2">Datos</li>
+    <li aria-current="step" data-step="3">Horario</li>
+  </ol>
+
+  @if (loading()) {
+    <article class="flow-card" aria-busy="true" role="status">
+      <span class="sr-only">Consultando horarios disponibles</span>
+      <div class="skeleton skeleton--line"></div>
+      <div class="skeleton skeleton--large"></div>
+    </article>
+  } @else if (loadError(); as error) {
+    <section class="feedback feedback--error" role="alert">
+      <h2>No pudimos consultar los horarios</h2>
+      <p>{{ error }}</p>
+      <div class="button-row">
+        <a class="button button--quiet" routerLink="/wash/appointments/new">Cambiar datos</a>
+        <button class="button button--primary" type="button" (click)="retry()">Reintentar</button>
+      </div>
+    </section>
+  } @else if (availability(); as availability) {
+    <article class="flow-card">
+      @if (!availability.canSchedule) {
+        <div class="feedback" role="status">
+          <h2>No hay horarios que puedas reservar ahora</h2>
+          @if (availability.blockingReasons.length) {
+            <ul>
+              @for (reason of availability.blockingReasons; track reason) {
+                <li>{{ reason }}</li>
+              }
+            </ul>
+          } @else {
+            <p>Actualiza tus datos o consulta nuevamente más tarde.</p>
+          }
+        </div>
+      } @else {
+        <div class="flow-card__heading">
+          <span class="flow-card__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="7" />
+              <path d="M12 8v4l2.5 1.5" />
+            </svg>
+          </span>
+          <div>
+            <h2>Horarios disponibles hoy</h2>
+            <p>Los cupos cambian hasta que confirmes tu cita.</p>
+          </div>
+        </div>
+
+        <div class="availability-list" role="radiogroup" aria-label="Horarios disponibles">
+          @for (timeSlot of availability.availableTimeSlots; track timeSlot.appointmentTimeSlotId) {
+            <label class="slot-option">
+              <input
+                type="radio"
+                name="time-slot"
+                [checked]="
+                  selectedTimeSlot()?.appointmentTimeSlotId === timeSlot.appointmentTimeSlotId
+                "
+                [disabled]="pendingSchedule() !== null"
+                (change)="selectTimeSlot(timeSlot)"
+              />
+              <span class="slot-option__content">
+                <span class="slot-option__indicator" aria-hidden="true"></span>
+                <span>
+                  <strong class="slot-option__time">{{ formatSlot(timeSlot) }}</strong>
+                  <small class="slot-option__deadline">{{ formatDeadline(timeSlot) }}</small>
+                </span>
+                <span class="slot-option__capacity">
+                  {{ timeSlot.availableCapacity }}
+                  {{ timeSlot.availableCapacity === 1 ? 'cupo' : 'cupos' }}
+                </span>
+              </span>
+            </label>
+          }
+        </div>
+      }
+
+      <div class="button-row">
+        <a class="button button--quiet" routerLink="/wash/appointments/new">Atrás</a>
+        @if (availability.canSchedule) {
+          <button
+            class="button button--primary"
+            type="button"
+            [disabled]="!canSchedule()"
+            (click)="openConfirmation($event)"
+          >
+            Confirmar horario
+          </button>
+        }
+      </div>
+    </article>
+  }
+
+  @if (confirmationOpen() && selectedTimeSlot(); as timeSlot) {
+    <dialog
+      #confirmationDialog
+      aria-describedby="confirm-description"
+      aria-labelledby="confirm-title"
+      class="modal"
+      (cancel)="preventConfirmationDismissal($event)"
+      (close)="handleConfirmationClosed()"
+    >
+      <h2 id="confirm-title">¿Confirmar esta cita?</h2>
+      <p id="confirm-description">
+        {{ formatSlot(timeSlot) }} · {{ timeSlot.availableCapacity }} cupos al momento de consultar.
+      </p>
+      <p>La disponibilidad se valida nuevamente al confirmar.</p>
+      @if (submissionError(); as error) {
+        <p class="field__error" role="alert">{{ error }}</p>
+      }
+      <div class="button-row">
+        <button
+          class="button button--quiet"
+          type="button"
+          [disabled]="submissionState() === 'SUBMITTING'"
+          (click)="closeConfirmation()"
+        >
+          Cancelar
+        </button>
+        <button
+          class="button button--primary"
+          type="button"
+          [disabled]="submissionState() === 'SUBMITTING'"
+          (click)="confirmSchedule()"
+        >
+          @if (submissionState() === 'SUBMITTING') {
+            Confirmando…
+          } @else if (submissionState() === 'FAILED') {
+            {{
+              pendingSchedule()?.operationId ? 'Reintentar comprobación' : 'Reintentar confirmación'
+            }}
+          } @else {
+            Sí, confirmar cita
+          }
+        </button>
+      </div>
+    </dialog>
+  }
+</section>

@@ -16,6 +16,7 @@ pnpm start
 ```
 
 The development build uses mock BFF adapters. Open `http://localhost:4200` and use any non-empty identifier and password in the authentication pilot.
+See [the fixtures guide](docs/fixtures.md) to exercise the Wash flow and its error states without a backend.
 
 ## Commands
 
