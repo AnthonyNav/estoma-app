@@ -1,7 +1,7 @@
 <section class="sign-in" aria-labelledby="sign-in-title">
-  <p class="eyebrow">Account access</p>
-  <h1 id="sign-in-title">Sign in to Estoma</h1>
-  <p class="intro">The development environment uses the contract-faithful mock adapter.</p>
+  <p class="eyebrow">Inicio de sesión</p>
+  <h1 id="sign-in-title">Plataforma de Estomatología</h1>
+  <p class="intro">Sistema de gestión clínica y de laboratorios de la Facultad de Estomatología.</p>
 
   @if (signedInAs(); as accountId) {
     <p class="success" role="status">Signed in as {{ accountId }}.</p>
@@ -13,11 +13,11 @@
 
   <form [formGroup]="form" (ngSubmit)="submit()">
     <label>
-      Identifier
+      Correo electrónico
       <input autocomplete="username" formControlName="identifier" required />
     </label>
     <label>
-      Password
+      Contraseña
       <input autocomplete="current-password" formControlName="password" required type="password" />
     </label>
     <button [disabled]="submitting()" type="submit">
