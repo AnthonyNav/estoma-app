@@ -16,7 +16,7 @@
 }
 
 .eyebrow {
-  color: var(--primary);
+  color: #71a5de;
   font-size: var(--type-label-md-size);
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -32,7 +32,7 @@ p {
 }
 
 h1 {
-  color: var(--text-main);
+  color: #0f172a;
   font-size: clamp(1.5rem, 4vw, 2rem);
   letter-spacing: -0.01em;
   line-height: 1.25;
@@ -40,7 +40,7 @@ h1 {
 }
 
 .student-identity {
-  color: var(--on-surface-variant);
+  color: #475569;
   font-size: var(--type-body-sm-size);
   margin-bottom: 0;
 }
@@ -57,19 +57,23 @@ h1 {
 
 .status-card,
 .feedback-card {
-  background: var(--surface);
+  background: #ffffff;
   border-radius: var(--radius-xl);
 }
 
 .status-card {
-  border: 1px solid var(--outline-variant);
-  box-shadow: var(--shadow-card);
+  border: 1px solid #aecbeb;
+  box-shadow:
+    0 10px 30px -5px rgba(113, 165, 222, 0.2),
+    0 8px 10px -6px rgba(174, 203, 235, 0.2);
   overflow: hidden;
 }
 
+/* Barra superior de estado ("Cita programada") */
 .status-card__topline {
   align-items: center;
-  background: var(--surface-container-low);
+  background: #e1ecf7;
+  border-bottom: 1px solid #aecbeb;
   display: flex;
   gap: var(--space-sm);
   min-height: 4.25rem;
@@ -78,9 +82,9 @@ h1 {
 
 .status-card__icon {
   align-items: center;
-  background: var(--primary-fixed);
+  background: #71a5de;
   border-radius: 50%;
-  color: var(--on-primary-fixed);
+  color: #ffffff;
   display: inline-flex;
   height: 1.5rem;
   justify-content: center;
@@ -102,7 +106,7 @@ h1 {
 }
 
 .status-chip {
-  color: var(--on-surface);
+  color: #0f172a;
   font-size: var(--type-label-lg-size);
   font-weight: 700;
 }
@@ -119,7 +123,7 @@ h1 {
 
 .status-card__summary h2,
 .feedback-card h1 {
-  color: var(--text-main);
+  color: #0f172a;
   font-size: clamp(1.5rem, 4vw, 2rem);
   line-height: 1.25;
   margin-bottom: var(--space-sm);
@@ -129,11 +133,14 @@ h1 {
 .feedback-card p,
 .qr-panel p,
 .wash-home__support p {
-  color: var(--on-surface-variant);
+  color: #475569;
   font-size: var(--type-body-md-size);
   line-height: 1.5;
 }
 
+/* ==========================================
+   BOTONES
+   ========================================== */
 .button {
   align-items: center;
   border: 1px solid transparent;
@@ -148,30 +155,38 @@ h1 {
   min-height: 2.75rem;
   padding: 0.6875rem var(--space-md);
   text-decoration: none;
+  transition: all 0.2s ease-in-out;
 }
 
 .button--primary {
-  background: var(--primary);
-  color: var(--on-primary);
+  background: #71a5de !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 10px rgba(113, 165, 222, 0.3);
 }
 
 .button--primary:hover {
-  background: var(--primary-container);
+  background: #5b93d3 !important;
+  box-shadow: 0 6px 14px rgba(113, 165, 222, 0.4);
 }
 
 .button--secondary {
   background: transparent;
-  border-color: var(--secondary);
-  color: var(--secondary);
+  border-color: #aecbeb;
+  color: #475569;
 }
 
 .button--secondary:hover {
-  background: color-mix(in srgb, var(--secondary-fixed) 45%, transparent);
+  background: #e1ecf7;
+  color: #71a5de;
+  border-color: #71a5de;
 }
 
+/* ==========================================
+   LISTA DE DETALLES DE CITA
+   ========================================== */
 .appointment-details dl {
   display: grid;
-  border-top: 1px solid var(--outline-variant);
+  border-top: 1px solid #aecbeb;
   column-gap: var(--space-lg);
   row-gap: 0;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -179,7 +194,7 @@ h1 {
 }
 
 .appointment-details dl div {
-  border-bottom: 1px solid var(--outline-variant);
+  border-bottom: 1px solid #aecbeb;
   min-width: 0;
   padding: 0.875rem 0;
 }
@@ -195,7 +210,7 @@ h1 {
 dt,
 .resource-assignment__label,
 .rejection-reason span {
-  color: var(--on-surface-variant);
+  color: #71a5de;
   font-size: var(--type-label-md-size);
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -203,7 +218,7 @@ dt,
 }
 
 dd {
-  color: var(--on-surface);
+  color: #0f172a;
   font-size: var(--type-label-lg-size);
   font-weight: 700;
   line-height: 1.45;
@@ -220,85 +235,143 @@ dd {
 }
 
 .resource-assignment {
-  background: color-mix(in srgb, var(--secondary-fixed) 38%, var(--surface));
+  background: #e1ecf7;
+  border: 1px solid #aecbeb;
 }
 
 .resource-assignment strong {
-  color: var(--on-secondary-fixed);
+  color: #0f172a;
   font-size: var(--type-headline-sm-size);
 }
 
 .resource-assignment span:last-child {
-  color: var(--on-secondary-fixed);
+  color: #475569;
 }
 
 .rejection-reason {
-  background: var(--error-container);
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
 }
 
 .rejection-reason span,
 .rejection-reason p {
-  color: var(--on-error-container);
+  color: #b91c1c;
 }
 
 .rejection-reason p {
   margin: 0;
 }
 
+/* ==========================================
+   PANEL Y MARCO DEL CÓDIGO QR (SOLUCIÓN)
+   ========================================== */
 .qr-panel {
   align-items: center;
-  background: var(--surface-container-low);
+  background: #f8f9fb;
+  border: 1px solid #aecbeb;
   border-radius: var(--radius-lg);
   display: grid;
   gap: var(--space-lg);
   grid-template-columns: minmax(9rem, 12rem) minmax(0, 1fr);
   padding: var(--space-lg);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+  margin-top: 1.5rem;
+}
+
+/* Mapeo directo a todas las formas posibles de encapsulamiento del QR */
+.qr-panel > div:first-child,
+.qr-panel__qr,
+.qr-panel__image,
+.qr-panel img,
+.qr-panel canvas,
+.qr-panel svg {
+  background: #ffffff !important;
+  border: 1.5px solid #aecbeb !important;
+  border-radius: 0.75rem !important;
+  padding: 0.75rem !important;
+  box-shadow: 0 4px 10px rgba(113, 165, 222, 0.15) !important;
+  display: block;
 }
 
 .qr-panel h3 {
-  color: var(--text-main);
+  color: #0f172a;
   font-size: var(--type-headline-sm-size);
+  font-weight: 800;
+  letter-spacing: -0.02em;
   margin-bottom: var(--space-sm);
 }
 
 .qr-panel p {
-  margin-bottom: 0;
+  color: #475569;
+  font-size: 0.925rem;
+  line-height: 1.5;
+  margin-bottom: var(--space-md, 1rem);
 }
 
+/* Botón 'Ampliar QR' */
+.qr-panel button {
+  background-color: #71a5de !important;
+  color: #ffffff !important;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.65rem 1.15rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 4px 10px rgba(113, 165, 222, 0.3);
+
+  &:hover {
+    background-color: #5b93d3 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(113, 165, 222, 0.4);
+  }
+}
+
+/* ==========================================
+   VARIACIONES DE ESTADO (TOPLINE)
+   ========================================== */
 .status-card--success .status-card__topline {
-  background: color-mix(in srgb, var(--success) 12%, var(--surface));
+  background: #e1ecf7;
+  border-bottom-color: #aecbeb;
 }
 
 .status-card--success .status-card__icon {
-  background: color-mix(in srgb, var(--success) 20%, var(--surface));
-  color: #075b4b;
+  background: #71a5de;
+  color: #ffffff;
 }
 
 .status-card--warning .status-card__topline {
-  background: color-mix(in srgb, var(--warning) 18%, var(--surface));
+  background: #fef3c7;
+  border-bottom-color: #fde68a;
 }
 
 .status-card--warning .status-card__icon {
-  background: color-mix(in srgb, var(--warning) 35%, var(--surface));
-  color: #6b4b00;
+  background: #d97706;
+  color: #ffffff;
 }
 
 .status-card--danger .status-card__topline {
-  background: var(--error-container);
+  background: #fee2e2;
+  border-bottom-color: #fca5a5;
 }
 
 .status-card--danger .status-card__icon {
-  background: color-mix(in srgb, var(--error) 18%, var(--surface));
-  color: var(--on-error-container);
+  background: #dc2626;
+  color: #ffffff;
 }
 
 .status-card--neutral .status-card__topline {
-  background: var(--surface-container);
+  background: #e1ecf7;
 }
 
 .wash-home__support {
   align-items: flex-start;
-  background: color-mix(in srgb, var(--tertiary-fixed) 45%, var(--surface));
+  background: #e1ecf7;
+  border: 1px solid #aecbeb;
   border-radius: var(--radius-lg);
   display: flex;
   gap: var(--space-md);
@@ -307,96 +380,26 @@ dd {
 }
 
 .wash-home__support svg {
-  color: var(--tertiary);
+  color: #71a5de;
   flex: 0 0 auto;
   margin-top: 0.125rem;
 }
 
 .wash-home__support h2 {
-  color: var(--on-tertiary-fixed);
+  color: #0f172a;
   font-size: var(--type-label-lg-size);
   margin-bottom: var(--space-xs);
 }
 
 .wash-home__support p {
-  color: var(--on-tertiary-fixed);
+  color: #475569;
   font-size: var(--type-body-sm-size);
   margin-bottom: 0;
 }
 
-.feedback-card {
-  align-items: flex-start;
-  display: grid;
-  gap: var(--space-lg);
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  margin: 8vh auto;
-  max-width: 48rem;
-  padding: var(--space-xl);
-}
-
-.feedback-card__icon {
-  align-items: center;
-  background: var(--primary-fixed);
-  border-radius: 50%;
-  color: var(--on-primary-fixed);
-  display: inline-flex;
-  height: 2.75rem;
-  justify-content: center;
-  padding: 0.625rem;
-  width: 2.75rem;
-}
-
-.feedback-card .button {
-  margin-top: 0;
-}
-
-.wash-home__skeleton {
-  display: grid;
-  gap: var(--space-md);
-}
-
-.skeleton {
-  animation: shimmer 1.4s ease-in-out infinite;
-  background: linear-gradient(
-    110deg,
-    var(--surface-container) 8%,
-    var(--surface-container-highest) 18%,
-    var(--surface-container) 33%
-  );
-  background-size: 200% 100%;
-  border-radius: var(--radius-md);
-}
-
-.skeleton--eyebrow {
-  height: 0.75rem;
-  width: 9rem;
-}
-
-.skeleton--heading {
-  height: 2.5rem;
-  width: min(22rem, 75%);
-}
-
-.skeleton--identity {
-  height: 1.25rem;
-  margin-bottom: var(--space-lg);
-  width: min(18rem, 62%);
-}
-
-.skeleton--card {
-  height: 29rem;
-}
-
-.skeleton--support {
-  height: 5.5rem;
-}
-
-@keyframes shimmer {
-  to {
-    background-position: -200% 0;
-  }
-}
-
+/* ==========================================
+   MEDIA QUERIES
+   ========================================== */
 @media (min-width: 48rem) {
   .status-card__content {
     grid-template-columns: minmax(0, 1.15fr) minmax(20rem, 0.85fr);
