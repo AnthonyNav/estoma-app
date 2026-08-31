@@ -1,0 +1,82 @@
+<section class="flow" aria-labelledby="exceptional-title">
+  <header class="flow__header">
+    <h1 id="exceptional-title">Autorización excepcional</h1>
+    <p class="flow__intro">
+      La fecha, puntos y elegibilidad se resuelven en el servidor. Esta acción no crea una cita ni
+      reserva cupo.
+    </p>
+  </header>
+  <form class="flow-card lookup-form" [formGroup]="lookupForm" (ngSubmit)="lookup()">
+    <label class="field">Matrícula<input formControlName="studentEnrollment" required /></label
+    ><button class="button button--primary" type="submit" [disabled]="loading()">
+      {{ loading() ? 'Consultando…' : 'Consultar contexto' }}
+    </button>
+  </form>
+  @if (error(); as error) {
+    <p class="field__error" role="alert">{{ error }}</p>
+  }
+  @if (context(); as context) {
+    <section class="flow-card auth-context">
+      <h2>{{ context.student.displayName }}</h2>
+      <p>
+        {{ context.student.studentEnrollment }} · {{ context.student.currentSemester }}° semestre
+      </p>
+      <ul class="summary-list">
+        <li>
+          <span>Citas completadas hoy</span
+          ><strong>{{ context.dailyContext.completedAppointments }}</strong>
+        </li>
+        <li>
+          <span>Puntos de penalización</span
+          ><strong>{{ context.dailyContext.dailyPenaltyPoints }}</strong>
+        </li>
+        @if (context.dailyContext.activeAppointment; as appointment) {
+          <li>
+            <span>Cita activa</span><strong>{{ appointment.appointmentStatus }}</strong>
+          </li>
+        }
+      </ul>
+      @if (context.exceptionalAuthorization; as authorization) {
+        <div class="authorization-status">
+          <h3>Autorización {{ authorization.status }}</h3>
+          <p>{{ authorization.reason }}</p>
+          @if (authorization.cancellation; as cancellation) {
+            <p>Cancelada: {{ cancellation.reason }}</p>
+          }
+          @if (authorization.cancelAction === 'AVAILABLE') {
+            <button
+              class="button button--secondary"
+              type="button"
+              [disabled]="submitting()"
+              (click)="cancel()"
+            >
+              {{ submitting() ? 'Guardando…' : 'Cancelar autorización' }}
+            </button>
+          }
+        </div>
+      }
+      @if (context.grantAction === 'AVAILABLE') {
+        <form class="grant-form" [formGroup]="grantForm" (ngSubmit)="grant()">
+          <label class="field"
+            >Motivo de la autorización<input
+              maxlength="500"
+              formControlName="reason"
+              required /></label
+          ><button class="button button--primary" type="submit" [disabled]="submitting()">
+            {{ submitting() ? 'Otorgando…' : 'Otorgar autorización' }}
+          </button>
+        </form>
+      } @else {
+        <div class="feedback">
+          <h3>No puede otorgarse una autorización</h3>
+          <ul>
+            @for (reason of context.blockingReasons; track reason) {
+              <li>{{ reason }}</li>
+            }
+          </ul>
+        </div>
+      }
+    </section>
+  }
+  <a class="button button--quiet" routerLink="/wash/supervision">Volver al inicio</a>
+</section>

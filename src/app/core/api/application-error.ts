@@ -13,6 +13,7 @@ export class ApplicationError extends Error {
     readonly kind: ApplicationErrorKind,
     message: string,
     readonly status?: number,
+    readonly code?: string,
   ) {
     super(message);
   }

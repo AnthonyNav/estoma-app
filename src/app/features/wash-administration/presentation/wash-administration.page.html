@@ -1,0 +1,262 @@
+<section class="flow" aria-labelledby="wash-administration-title">
+  <header class="flow__header">
+    <p class="eyebrow">Administración de Lavado</p>
+    <h1 id="wash-administration-title">
+      @switch (mode) {
+        @case ('home') {
+          Configuración actual
+        }
+        @case ('week') {
+          Operación semanal
+        }
+        @case ('resources') {
+          Cabinas y tinas
+        }
+        @case ('supervisors') {
+          Supervisores
+        }
+      }
+    </h1>
+    <p class="flow__intro">
+      Esta experiencia administra configuración. No representa disponibilidad física ni decisiones
+      operativas.
+    </p>
+  </header>
+  <nav class="admin-nav" aria-label="Secciones de administración">
+    <a routerLink="/wash/admin">Inicio</a><a routerLink="/wash/admin/operation">Operación semanal</a
+    ><a routerLink="/wash/admin/resources">Recursos</a
+    ><a routerLink="/wash/admin/supervisors">Supervisores</a>
+  </nav>
+  @if (error(); as error) {
+    <section class="feedback feedback--error" role="alert">
+      <h2>No fue posible completar la acción</h2>
+      <p>{{ error }}</p>
+      <button class="button button--primary" type="button" (click)="retry()">
+        Reintentar lectura
+      </button>
+    </section>
+  }
+  @if (loading()) {
+    <article class="flow-card" aria-busy="true">
+      <div class="skeleton skeleton--large"></div>
+    </article>
+  } @else {
+    @switch (mode) {
+      @case ('home') {
+        @if (home(); as home) {
+          <section class="admin-dashboard">
+            <article class="flow-card">
+              <h2>Calendario vigente</h2>
+              @if (home.activeCalendar; as calendar) {
+                <p>
+                  <strong>{{ calendar.name }}</strong> · {{ calendar.effectiveFrom }} a
+                  {{ calendar.effectiveUntil }}
+                </p>
+              } @else {
+                <p>No hay calendario administrativo vigente.</p>
+              }
+            </article>
+            <article class="flow-card">
+              <h2>Horario de hoy</h2>
+              @if (home.todaySchedule.intervals.length) {
+                <ul>
+                  @for (interval of home.todaySchedule.intervals; track interval.scheduleId) {
+                    <li>
+                      {{ interval.openingTime }}–{{ interval.closingTime }} · bloques de
+                      {{ interval.slotDurationMinutes }} min
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <p>Sin horario configurado para hoy.</p>
+              }
+            </article>
+            <article class="flow-card">
+              <h2>Capacidad configurada</h2>
+              <p>
+                {{ home.resourceSummary.configuredActiveCapacity }} lugares en
+                {{ home.resourceSummary.activeTanks }} tinas activas.
+              </p>
+            </article>
+            <article class="flow-card">
+              <h2>Próximos cierres</h2>
+              @if (home.upcomingClosures.length) {
+                <ul>
+                  @for (closure of home.upcomingClosures; track closure.closureId) {
+                    <li>{{ closure.reason }} · {{ closure.startsAt }}</li>
+                  }
+                </ul>
+              } @else {
+                <p>No hay cierres próximos.</p>
+              }
+            </article>
+          </section>
+        }
+      }
+      @case ('week') {
+        @if (week(); as week) {
+          <section class="flow-card">
+            <h2>{{ week.calendarName }}</h2>
+            <p>{{ week.timezone }} · un cambio reemplaza la intención del día de forma atómica.</p>
+            <ul class="summary-list">
+              @for (day of week.days; track day.dayOfWeek) {
+                <li>
+                  <span>Día {{ day.dayOfWeek }}</span
+                  ><strong>
+                    @for (interval of day.intervals; track interval.scheduleId) {
+                      {{ interval.openingTime }}–{{ interval.closingTime }}
+                    } @empty {
+                      Sin horario
+                    }
+                  </strong>
+                </li>
+              }
+            </ul>
+            <form class="week-form" [formGroup]="weekForm">
+              <label class="field"
+                >Día (1–7)<input type="number" min="1" max="7" formControlName="dayOfWeek" /></label
+              ><label class="field"
+                >Apertura<input type="time" formControlName="openingTime" /></label
+              ><label class="field">Cierre<input type="time" formControlName="closingTime" /></label
+              ><label class="field"
+                >Duración (min)<input type="number" min="1" formControlName="slotDurationMinutes"
+              /></label>
+              <div class="button-row">
+                <button class="button button--secondary" type="button" (click)="previewDay()">
+                  Vista previa de impacto</button
+                ><button
+                  class="button button--primary"
+                  type="button"
+                  [disabled]="submitting()"
+                  (click)="replaceDay()"
+                >
+                  {{ submitting() ? 'Guardando…' : 'Reemplazar horario del día' }}
+                </button>
+              </div>
+            </form>
+            @if (preview(); as preview) {
+              <div class="feedback">
+                <h3>Impacto estimado</h3>
+                <p>
+                  {{ preview.affectedTimeSlotsCount }} bloques y
+                  {{ preview.potentiallyAffectedAppointmentsCount }} citas potencialmente afectadas.
+                </p>
+              </div>
+            }
+          </section>
+        }
+      }
+      @case ('resources') {
+        @if (resources(); as resources) {
+          @for (cabin of resources.cabins; track cabin.cabinId) {
+            <article class="flow-card admin-resource">
+              <h2>{{ cabin.name }} · {{ cabin.cabinType }}</h2>
+              <p>
+                Estado administrativo: <strong>{{ cabin.status }}</strong>
+              </p>
+              <div class="button-row">
+                <button
+                  class="button button--quiet"
+                  type="button"
+                  (click)="changeResource('CABIN', cabin.cabinId, 'activate')"
+                >
+                  Activar</button
+                ><button
+                  class="button button--quiet"
+                  type="button"
+                  (click)="changeResource('CABIN', cabin.cabinId, 'deactivate')"
+                >
+                  Desactivar</button
+                ><button
+                  class="button button--secondary"
+                  type="button"
+                  (click)="changeResource('CABIN', cabin.cabinId, 'retire')"
+                >
+                  Retirar
+                </button>
+              </div>
+              <ul class="summary-list">
+                @for (tank of cabin.tanks; track tank.tankId) {
+                  <li>
+                    <span>{{ tank.name }} · {{ tank.configuredCapacity }} configurados</span
+                    ><strong>{{ tank.status }}</strong>
+                    <div>
+                      <button
+                        class="button button--quiet"
+                        type="button"
+                        (click)="changeResource('TANK', tank.tankId, 'activate')"
+                      >
+                        Activar</button
+                      ><button
+                        class="button button--quiet"
+                        type="button"
+                        (click)="changeResource('TANK', tank.tankId, 'deactivate')"
+                      >
+                        Desactivar</button
+                      ><button
+                        class="button button--secondary"
+                        type="button"
+                        (click)="changeResource('TANK', tank.tankId, 'retire')"
+                      >
+                        Retirar
+                      </button>
+                    </div>
+                  </li>
+                }
+              </ul>
+            </article>
+          }
+        }
+      }
+      @case ('supervisors') {
+        <section class="flow-card">
+          <form
+            class="supervisor-search"
+            [formGroup]="supervisorSearch"
+            (ngSubmit)="searchSupervisors()"
+          >
+            <label class="field">Buscar supervisor<input formControlName="query" /></label
+            ><button class="button button--secondary" type="submit">Buscar</button>
+          </form>
+          <ul class="summary-list">
+            @for (supervisor of supervisors(); track supervisor.accountId) {
+              <li>
+                <span>{{ supervisor.displayName }} · {{ supervisor.username }}</span
+                ><strong
+                  >{{ supervisor.onboardingStatus }} · acceso efectivo:
+                  {{ supervisor.effectiveAccess ? 'sí' : 'no' }}</strong
+                >
+              </li>
+            } @empty {
+              <li><span>Sin resultados</span></li>
+            }
+          </ul>
+        </section>
+        <section class="flow-card">
+          <h2>Alta resumible</h2>
+          <p>
+            No se muestra ni almacena una contraseña temporal: su entrega ocurre fuera del
+            navegador.
+          </p>
+          <form
+            class="supervisor-create"
+            [formGroup]="supervisorForm"
+            (ngSubmit)="createSupervisor()"
+          >
+            <label class="field">Nombre completo<input formControlName="fullName" required /></label
+            ><label class="field"
+              >Correo institucional<input
+                type="email"
+                formControlName="institutionalEmail"
+                required /></label
+            ><label class="field"
+              >Nombre de usuario<input formControlName="username" required /></label
+            ><button class="button button--primary" type="submit" [disabled]="submitting()">
+              {{ submitting() ? 'Iniciando…' : 'Iniciar alta' }}
+            </button>
+          </form>
+        </section>
+      }
+    }
+  }
+</section>

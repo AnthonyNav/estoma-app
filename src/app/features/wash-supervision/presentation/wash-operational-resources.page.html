@@ -1,0 +1,94 @@
+<section class="flow" aria-labelledby="operational-resources-title">
+  <header class="flow__header">
+    <h1 id="operational-resources-title">Recursos operativos</h1>
+    <p class="flow__intro">
+      Las fallas e inhabilitaciones son una capa operativa distinta de la configuración
+      administrativa.
+    </p>
+  </header>
+  <form class="flow-card disable-form" [formGroup]="disableForm">
+    <label class="field"
+      >Causa<select formControlName="causeType">
+        <option value="FAILURE">Falla</option>
+        <option value="MANUAL_DISABLE">Inhabilitación manual</option>
+      </select></label
+    ><label class="field">Motivo<input maxlength="500" formControlName="reason" required /></label>
+    <p class="hint">
+      Después selecciona una Cabina o Tina activa. La operación puede afectar ejecuciones y generar
+      reasignaciones.
+    </p>
+  </form>
+  @if (error(); as error) {
+    <p class="field__error" role="alert">{{ error }}</p>
+  }
+  @if (loading()) {
+    <article class="flow-card" aria-busy="true">
+      <div class="skeleton skeleton--large"></div>
+    </article>
+  } @else if (resources(); as resources) {
+    @if (!resources.cabins.length) {
+      <section class="feedback" role="status">
+        <h2>Sin recursos visibles</h2>
+        <p>La configuración puede no tener Cabinas disponibles.</p>
+      </section>
+    }
+    @for (cabin of resources.cabins; track cabin.cabinId) {
+      <article class="flow-card resource-card">
+        <header>
+          <h2>{{ cabin.name }} · {{ cabin.administrativeStatus }}</h2>
+          @if (cabin.directOperationalUnavailability; as unavailability) {
+            <p>Inhabilitada: {{ unavailability.reason }}</p>
+            <button
+              class="button button--secondary"
+              type="button"
+              [disabled]="submitting()"
+              (click)="restore(unavailability)"
+            >
+              Rehabilitar Cabina
+            </button>
+          } @else {
+            <button
+              class="button button--secondary"
+              type="button"
+              [disabled]="submitting() || cabin.administrativeStatus !== 'ACTIVE'"
+              (click)="disableCabin(cabin.cabinId)"
+            >
+              Inhabilitar Cabina
+            </button>
+          }
+        </header>
+        <ul class="summary-list">
+          @for (tank of cabin.tanks; track tank.tankId) {
+            <li>
+              <span>{{ tank.name }} · capacidad configurada {{ tank.configuredCapacity }}</span>
+              @if (tank.inheritedCabinOperationalUnavailability) {
+                <strong>Bloqueada por Cabina</strong>
+              }
+              @if (tank.directOperationalUnavailability; as unavailability) {
+                <strong>Inhabilitada: {{ unavailability.reason }}</strong
+                ><button
+                  class="button button--quiet"
+                  type="button"
+                  [disabled]="submitting()"
+                  (click)="restore(unavailability)"
+                >
+                  Rehabilitar
+                </button>
+              } @else {
+                <button
+                  class="button button--quiet"
+                  type="button"
+                  [disabled]="submitting() || tank.administrativeStatus !== 'ACTIVE'"
+                  (click)="disableTank(tank.tankId)"
+                >
+                  Inhabilitar Tina
+                </button>
+              }
+            </li>
+          }
+        </ul>
+      </article>
+    }
+  }
+  <a class="button button--quiet" routerLink="/wash/supervision">Volver al inicio</a>
+</section>

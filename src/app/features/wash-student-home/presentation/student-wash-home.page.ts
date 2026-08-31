@@ -11,6 +11,8 @@ import { RouterLink } from '@angular/router';
 
 import { ApplicationError, ApplicationErrorKind } from '../../../core/api/application-error';
 import { LoadStudentWashHomeUseCase } from '../application/load-student-wash-home.use-case';
+import { ManageStudentWashLifecycleUseCase } from '../application/manage-student-wash-lifecycle.use-case';
+import { OperationTrackerService } from '../../../core/api/operation-tracker.service';
 import {
   AppointmentType,
   PieceType,
@@ -39,13 +41,6 @@ interface StatusPresentation {
   qrLabel: string | null;
 }
 
-const timeFormatter = new Intl.DateTimeFormat('es-MX', {
-  hour: '2-digit',
-  hour12: false,
-  minute: '2-digit',
-  timeZone: 'America/Mexico_City',
-});
-
 @Component({
   selector: 'app-student-wash-home-page',
   imports: [AppointmentQrComponent, RouterLink],
@@ -55,6 +50,8 @@ const timeFormatter = new Intl.DateTimeFormat('es-MX', {
 })
 export class StudentWashHomePage {
   private readonly loadStudentWashHome = inject(LoadStudentWashHomeUseCase);
+  private readonly lifecycle = inject(ManageStudentWashLifecycleUseCase);
+  private readonly operationTracker = inject(OperationTrackerService);
 
   @ViewChild('qrDialog') private qrDialog?: ElementRef<HTMLDialogElement>;
   private qrTrigger: HTMLElement | null = null;
@@ -62,6 +59,8 @@ export class StudentWashHomePage {
   readonly home = signal<StudentWashHome | null>(null);
   readonly errorKind = signal<ApplicationErrorKind | null>(null);
   readonly loading = signal(true);
+  readonly cancelling = signal(false);
+  readonly cancellationError = signal<string | null>(null);
   readonly state = computed<HomeState>(() => {
     if (this.loading()) {
       return 'LOADING';
@@ -87,6 +86,12 @@ export class StudentWashHomePage {
     const appointment = this.home()?.appointment;
     return appointment ? this.presentAppointment(appointment) : this.noAppointmentPresentation;
   });
+  readonly mayCancelAppointment = computed(
+    () => this.home()?.appointment?.studentCancellationAction === 'AVAILABLE' && !this.cancelling(),
+  );
+  readonly mayRegisterExit = computed(
+    () => this.home()?.appointment?.washExecution?.status === 'IN_PROGRESS',
+  );
 
   private readonly noAppointmentPresentation: StatusPresentation = {
     tone: 'calm',
@@ -103,6 +108,55 @@ export class StudentWashHomePage {
 
   retry(): void {
     this.load();
+  }
+
+  cancelAppointment(): void {
+    const appointment = this.home()?.appointment;
+    if (
+      !appointment ||
+      appointment.studentCancellationAction !== 'AVAILABLE' ||
+      this.cancelling()
+    ) {
+      return;
+    }
+
+    this.cancelling.set(true);
+    this.cancellationError.set(null);
+    this.lifecycle
+      .cancelAppointment({
+        appointmentId: appointment.appointmentId,
+        expectedVersion: appointment.appointmentVersion ?? 1,
+        idempotencyKey: this.createIdempotencyKey(),
+      })
+      .subscribe({
+        next: (accepted) =>
+          this.operationTracker
+            .trackAccepted(accepted, () => this.lifecycle.getOperation(accepted.operationId))
+            .subscribe({
+              next: (operation) => {
+                this.cancelling.set(false);
+                if (operation.status === 'SUCCEEDED') {
+                  this.load();
+                  return;
+                }
+                this.cancellationError.set(
+                  'No fue posible cancelar la cita. Actualiza el estado e inténtalo de nuevo.',
+                );
+              },
+              error: () => {
+                this.cancelling.set(false);
+                this.cancellationError.set(
+                  'No pudimos comprobar la cancelación. Actualiza el estado antes de reintentar.',
+                );
+              },
+            }),
+        error: (error: unknown) => {
+          this.cancelling.set(false);
+          this.cancellationError.set(
+            error instanceof ApplicationError ? error.message : 'No fue posible cancelar la cita.',
+          );
+        },
+      });
   }
 
   openQr(event: MouseEvent): void {
@@ -128,7 +182,13 @@ export class StudentWashHomePage {
   }
 
   formatTimeSlot(appointment: StudentWashAppointment): string {
-    return `${timeFormatter.format(new Date(appointment.timeSlot.startsAt))}–${timeFormatter.format(
+    const formatter = new Intl.DateTimeFormat('es-MX', {
+      hour: '2-digit',
+      hour12: false,
+      minute: '2-digit',
+      timeZone: appointment.timeSlot.timezone,
+    });
+    return `${formatter.format(new Date(appointment.timeSlot.startsAt))}–${formatter.format(
       new Date(appointment.timeSlot.endsAt),
     )}`;
   }
@@ -287,5 +347,12 @@ export class StudentWashHomePage {
     };
 
     return presentations[executionStatus];
+  }
+
+  private createIdempotencyKey(): string {
+    return (
+      globalThis.crypto?.randomUUID?.() ??
+      `wash-cancel-${Date.now()}-${Math.random().toString(16).slice(2)}`
+    );
   }
 }

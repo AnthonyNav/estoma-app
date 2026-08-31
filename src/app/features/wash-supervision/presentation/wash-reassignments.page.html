@@ -1,0 +1,95 @@
+<section class="flow" aria-labelledby="reassignments-title">
+  <header class="flow__header">
+    <h1 id="reassignments-title">Reasignaciones pendientes</h1>
+    <p class="flow__intro">
+      Elige únicamente una opción entregada por el servidor. Ningún candidato queda reservado hasta
+      confirmar.
+    </p>
+  </header>
+  @if (error(); as error) {
+    <p class="field__error" role="alert">{{ error }}</p>
+  }
+  @if (loading()) {
+    <article class="flow-card" aria-busy="true">
+      <div class="skeleton skeleton--large"></div>
+    </article>
+  } @else if (!pending().length) {
+    <section class="feedback" role="status">
+      <h2>No hay reasignaciones pendientes</h2>
+      <p>La cola de hoy está resuelta.</p>
+      <a class="button button--primary" routerLink="/wash/supervision">Volver al inicio</a>
+    </section>
+  } @else {
+    <div class="reassignment-grid">
+      <section class="flow-card">
+        <h2>Atenciones pendientes</h2>
+        <ul class="summary-list">
+          @for (item of pending(); track item.washExecutionId) {
+            <li>
+              <span>{{ item.student.displayName }} · {{ item.student.studentEnrollment }}</span
+              ><strong>{{ item.appointment.courseSectionReference.name }}</strong
+              ><button class="button button--secondary" type="button" (click)="choose(item)">
+                Ver candidatos
+              </button>
+            </li>
+          }
+        </ul>
+      </section>
+      <section class="flow-card" aria-live="polite">
+        @if (loadingCandidates()) {
+          <div class="skeleton skeleton--large"></div>
+        } @else if (candidates(); as candidates) {
+          <h2>Espacios disponibles</h2>
+          <p class="hint">
+            Fotografía generada por el servidor: {{ candidates.snapshotGeneratedAt }}.
+          </p>
+          @if (!candidates.candidates.length) {
+            <div class="feedback">
+              <h3>Sin candidatos confiables</h3>
+              <p>La clínica puede cancelar esta atención por pérdida de capacidad.</p>
+              <button
+                class="button button--secondary"
+                type="button"
+                [disabled]="submitting()"
+                (click)="cancelForCapacity()"
+              >
+                {{ submitting() ? 'Guardando…' : 'Cancelar por falta de espacio' }}
+              </button>
+            </div>
+          } @else {
+            <div class="candidate-list">
+              @for (
+                candidate of candidates.candidates;
+                track candidate.cabinId + candidate.tankId
+              ) {
+                <label
+                  ><input
+                    type="radio"
+                    name="candidate"
+                    [checked]="selected()?.tankId === candidate.tankId"
+                    (change)="select(candidate)"
+                  /><span
+                    ><strong>{{ candidate.cabinName }} · {{ candidate.tankName }}</strong
+                    ><small>{{ candidate.availableCapacity }} cupos observados</small></span
+                  ></label
+                >
+              }
+            </div>
+            <div class="button-row">
+              <button
+                class="button button--primary"
+                type="button"
+                [disabled]="!selected() || submitting()"
+                (click)="assign()"
+              >
+                {{ submitting() ? 'Reasignando…' : 'Confirmar reasignación' }}
+              </button>
+            </div>
+          }
+        } @else {
+          <p class="hint">Selecciona una atención para consultar los candidatos actuales.</p>
+        }
+      </section>
+    </div>
+  }
+</section>

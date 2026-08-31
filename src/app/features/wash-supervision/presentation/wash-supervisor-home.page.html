@@ -1,0 +1,68 @@
+<section class="flow" aria-labelledby="supervisor-home-title">
+  <header class="flow__header">
+    <p class="eyebrow">Lavado ultrasónico</p>
+    <h1 id="supervisor-home-title">Operación del Supervisor</h1>
+    <p class="flow__intro">
+      Consulta el resumen del día y abre una acción operativa. Los contadores son una fotografía del
+      servidor.
+    </p>
+  </header>
+
+  @if (loading()) {
+    <article class="flow-card" aria-busy="true">
+      <div class="skeleton skeleton--large"></div>
+    </article>
+  } @else if (error(); as error) {
+    <section class="feedback feedback--error" role="alert">
+      <h2>No fue posible cargar el resumen</h2>
+      <p>{{ error }}</p>
+      <button class="button button--primary" type="button" (click)="retry()">Reintentar</button>
+    </section>
+  } @else if (home(); as home) {
+    <section class="supervisor-metrics" aria-label="Resumen de la operación">
+      <article>
+        <span>Citas registradas</span><strong>{{ home.summary.registeredAppointments }}</strong>
+      </article>
+      <article>
+        <span>En proceso</span><strong>{{ home.summary.inProcessAppointments }}</strong>
+      </article>
+      <article>
+        <span>Finalizadas</span><strong>{{ home.summary.completedAppointments }}</strong>
+      </article>
+      <article>
+        <span>Ingresos denegados</span><strong>{{ home.summary.deniedAppointments }}</strong>
+      </article>
+      <article>
+        <span>Canceladas</span><strong>{{ home.summary.cancelledAppointments }}</strong>
+      </article>
+    </section>
+
+    <section class="supervisor-actions" aria-label="Acciones de Supervisor">
+      <a class="flow-card" routerLink="/wash/supervision/entry"
+        ><h2>Ingreso</h2>
+        <p>Localiza por matrícula o QR y registra llegada o decisión.</p></a
+      >
+      <a class="flow-card" routerLink="/wash/supervision/reassignments"
+        ><h2>
+          Reasignaciones
+          @if (home.pendingReassignmentsCount) {
+            <span>({{ home.pendingReassignmentsCount }})</span>
+          }
+        </h2>
+        <p>Resuelve espacios pendientes sólo con candidatos del servidor.</p></a
+      >
+      <a class="flow-card" routerLink="/wash/supervision/exit"
+        ><h2>Salida y finalización</h2>
+        <p>Revisa materiales registrados antes de completar el lavado.</p></a
+      >
+      <a class="flow-card" routerLink="/wash/supervision/resources"
+        ><h2>Recursos operativos</h2>
+        <p>Reporta o resuelve indisponibilidades sin alterar la configuración administrativa.</p></a
+      >
+      <a class="flow-card" routerLink="/wash/supervision/exceptional-authorizations"
+        ><h2>Autorizaciones excepcionales</h2>
+        <p>Consulta el contexto diario y gestiona una autorización adicional.</p></a
+      >
+    </section>
+  }
+</section>

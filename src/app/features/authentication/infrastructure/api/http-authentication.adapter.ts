@@ -11,7 +11,10 @@ export class HttpAuthenticationAdapter implements AuthenticationGateway {
   private readonly http = inject(HttpClient);
 
   signIn(command: SignInCommand): Observable<Session> {
-    // This provisional path is replaced when the BFF OpenAPI contract is published.
-    return this.http.post<Session>(`${environment.apiBaseUrl}/session/login`, command);
+    return this.http.post<Session>(`${environment.apiBaseUrl}/auth/login`, {
+      loginType: 'MATRICULA',
+      loginIdentifier: command.identifier,
+      password: command.password,
+    });
   }
 }

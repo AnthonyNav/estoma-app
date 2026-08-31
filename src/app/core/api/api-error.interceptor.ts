@@ -20,10 +20,29 @@ export const apiErrorInterceptor: HttpInterceptorFn = (request, next) =>
         return throwError(() => error);
       }
 
-      const body = error.error as { detail?: string; title?: string } | null;
-      const message = body?.detail ?? body?.title ?? 'The request could not be completed.';
+      const body = error.error as { code?: string; title?: string } | null;
+      const message = messageFor(error.status, body?.code, body?.title);
       const kind = errorKindByStatus[error.status] ?? 'unknown';
 
-      return throwError(() => new ApplicationError(kind, message, error.status));
+      return throwError(() => new ApplicationError(kind, message, error.status, body?.code));
     }),
   );
+
+function messageFor(status: number, code?: string, title?: string): string {
+  const messageByStatus: Partial<Record<number, string>> = {
+    0: 'No fue posible conectar con el servicio. Revisa tu conexión e inténtalo de nuevo.',
+    401: 'Tu sesión ya no es válida. Inicia sesión nuevamente.',
+    403: 'No tienes autorización para realizar esta acción.',
+    404: 'No encontramos la información solicitada.',
+    409: 'La información cambió mientras la consultabas. Actualízala e inténtalo de nuevo.',
+    422: 'Revisa los datos capturados e inténtalo de nuevo.',
+    503: 'La información no está disponible de forma confiable en este momento. Inténtalo más tarde.',
+  };
+
+  return (
+    messageByStatus[status] ??
+    (code
+      ? `No fue posible completar la operación (${code}).`
+      : (title ?? 'No fue posible completar la operación.'))
+  );
+}

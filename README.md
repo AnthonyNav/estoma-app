@@ -4,7 +4,7 @@ The Angular client for the Estomatology platform. It communicates exclusively wi
 
 ## Prerequisites
 
-- Node.js 22
+- Node.js 22.22.2 (defined in `.nvmrc`)
 - Corepack enabled (`corepack enable`)
 - pnpm 10 (pinned by `packageManager`)
 

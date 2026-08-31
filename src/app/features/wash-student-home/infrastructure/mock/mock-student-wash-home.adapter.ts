@@ -3,7 +3,15 @@ import { ActivatedRoute } from '@angular/router';
 import { Observable } from 'rxjs';
 
 import { StudentWashHome } from '../../domain/models/student-wash-home';
-import { StudentWashHomeGateway } from '../../domain/ports/student-wash-home.gateway';
+import {
+  CancelStudentAppointmentCommand,
+  StudentWashHomeGateway,
+  SubmitStudentExitCommand,
+} from '../../domain/ports/student-wash-home.gateway';
+import {
+  AcceptedOperation,
+  DurableOperation,
+} from '../../../wash-appointments/domain/models/appointment-registration';
 import { MockWashJourneyStore, StudentHomeFixture } from './mock-wash-journey.store';
 
 const fixtures: readonly StudentHomeFixture[] = [
@@ -31,6 +39,18 @@ export class MockStudentWashHomeAdapter implements StudentWashHomeGateway {
 
   loadHome(): Observable<StudentWashHome> {
     return this.journey.loadStudentHome(this.readFixture());
+  }
+
+  cancelAppointment(command: CancelStudentAppointmentCommand): Observable<AcceptedOperation> {
+    return this.journey.cancelAppointment(command);
+  }
+
+  submitExit(command: SubmitStudentExitCommand): Observable<AcceptedOperation> {
+    return this.journey.submitExit(command);
+  }
+
+  getOperation(operationId: string): Observable<DurableOperation> {
+    return this.journey.getOperation(operationId);
   }
 
   private readFixture(): StudentHomeFixture | null {

@@ -14,17 +14,22 @@ import {
   DecideWashEntryCommand,
   EntryLookupRequest,
   RegisterWashArrivalCommand,
-  SupervisorEntryLookup,
+  SupervisorLookup,
 } from '../../../wash-supervision/domain/models/supervisor-entry';
 import {
   ActiveResourceAssignment,
   AppointmentStatus,
   CourseSection,
+  ExitMaterials,
   StudentWashAppointment,
   StudentWashHome,
   StudentWashStudent,
   WashExecution,
 } from '../../domain/models/student-wash-home';
+import {
+  CancelStudentAppointmentCommand,
+  SubmitStudentExitCommand,
+} from '../../domain/ports/student-wash-home.gateway';
 
 export type StudentHomeFixture =
   | 'loading'
@@ -95,6 +100,13 @@ const resourceAssignment: ActiveResourceAssignment = {
   tankId: '77777777-7777-7777-7777-777777777777',
   tankCode: 'B',
   tankName: 'Tina B',
+};
+
+const defaultExitMaterials: ExitMaterials = {
+  packageCount: 3,
+  greenPaperCassette8Count: 1,
+  greenPaperCassette10Count: 0,
+  witnessTapePortionCount: 1,
 };
 
 @Injectable({ providedIn: 'root' })
@@ -175,12 +187,15 @@ export class MockWashJourneyStore {
           washExecution: null,
           qrUsageContext: 'ENTRY',
           qrRepresentation: opaqueQrRepresentation,
+          appointmentVersion: 1,
+          usesExceptionalAuthorization: false,
+          studentCancellationAction: 'AVAILABLE',
         });
       }),
     ).pipe(delay(250));
   }
 
-  lookup(request: EntryLookupRequest): Observable<SupervisorEntryLookup> {
+  lookup(request: EntryLookupRequest): Observable<SupervisorLookup> {
     const appointment = this.home.appointment;
     const lookupValue =
       request.lookupType === 'QR' ? request.qrRepresentation : request.studentEnrollment;
@@ -195,13 +210,50 @@ export class MockWashJourneyStore {
 
     return of({
       serviceDate: this.home.serviceDate,
+      nextAction: this.nextActionFor(appointment.washExecution?.status ?? null),
       student: {
-        fullName: student.fullName,
+        studentAccountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        displayName: student.fullName,
         studentEnrollment: student.studentEnrollment,
         currentSemester: student.currentSemester,
       },
-      appointment,
-      washExecution: appointment.washExecution,
+      appointment: {
+        appointmentId: appointment.appointmentId,
+        appointmentStatus: appointment.appointmentStatus,
+        appointmentType: appointment.appointmentType,
+        instrumentCount: appointment.instrumentCount,
+        pieceType: appointment.pieceType,
+        courseSectionReference: appointment.courseSection,
+        appointmentTimeSlot: appointment.timeSlot,
+      },
+      washExecution: appointment.washExecution
+        ? {
+            washExecutionId: appointment.washExecution.washExecutionId,
+            status: appointment.washExecution.status,
+            executionVersion: appointment.washExecution.executionVersion,
+            arrivedAt: appointment.washExecution.arrivedAt ?? null,
+            rejectionReason: appointment.washExecution.rejectionReason ?? null,
+            exitSubmittedAt: appointment.washExecution.exitSubmittedAt ?? null,
+            submittedExitMaterials: appointment.washExecution.submittedExitMaterials ?? null,
+          }
+        : null,
+      activeResourceAssignment: appointment.washExecution?.activeResourceAssignment
+        ? {
+            resourceAssignmentId:
+              appointment.washExecution.activeResourceAssignment.resourceAssignmentId,
+            assignmentType: 'INITIAL' as const,
+            cabin: {
+              resourceId: appointment.washExecution.activeResourceAssignment.cabinId,
+              code: appointment.washExecution.activeResourceAssignment.cabinCode,
+              name: appointment.washExecution.activeResourceAssignment.cabinName,
+            },
+            tank: {
+              resourceId: appointment.washExecution.activeResourceAssignment.tankId,
+              code: appointment.washExecution.activeResourceAssignment.tankCode,
+              name: appointment.washExecution.activeResourceAssignment.tankName,
+            },
+          }
+        : null,
     }).pipe(delay(350));
   }
 
@@ -218,7 +270,7 @@ export class MockWashJourneyStore {
           washExecution: {
             washExecutionId: '44444444-4444-4444-4444-444444444444',
             status: 'PENDING_ENTRY',
-            version: 1,
+            executionVersion: 1,
             arrivedAt: '2026-08-27T10:52:00-06:00',
           },
         });
@@ -261,6 +313,61 @@ export class MockWashJourneyStore {
             ...appointment.washExecution,
             status: 'IN_PROGRESS',
             activeResourceAssignment: resourceAssignment,
+          },
+        });
+      }),
+    ).pipe(delay(250));
+  }
+
+  cancelAppointment(command: CancelStudentAppointmentCommand): Observable<AcceptedOperation> {
+    return of(
+      this.createOperation(() => {
+        const appointment = this.home.appointment;
+        if (
+          !appointment ||
+          appointment.appointmentId !== command.appointmentId ||
+          appointment.studentCancellationAction !== 'AVAILABLE'
+        ) {
+          return;
+        }
+
+        this.home = this.homeWith({
+          ...appointment,
+          appointmentStatus: 'CANCELLED',
+          appointmentVersion: appointment.appointmentVersion
+            ? appointment.appointmentVersion + 1
+            : 1,
+          studentCancellationAction: 'NOT_APPLICABLE',
+          qrUsageContext: 'NONE',
+          qrRepresentation: null,
+        });
+      }),
+    ).pipe(delay(250));
+  }
+
+  submitExit(command: SubmitStudentExitCommand): Observable<AcceptedOperation> {
+    return of(
+      this.createOperation(() => {
+        const appointment = this.home.appointment;
+        const execution = appointment?.washExecution;
+        if (
+          !appointment ||
+          !execution ||
+          execution.washExecutionId !== command.washExecutionId ||
+          execution.status !== 'IN_PROGRESS'
+        ) {
+          return;
+        }
+
+        this.home = this.homeWith({
+          ...appointment,
+          qrUsageContext: 'SUPERVISOR_EXIT_REVIEW',
+          washExecution: {
+            ...execution,
+            status: 'EXIT_SUBMITTED',
+            executionVersion: execution.executionVersion + 1,
+            exitSubmittedAt: '2026-08-27T11:45:00-06:00',
+            submittedExitMaterials: command.materials,
           },
         });
       }),
@@ -384,10 +491,14 @@ export class MockWashJourneyStore {
         startsAt: '2026-08-27T10:00:00-06:00',
         endsAt: '2026-08-27T11:00:00-06:00',
         timezone: 'America/Mexico_City',
+        cancellationDeadlineAt: '2026-08-27T09:50:00-06:00',
       },
       washExecution,
       qrUsageContext: includeQr ? 'ENTRY' : 'NONE',
       qrRepresentation: includeQr ? opaqueQrRepresentation : null,
+      appointmentVersion: 1,
+      usesExceptionalAuthorization: false,
+      studentCancellationAction: appointmentStatus === 'SCHEDULED' ? 'AVAILABLE' : 'NOT_APPLICABLE',
     };
   }
 
@@ -399,10 +510,32 @@ export class MockWashJourneyStore {
     return {
       washExecutionId: '44444444-4444-4444-4444-444444444444',
       status,
-      version: 1,
+      executionVersion: 1,
       arrivedAt: status === 'PENDING_ENTRY' ? '2026-08-27T10:52:00-06:00' : null,
       activeResourceAssignment,
       rejectionReason,
+      exitSubmittedAt: status === 'EXIT_SUBMITTED' ? '2026-08-27T11:45:00-06:00' : null,
+      submittedExitMaterials: status === 'EXIT_SUBMITTED' ? defaultExitMaterials : null,
+      completedAt: status === 'COMPLETED' ? '2026-08-27T12:00:00-06:00' : null,
+      finalExitMaterials: status === 'COMPLETED' ? defaultExitMaterials : null,
+      lastResourceAssignment: status === 'COMPLETED' ? resourceAssignment : null,
     };
+  }
+
+  private nextActionFor(status: WashExecution['status'] | null): SupervisorLookup['nextAction'] {
+    if (!status) {
+      return 'ENTRY';
+    }
+
+    const actions: Record<WashExecution['status'], SupervisorLookup['nextAction']> = {
+      PENDING_ENTRY: 'ENTRY_DECISION',
+      ENTRY_REJECTED: 'NONE',
+      PENDING_REASSIGNMENT: 'REASSIGNMENT',
+      IN_PROGRESS: 'EXIT_REVIEW',
+      EXIT_SUBMITTED: 'EXIT_REVIEW',
+      COMPLETED: 'NONE',
+      CANCELLED: 'NONE',
+    };
+    return actions[status];
   }
 }

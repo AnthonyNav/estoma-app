@@ -1,0 +1,16 @@
+:host {
+  display: block;
+}
+
+.materials-form__grid {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: var(--space-lg) 0;
+}
+
+@media (max-width: 40rem) {
+  .materials-form__grid {
+    grid-template-columns: 1fr;
+  }
+}

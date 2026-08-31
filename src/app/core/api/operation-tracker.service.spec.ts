@@ -51,4 +51,18 @@ describe('OperationTrackerService', () => {
       jasmine.objectContaining({ kind: 'temporary' } as Partial<ApplicationError>),
     );
   }));
+
+  it('uses the canonical poll path returned by an accepted operation', fakeAsync(() => {
+    const get = jasmine
+      .createSpy()
+      .and.returnValue(of({ operationId: 'operation-1', status: 'SUCCEEDED' as const }));
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [{ provide: HttpClient, useValue: { get } }] });
+    service = TestBed.inject(OperationTrackerService);
+
+    service.trackPath('/api/v1/operations/operation-1').subscribe();
+    tick();
+
+    expect(get).toHaveBeenCalledWith('/api/v1/operations/operation-1');
+  }));
 });

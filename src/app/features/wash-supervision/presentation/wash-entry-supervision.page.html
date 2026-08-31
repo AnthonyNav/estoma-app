@@ -95,7 +95,7 @@
             <svg viewBox="0 0 24 24"><path d="M7 4h10v16H7zM9.5 8h5m-5 4h5m-5 4H12" /></svg>
           </span>
           <div>
-            <h2 id="appointment-title">{{ lookup.student.fullName }}</h2>
+            <h2 id="appointment-title">{{ lookup.student.displayName }}</h2>
             <p>
               {{ lookup.student.studentEnrollment }} · {{ lookup.student.currentSemester }}°
               semestre
@@ -111,8 +111,8 @@
           <li>
             <span>Curso</span>
             <strong
-              >{{ lookup.appointment.courseSection.nrc }} ·
-              {{ lookup.appointment.courseSection.name }}</strong
+              >{{ lookup.appointment.courseSectionReference.nrc }} ·
+              {{ lookup.appointment.courseSectionReference.name }}</strong
             >
           </li>
           <li>
@@ -226,10 +226,10 @@
               </span>
               <div>
                 <h2 id="entry-title">Ingreso autorizado</h2>
-                @if (lookup.washExecution?.activeResourceAssignment; as assignment) {
+                @if (lookup.activeResourceAssignment; as assignment) {
                   <p>
                     Espacio asignado:
-                    <strong>{{ assignment.cabinName }} · {{ assignment.tankName }}</strong>
+                    <strong>{{ assignment.cabin.name }} · {{ assignment.tank.name }}</strong>
                   </p>
                 } @else {
                   <p>La asignación de espacio fue confirmada por el servicio.</p>

@@ -1,5 +1,8 @@
 export interface Session {
+  sessionId: string;
   accessToken: string;
+  refreshToken: string | null;
   accountId: string;
-  expiresAt: string;
+  authState: 'NORMAL' | 'PASSWORD_CHANGE_REQUIRED';
+  expiresAt: string | null;
 }

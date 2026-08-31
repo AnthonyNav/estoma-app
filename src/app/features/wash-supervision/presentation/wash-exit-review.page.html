@@ -1,0 +1,70 @@
+<section class="flow" aria-labelledby="exit-review-title">
+  <header class="flow__header">
+    <h1 id="exit-review-title">Revisar salida</h1>
+    <p class="flow__intro">
+      Localiza la atención por matrícula o QR. La aplicación no interpreta el código QR.
+    </p>
+  </header>
+  <form class="flow-card lookup" [formGroup]="lookupForm" (ngSubmit)="search()">
+    <label class="field"
+      >Buscar por<select formControlName="lookupType">
+        <option value="STUDENT_ENROLLMENT">Matrícula</option>
+        <option value="QR">Código QR</option>
+      </select></label
+    ><label class="field">Valor<input formControlName="query" autocomplete="off" required /></label
+    ><button class="button button--primary" type="submit" [disabled]="loading()">
+      {{ loading() ? 'Buscando…' : 'Buscar' }}
+    </button>
+  </form>
+  @if (error(); as error) {
+    <p class="field__error" role="alert">{{ error }}</p>
+  }
+  @if (lookup(); as lookup) {
+    <section class="flow-card exit-context">
+      <h2>{{ lookup.student.displayName }}</h2>
+      <p>
+        {{ lookup.student.studentEnrollment }} ·
+        {{ lookup.appointment.courseSectionReference.name }}
+      </p>
+      @if (lookup.washExecution?.status === 'IN_PROGRESS') {
+        <div class="feedback" role="status">
+          <h3>Salida pendiente del alumno</h3>
+          <p>La atención está en proceso. El Supervisor no puede crear la declaración inicial.</p>
+        </div>
+      } @else if (lookup.washExecution?.status === 'EXIT_SUBMITTED') {
+        <form [formGroup]="materialsForm" (ngSubmit)="complete()">
+          <h3>Materiales finales</h3>
+          <p class="hint">Partimos de la declaración del Alumno; ajusta sólo lo necesario.</p>
+          <div class="materials-grid">
+            <label class="field"
+              >Paquetes<input type="number" min="0" formControlName="packageCount" /></label
+            ><label class="field"
+              >Cassettes de 8<input
+                type="number"
+                min="0"
+                formControlName="greenPaperCassette8Count" /></label
+            ><label class="field"
+              >Cassettes de 10<input
+                type="number"
+                min="0"
+                formControlName="greenPaperCassette10Count" /></label
+            ><label class="field"
+              >Cinta testigo<input type="number" min="0" formControlName="witnessTapePortionCount"
+            /></label>
+          </div>
+          <div class="button-row">
+            <button class="button button--primary" type="submit" [disabled]="!canComplete()">
+              {{ completing() ? 'Finalizando…' : 'Finalizar lavado' }}
+            </button>
+          </div>
+        </form>
+      } @else {
+        <div class="feedback" role="status">
+          <h3>Atención no accionable</h3>
+          <p>El estado actual no permite revisar una salida.</p>
+        </div>
+      }
+    </section>
+  }
+  <a class="button button--quiet" routerLink="/wash/supervision">Volver al inicio</a>
+</section>

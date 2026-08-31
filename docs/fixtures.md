@@ -65,6 +65,26 @@ navegador. Esto permite validar la propagación de estados sin preparar datos ma
 También se puede buscar usando el QR que muestra la vista del alumno. La representación es opaca;
 la pantalla de supervisión la envía al adapter y no intenta decodificarla en el navegador.
 
+## Recorrer las demás experiencias de Lavado
+
+Las rutas siguientes también usan fixtures contract-faithful en desarrollo:
+
+| Experiencia               | Ruta                                           |
+| ------------------------- | ---------------------------------------------- |
+| Home del Supervisor       | `/wash/supervision`                            |
+| Reasignaciones pendientes | `/wash/supervision/reassignments`              |
+| Revisión de salida        | `/wash/supervision/exit`                       |
+| Recursos operativos       | `/wash/supervision/resources`                  |
+| Autorización excepcional  | `/wash/supervision/exceptional-authorizations` |
+| Dashboard administrativo  | `/wash/admin`                                  |
+| Operación semanal         | `/wash/admin/operation`                        |
+| Recursos administrativos  | `/wash/admin/resources`                        |
+| Supervisores              | `/wash/admin/supervisors`                      |
+
+Los mocks preservan las distinciones del contrato: candidatos no reservan capacidad, una lista vacía
+de candidatos es la única que habilita cancelación clínica por capacidad, la salida del alumno se
+declara antes de su revisión, y recursos administrativos no son recursos operativos.
+
 ## Agregar o modificar un fixture
 
 Los datos y transiciones viven en

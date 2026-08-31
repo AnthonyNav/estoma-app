@@ -35,13 +35,6 @@ type PendingSupervisorAction =
       operationId: string | null;
     };
 
-const timeFormatter = new Intl.DateTimeFormat('es-MX', {
-  hour: '2-digit',
-  hour12: false,
-  minute: '2-digit',
-  timeZone: 'America/Mexico_City',
-});
-
 @Component({
   selector: 'app-wash-entry-supervision-page',
   imports: [ReactiveFormsModule],
@@ -163,9 +156,9 @@ export class WashEntrySupervisionPage {
       .registerArrival(pending.command)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ operationId }) => {
-          this.setPendingOperation(operationId);
-          this.trackPendingAction(operationId);
+        next: (accepted) => {
+          this.setPendingOperation(accepted.operationId);
+          this.trackPendingAction(accepted.operationId, accepted.pollPath);
         },
         error: (error: unknown) => this.failAction(error),
       });
@@ -239,8 +232,14 @@ export class WashEntrySupervisionPage {
   }
 
   formatTimeSlot(lookup: SupervisorEntryLookup): string {
-    const { startsAt, endsAt } = lookup.appointment.timeSlot;
-    return `${timeFormatter.format(new Date(startsAt))}–${timeFormatter.format(new Date(endsAt))}`;
+    const { startsAt, endsAt } = lookup.appointment.appointmentTimeSlot;
+    const formatter = new Intl.DateTimeFormat('es-MX', {
+      hour: '2-digit',
+      hour12: false,
+      minute: '2-digit',
+      timeZone: lookup.appointment.appointmentTimeSlot.timezone,
+    });
+    return `${formatter.format(new Date(startsAt))}–${formatter.format(new Date(endsAt))}`;
   }
 
   private sendDecision(decision: 'AUTHORIZED' | 'REJECTED', rejectionReason: string | null): void {
@@ -259,7 +258,7 @@ export class WashEntrySupervisionPage {
         kind: 'DECISION',
         command: {
           washExecutionId: execution.washExecutionId,
-          expectedVersion: execution.version ?? 1,
+          expectedVersion: execution.executionVersion,
           decision,
           identityConfirmed: this.identityConfirmed(),
           requirementsSatisfied: this.requirementsSatisfied(),
@@ -285,9 +284,9 @@ export class WashEntrySupervisionPage {
       .decideEntry(pending.command)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ operationId }) => {
-          this.setPendingOperation(operationId);
-          this.trackPendingAction(operationId);
+        next: (accepted) => {
+          this.setPendingOperation(accepted.operationId);
+          this.trackPendingAction(accepted.operationId, accepted.pollPath);
         },
         error: (error: unknown) => this.failAction(error),
       });
@@ -346,17 +345,24 @@ export class WashEntrySupervisionPage {
     this.pendingAction.update((pending) => (pending ? { ...pending, operationId } : pending));
   }
 
-  private trackPendingAction(operationId: string): void {
-    this.operationTracker
-      .trackWith(() => this.supervision.getOperation(operationId), {
-        intervalMs: 600,
-        maxPendingPolls: 100,
-      })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (operation) => this.completeOperation(operation.status === 'SUCCEEDED'),
-        error: (error: unknown) => this.failAction(error),
-      });
+  private trackPendingAction(operationId: string, pollPath?: string): void {
+    const tracked = pollPath
+      ? this.operationTracker.trackAccepted(
+          { operationId, pollPath },
+          () => this.supervision.getOperation(operationId),
+          {
+            intervalMs: 600,
+            maxPendingPolls: 100,
+          },
+        )
+      : this.operationTracker.trackWith(() => this.supervision.getOperation(operationId), {
+          intervalMs: 600,
+          maxPendingPolls: 100,
+        });
+    tracked.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (operation) => this.completeOperation(operation.status === 'SUCCEEDED'),
+      error: (error: unknown) => this.failAction(error),
+    });
   }
 
   private failAction(error: unknown): void {
