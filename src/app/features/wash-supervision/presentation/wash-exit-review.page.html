@@ -1,25 +1,51 @@
 <section class="flow" aria-labelledby="exit-review-title">
   <header class="flow__header">
-    <h1 id="exit-review-title">Revisar salida</h1>
+    <h1 id="exit-review-title">{{ isReviewView ? 'Revisar salida' : 'Registrar salida' }}</h1>
     <p class="flow__intro">
-      Localiza la atención por matrícula o QR. La aplicación no interpreta el código QR.
+      @if (isReviewView) {
+        Revisa el estado de la atención y confirma los materiales finales cuando la salida esté
+        lista.
+      } @else {
+        Escanea el QR de una atención en proceso o selecciónala desde la búsqueda manual.
+      }
     </p>
   </header>
-  <form class="flow-card lookup" [formGroup]="lookupForm" (ngSubmit)="search()">
-    <label class="field"
-      >Buscar por<select formControlName="lookupType">
-        <option value="STUDENT_ENROLLMENT">Matrícula</option>
-        <option value="QR">Código QR</option>
-      </select></label
-    ><label class="field">Valor<input formControlName="query" autocomplete="off" required /></label
-    ><button class="button button--primary" type="submit" [disabled]="loading()">
-      {{ loading() ? 'Buscando…' : 'Buscar' }}
-    </button>
-  </form>
+
+  @if (!isReviewView) {
+    <section class="flow-card lookup-card" aria-labelledby="exit-lookup-title">
+      <div class="flow-card__heading">
+        <div>
+          <h2 id="exit-lookup-title">Localizar atención en proceso</h2>
+          <p>El código QR se valida como una representación opaca en el servidor.</p>
+        </div>
+      </div>
+      <app-wash-qr-camera-scanner
+        [disabled]="loading() || completing()"
+        (scanned)="searchByQr($event)"
+      />
+      <div class="manual-selection-link">
+        <h3>O búsqueda manual</h3>
+        <p>Consulta las citas registradas y en proceso de la jornada.</p>
+        <a class="button button--quiet" routerLink="/wash/supervision/manual-search">
+          Búsqueda manual
+        </a>
+      </div>
+    </section>
+  }
+
   @if (error(); as error) {
     <p class="field__error" role="alert">{{ error }}</p>
   }
-  @if (lookup(); as lookup) {
+
+  @if (isReviewView && !lookup() && !loading()) {
+    <section class="feedback" role="status">
+      <h2>No hay una salida seleccionada</h2>
+      <p>Primero localiza una atención en proceso.</p>
+      <a class="button button--primary" routerLink="/wash/supervision/exit">Localizar atención</a>
+    </section>
+  }
+
+  @if (isReviewView && lookup(); as lookup) {
     <section class="flow-card exit-context">
       <h2>{{ lookup.student.displayName }}</h2>
       <p>
@@ -66,5 +92,6 @@
       }
     </section>
   }
-  <a class="button button--quiet" routerLink="/wash/supervision">Volver al inicio</a>
+
+  <a class="button button--quiet" routerLink="/wash/supervision"> Volver al inicio </a>
 </section>

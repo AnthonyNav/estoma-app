@@ -1,0 +1,46 @@
+:host {
+  display: block;
+}
+
+.qr-scanner {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.qr-scanner h2 {
+  margin-bottom: var(--space-xs);
+}
+
+.qr-scanner p {
+  color: var(--on-surface-variant);
+  margin-bottom: 0;
+}
+
+.qr-scanner > .button {
+  justify-self: start;
+}
+
+.qr-scanner__camera {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.qr-scanner__camera video {
+  background: var(--surface-container-high);
+  border-radius: var(--radius-lg);
+  display: block;
+  max-height: 22rem;
+  object-fit: cover;
+  width: min(100%, 32rem);
+}
+
+.qr-scanner__camera .button {
+  justify-self: start;
+}
+
+@media (max-width: 47.9375rem) {
+  .qr-scanner > .button,
+  .qr-scanner__camera .button {
+    justify-self: stretch;
+  }
+}

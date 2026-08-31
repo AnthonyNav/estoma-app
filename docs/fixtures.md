@@ -15,6 +15,11 @@ pnpm start
 
 Abre `http://localhost:4200/wash/student`. No se requiere un servicio backend local.
 
+Para ejecutar los 15 casos de uso cerrados desde una sola pantalla, abre
+`http://localhost:4200/wash/fixtures`. Cada tarjeta reinicia el estado mock aplicable y lleva a
+la pantalla inicial del recorrido. Los recorridos compartidos de Alumno/Supervisor conservan las
+transiciones durante la navegación de la misma pestaña.
+
 ## Probar estados del alumno
 
 El adapter de inicio acepta el parámetro de consulta `fixture` en la ruta del alumno. Por ejemplo:
@@ -56,30 +61,35 @@ navegador. Esto permite validar la propagación de estados sin preparar datos ma
 1. Abre `http://localhost:4200/wash/student?fixture=no-appointment`.
 2. Registra una cita desde Reglamento, Datos y Horario. La operación se resuelve después de dos
    consultas simuladas y el alumno vuelve a ver su cita con QR.
-3. Abre `http://localhost:4200/wash/supervision/entry`, busca la matrícula de prueba `201945678` y
+3. Abre `http://localhost:4200/wash/supervision/entry`, escanea el QR o abre
+   `http://localhost:4200/wash/supervision/manual-search`. Selecciona una cita `Registrada` y
    registra la llegada.
 4. Vuelve a buscar, confirma identidad y requisitos, y autoriza o rechaza el ingreso.
 5. Regresa a la vista del alumno para comprobar que el estado, el recurso o el motivo de rechazo se
    actualizaron.
 
-También se puede buscar usando el QR que muestra la vista del alumno. La representación es opaca;
-la pantalla de supervisión la envía al adapter y no intenta decodificarla en el navegador.
+El escáner abre la cámara del dispositivo y entrega la representación QR como un valor opaco;
+la pantalla de supervisión no inspecciona su contenido y la envía al adapter para validación.
+
+La búsqueda manual muestra las citas accionables de la jornada con persona, datos de cita y badge
+`Registrada` o `En proceso`. La selección entrega el contexto al flujo correspondiente.
 
 ## Recorrer las demás experiencias de Lavado
 
 Las rutas siguientes también usan fixtures contract-faithful en desarrollo:
 
-| Experiencia               | Ruta                                           |
-| ------------------------- | ---------------------------------------------- |
-| Home del Supervisor       | `/wash/supervision`                            |
-| Reasignaciones pendientes | `/wash/supervision/reassignments`              |
-| Revisión de salida        | `/wash/supervision/exit`                       |
-| Recursos operativos       | `/wash/supervision/resources`                  |
-| Autorización excepcional  | `/wash/supervision/exceptional-authorizations` |
-| Dashboard administrativo  | `/wash/admin`                                  |
-| Operación semanal         | `/wash/admin/operation`                        |
-| Recursos administrativos  | `/wash/admin/resources`                        |
-| Supervisores              | `/wash/admin/supervisors`                      |
+| Experiencia                | Ruta                                           |
+| -------------------------- | ---------------------------------------------- |
+| Home del Supervisor        | `/wash/supervision`                            |
+| Búsqueda manual Supervisor | `/wash/supervision/manual-search`              |
+| Reasignaciones pendientes  | `/wash/supervision/reassignments`              |
+| Revisión de salida         | `/wash/supervision/exit`                       |
+| Recursos operativos        | `/wash/supervision/resources`                  |
+| Autorización excepcional   | `/wash/supervision/exceptional-authorizations` |
+| Dashboard administrativo   | `/wash/admin`                                  |
+| Operación semanal          | `/wash/admin/operation`                        |
+| Recursos administrativos   | `/wash/admin/resources`                        |
+| Supervisores               | `/wash/admin/supervisors`                      |
 
 Los mocks preservan las distinciones del contrato: candidatos no reservan capacidad, una lista vacía
 de candidatos es la única que habilita cancelación clínica por capacidad, la salida del alumno se

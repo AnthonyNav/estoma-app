@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, of, throwError, timer } from 'rxjs';
-import { exhaustMap, mergeMap, takeWhile } from 'rxjs/operators';
+import { exhaustMap, filter, mergeMap, takeWhile } from 'rxjs/operators';
 
 import { environment } from '../../../environments/environment';
 import { ApplicationError } from './application-error';
@@ -79,6 +79,7 @@ export class OperationTrackerService {
             );
       }),
       takeWhile((operation) => operation.status === 'PENDING', true),
+      filter((operation) => operation.status !== 'PENDING'),
     );
   }
 }

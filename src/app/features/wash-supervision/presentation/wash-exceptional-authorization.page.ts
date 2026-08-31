@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
 
 import { ApplicationError } from '../../../core/api/application-error';
+import { IdempotentIntentService } from '../../../core/api/idempotent-intent.service';
 import { OperationTrackerService } from '../../../core/api/operation-tracker.service';
 import {
   AcceptedOperation,
@@ -24,6 +25,7 @@ export class WashExceptionalAuthorizationPage {
   private readonly formBuilder = inject(FormBuilder);
   private readonly supervision = inject(WashEntrySupervisionUseCase);
   private readonly operationTracker = inject(OperationTrackerService);
+  private readonly intents = inject(IdempotentIntentService);
 
   readonly lookupForm = this.formBuilder.nonNullable.group({
     studentEnrollment: ['', Validators.required],
@@ -66,11 +68,14 @@ export class WashExceptionalAuthorizationPage {
       this.grantForm.markAllAsTouched();
       return;
     }
+    const reason = this.grantForm.controls.reason.value.trim();
+    const intent = `wash.exceptional.grant:${context.student.studentAccountId}:${reason}`;
     this.track(
+      intent,
       this.supervision.grantExceptionalAuthorization({
         studentAccountId: context.student.studentAccountId,
-        reason: this.grantForm.controls.reason.value.trim(),
-        idempotencyKey: this.key('grant-exception'),
+        reason,
+        idempotencyKey: this.intents.key(intent),
       }),
     );
   }
@@ -80,16 +85,18 @@ export class WashExceptionalAuthorizationPage {
     if (!authorization || authorization.cancelAction !== 'AVAILABLE' || this.submitting()) {
       return;
     }
+    const intent = `wash.exceptional.cancel:${authorization.authorizationId}`;
     this.track(
+      intent,
       this.supervision.cancelExceptionalAuthorization({
         authorizationId: authorization.authorizationId,
         reason: 'La segunda cita ya no es necesaria',
-        idempotencyKey: this.key('cancel-exception'),
+        idempotencyKey: this.intents.key(intent),
       }),
     );
   }
 
-  private track(request: Observable<AcceptedOperation>): void {
+  private track(intent: string, request: Observable<AcceptedOperation>): void {
     this.submitting.set(true);
     this.error.set(null);
     request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -102,6 +109,7 @@ export class WashExceptionalAuthorizationPage {
           .subscribe({
             next: (operation) => {
               this.submitting.set(false);
+              this.intents.complete(intent);
               if (operation.status === 'SUCCEEDED') {
                 this.lookup();
                 return;
@@ -123,12 +131,6 @@ export class WashExceptionalAuthorizationPage {
       error instanceof ApplicationError
         ? error.message
         : 'No fue posible consultar la autorización.',
-    );
-  }
-  private key(scope: string): string {
-    return (
-      globalThis.crypto?.randomUUID?.() ??
-      `${scope}-${Date.now()}-${Math.random().toString(16).slice(2)}`
     );
   }
 }

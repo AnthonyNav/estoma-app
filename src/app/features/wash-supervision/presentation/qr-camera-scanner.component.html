@@ -1,0 +1,31 @@
+<section class="qr-scanner" aria-labelledby="qr-scanner-title">
+  <div>
+    <p class="eyebrow">Opción principal</p>
+    <h2 id="qr-scanner-title">Escanear código QR</h2>
+    <p>Abre la cámara del dispositivo y muestra el código de la cita.</p>
+  </div>
+
+  @if (state() === 'IDLE' || state() === 'ERROR') {
+    <button class="button button--primary" type="button" [disabled]="disabled()" (click)="start()">
+      Escanear
+    </button>
+  } @else {
+    <div class="qr-scanner__camera" aria-live="polite">
+      <video
+        #preview
+        autoplay
+        muted
+        playsinline
+        aria-label="Vista de la cámara para escanear QR"
+      ></video>
+      <p>
+        {{ state() === 'REQUESTING' ? 'Solicitando acceso a la cámara…' : 'Apunta al código QR.' }}
+      </p>
+      <button class="button button--quiet" type="button" (click)="stop()">Cancelar escaneo</button>
+    </div>
+  }
+
+  @if (error(); as error) {
+    <p class="field__error" role="alert">{{ error }}</p>
+  }
+</section>

@@ -50,6 +50,21 @@ export interface SupervisorLookup {
   activeResourceAssignment: OperationalResourceAssignment | null;
 }
 
+/**
+ * Etiqueta de presentación calculada por el BFF para la lista de selección manual.
+ * No sustituye el estado canónico de Appointment ni de WashExecution.
+ */
+export type ManualSelectionStatus = 'REGISTERED' | 'IN_PROGRESS';
+
+export interface SupervisorManualAppointment extends Omit<SupervisorLookup, 'serviceDate'> {
+  manualSelectionStatus: ManualSelectionStatus;
+}
+
+export interface SupervisorManualAppointments {
+  serviceDate: string;
+  appointments: SupervisorManualAppointment[];
+}
+
 export interface SupervisorWashExecution {
   washExecutionId: string;
   status: WashExecutionStatus;

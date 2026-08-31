@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
 
 import { ApplicationError } from '../../../core/api/application-error';
+import { IdempotentIntentService } from '../../../core/api/idempotent-intent.service';
 import { OperationTrackerService } from '../../../core/api/operation-tracker.service';
 import {
   AcceptedOperation,
@@ -25,6 +26,7 @@ export class WashOperationalResourcesPage {
   private readonly formBuilder = inject(FormBuilder);
   private readonly supervision = inject(WashEntrySupervisionUseCase);
   private readonly operationTracker = inject(OperationTrackerService);
+  private readonly intents = inject(IdempotentIntentService);
 
   readonly resources = signal<OperationalResources | null>(null);
   readonly loading = signal(true);
@@ -47,12 +49,14 @@ export class WashOperationalResourcesPage {
   }
 
   restore(unavailability: ResourceUnavailability): void {
+    const intent = `wash.resource.restore:${unavailability.resourceUnavailabilityId}:${unavailability.unavailabilityVersion}`;
     this.track(
+      intent,
       this.supervision.restoreResource({
         resourceUnavailabilityId: unavailability.resourceUnavailabilityId,
         resolution: null,
         expectedVersion: unavailability.unavailabilityVersion,
-        idempotencyKey: this.key('restore'),
+        idempotencyKey: this.intents.key(intent),
       }),
     );
   }
@@ -63,14 +67,16 @@ export class WashOperationalResourcesPage {
       return;
     }
     const { reason, causeType } = this.disableForm.getRawValue();
+    const intent = `wash.resource.disable:${cabinId ?? tankId}:${causeType}:${reason.trim()}`;
     this.track(
+      intent,
       this.supervision.disableResource({
         cabinId,
         tankId,
         causeType,
         reason: reason.trim(),
         detectedDuringWashExecutionId: null,
-        idempotencyKey: this.key('disable'),
+        idempotencyKey: this.intents.key(intent),
       }),
     );
   }
@@ -89,7 +95,7 @@ export class WashOperationalResourcesPage {
       });
   }
 
-  private track(request: Observable<AcceptedOperation>): void {
+  private track(intent: string, request: Observable<AcceptedOperation>): void {
     this.submitting.set(true);
     this.error.set(null);
     request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -102,6 +108,7 @@ export class WashOperationalResourcesPage {
           .subscribe({
             next: (operation) => {
               this.submitting.set(false);
+              this.intents.complete(intent);
               if (operation.status === 'SUCCEEDED') {
                 this.load();
                 return;
@@ -121,12 +128,6 @@ export class WashOperationalResourcesPage {
     this.submitting.set(false);
     this.error.set(
       error instanceof ApplicationError ? error.message : 'No fue posible actualizar los recursos.',
-    );
-  }
-  private key(scope: string): string {
-    return (
-      globalThis.crypto?.randomUUID?.() ??
-      `${scope}-${Date.now()}-${Math.random().toString(16).slice(2)}`
     );
   }
 }

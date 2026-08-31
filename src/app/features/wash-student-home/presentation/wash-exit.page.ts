@@ -11,6 +11,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
 import { ApplicationError } from '../../../core/api/application-error';
+import { IdempotentIntentService } from '../../../core/api/idempotent-intent.service';
 import { OperationTrackerService } from '../../../core/api/operation-tracker.service';
 import { LoadStudentWashHomeUseCase } from '../application/load-student-wash-home.use-case';
 import { ManageStudentWashLifecycleUseCase } from '../application/manage-student-wash-lifecycle.use-case';
@@ -30,6 +31,7 @@ export class WashExitPage {
   private readonly loadHome = inject(LoadStudentWashHomeUseCase);
   private readonly lifecycle = inject(ManageStudentWashLifecycleUseCase);
   private readonly operationTracker = inject(OperationTrackerService);
+  private readonly intents = inject(IdempotentIntentService);
 
   readonly form = this.formBuilder.nonNullable.group({
     packageCount: [0, [Validators.required, Validators.min(0)]],
@@ -66,16 +68,18 @@ export class WashExitPage {
 
     this.submitting.set(true);
     this.error.set(null);
+    const materials = this.form.getRawValue();
+    const intent = `wash.exit:${execution.washExecutionId}:${execution.executionVersion}:${JSON.stringify(materials)}`;
     this.lifecycle
       .submitExit({
         washExecutionId: execution.washExecutionId,
         expectedVersion: execution.executionVersion,
-        materials: this.form.getRawValue(),
-        idempotencyKey: this.createIdempotencyKey(),
+        materials,
+        idempotencyKey: this.intents.key(intent),
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (accepted) => this.trackOperation(accepted),
+        next: (accepted) => this.trackOperation(accepted, intent),
         error: (error: unknown) => this.fail(error),
       });
   }
@@ -98,7 +102,10 @@ export class WashExitPage {
       });
   }
 
-  private trackOperation(accepted: { operationId: string; pollPath: string }): void {
+  private trackOperation(
+    accepted: { operationId: string; pollPath: string },
+    intent: string,
+  ): void {
     this.operationTracker
       .trackAccepted(accepted, () => this.lifecycle.getOperation(accepted.operationId), {
         intervalMs: 600,
@@ -107,6 +114,7 @@ export class WashExitPage {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (operation) => {
+          this.intents.complete(intent);
           if (operation.status === 'SUCCEEDED') {
             void this.router.navigate(['/wash/student']);
             return;
@@ -125,13 +133,6 @@ export class WashExitPage {
     this.submitting.set(false);
     this.error.set(
       error instanceof ApplicationError ? error.message : 'No fue posible registrar la salida.',
-    );
-  }
-
-  private createIdempotencyKey(): string {
-    return (
-      globalThis.crypto?.randomUUID?.() ??
-      `wash-exit-${Date.now()}-${Math.random().toString(16).slice(2)}`
     );
   }
 }

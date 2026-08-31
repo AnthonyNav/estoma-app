@@ -9,7 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { ApplicationError } from '../../../core/api/application-error';
 import { OperationTrackerService } from '../../../core/api/operation-tracker.service';
@@ -20,6 +20,7 @@ import {
   RegisterWashArrivalCommand,
   SupervisorEntryLookup,
 } from '../domain/models/supervisor-entry';
+import { QrCameraScannerComponent } from './qr-camera-scanner.component';
 
 type SupervisorAction = 'IDLE' | 'ARRIVAL' | 'DECISION' | 'FAILED';
 
@@ -37,14 +38,15 @@ type PendingSupervisorAction =
 
 @Component({
   selector: 'app-wash-entry-supervision-page',
-  imports: [ReactiveFormsModule],
+  imports: [RouterLink, QrCameraScannerComponent],
   templateUrl: './wash-entry-supervision.page.html',
   styleUrl: './wash-entry-supervision.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class WashEntrySupervisionPage {
   private readonly destroyRef = inject(DestroyRef);
-  private readonly formBuilder = inject(FormBuilder);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly supervision = inject(WashEntrySupervisionUseCase);
   private readonly operationTracker = inject(OperationTrackerService);
   private lastRequest: EntryLookupRequest | null = null;
@@ -52,27 +54,20 @@ export class WashEntrySupervisionPage {
   @ViewChild('rejectionDialog') private rejectionDialog?: ElementRef<HTMLDialogElement>;
   private rejectionTrigger: HTMLElement | null = null;
 
-  readonly lookupForm = this.formBuilder.nonNullable.group({
-    lookupType: ['STUDENT_ENROLLMENT' as EntryLookupRequest['lookupType']],
-    query: ['201945678', Validators.required],
-  });
   readonly lookup = signal<SupervisorEntryLookup | null>(null);
   readonly loadingLookup = signal(false);
   readonly lookupError = signal<string | null>(null);
   readonly action = signal<SupervisorAction>('IDLE');
   readonly actionError = signal<string | null>(null);
   readonly pendingAction = signal<PendingSupervisorAction | null>(null);
-  readonly identityConfirmed = signal(false);
-  readonly requirementsSatisfied = signal(false);
   readonly rejectionOpen = signal(false);
   readonly rejectionReason = signal('');
   readonly rejectionTouched = signal(false);
+  readonly isValidationView = this.route.snapshot.data['mode'] === 'validation';
   readonly executionStatus = computed(() => this.lookup()?.washExecution?.status ?? 'NOT_ARRIVED');
   readonly mayAuthorize = computed(
     () =>
       this.executionStatus() === 'PENDING_ENTRY' &&
-      this.identityConfirmed() &&
-      this.requirementsSatisfied() &&
       (this.action() === 'IDLE' ||
         (this.action() === 'FAILED' && this.pendingAction()?.kind === 'DECISION')),
   );
@@ -92,13 +87,15 @@ export class WashEntrySupervisionPage {
     );
   });
 
-  search(): void {
-    if (this.lookupForm.invalid) {
-      this.lookupForm.markAllAsTouched();
-      return;
-    }
+  constructor() {
+    this.restoreManualSelection();
+  }
 
-    const request = this.createRequest();
+  searchByQr(qrRepresentation: string): void {
+    this.lookupAppointment({ lookupType: 'QR', qrRepresentation });
+  }
+
+  private lookupAppointment(request: EntryLookupRequest): void {
     this.lastRequest = request;
     this.loadingLookup.set(true);
     this.lookupError.set(null);
@@ -112,8 +109,7 @@ export class WashEntrySupervisionPage {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (lookup) => {
-          this.lookup.set(lookup);
-          this.loadingLookup.set(false);
+          this.applyLookup(lookup, request);
         },
         error: (error: unknown) => {
           this.lookupError.set(
@@ -204,14 +200,6 @@ export class WashEntrySupervisionPage {
     }
   }
 
-  updateIdentityConfirmed(event: Event): void {
-    this.identityConfirmed.set((event.target as HTMLInputElement).checked);
-  }
-
-  updateRequirementsSatisfied(event: Event): void {
-    this.requirementsSatisfied.set((event.target as HTMLInputElement).checked);
-  }
-
   updateRejectionReason(event: Event): void {
     this.rejectionReason.set((event.target as HTMLTextAreaElement).value);
     this.rejectionTouched.set(true);
@@ -219,6 +207,17 @@ export class WashEntrySupervisionPage {
 
   authorize(): void {
     this.sendDecision('AUTHORIZED', null);
+  }
+
+  continueToValidation(): void {
+    const lookup = this.lookup();
+    if (!lookup || this.executionStatus() !== 'PENDING_ENTRY') {
+      return;
+    }
+
+    void this.router.navigate(['/wash/supervision/entry/validation'], {
+      state: { supervisorLookup: lookup },
+    });
   }
 
   confirmRejection(): void {
@@ -260,8 +259,8 @@ export class WashEntrySupervisionPage {
           washExecutionId: execution.washExecutionId,
           expectedVersion: execution.executionVersion,
           decision,
-          identityConfirmed: this.identityConfirmed(),
-          requirementsSatisfied: this.requirementsSatisfied(),
+          identityConfirmed: decision === 'AUTHORIZED',
+          requirementsSatisfied: decision === 'AUTHORIZED',
           rejectionReason,
           idempotencyKey: this.createIdempotencyKey(),
         },
@@ -293,6 +292,7 @@ export class WashEntrySupervisionPage {
   }
 
   private completeOperation(succeeded: boolean): void {
+    const completedAction = this.pendingAction();
     this.pendingAction.set(null);
     if (!succeeded) {
       this.action.set('IDLE');
@@ -304,10 +304,10 @@ export class WashEntrySupervisionPage {
 
     this.action.set('IDLE');
     this.closeRejection();
-    this.refreshLookup();
+    this.refreshLookup(completedAction?.kind === 'ARRIVAL');
   }
 
-  private refreshLookup(): void {
+  private refreshLookup(openValidation = false): void {
     if (!this.lastRequest) {
       return;
     }
@@ -318,9 +318,10 @@ export class WashEntrySupervisionPage {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (lookup) => {
-          this.lookup.set(lookup);
-          this.loadingLookup.set(false);
-          this.resetDecisionControls();
+          this.applyLookup(lookup, this.lastRequest!);
+          if (openValidation) {
+            this.navigateToValidation(lookup);
+          }
         },
         error: (error: unknown) => {
           this.lookupError.set(
@@ -331,14 +332,6 @@ export class WashEntrySupervisionPage {
           this.loadingLookup.set(false);
         },
       });
-  }
-
-  private createRequest(): EntryLookupRequest {
-    const { lookupType, query } = this.lookupForm.getRawValue();
-    const value = query.trim();
-    return lookupType === 'QR'
-      ? { lookupType: 'QR', qrRepresentation: value }
-      : { lookupType: 'STUDENT_ENROLLMENT', studentEnrollment: value };
   }
 
   private setPendingOperation(operationId: string): void {
@@ -377,12 +370,53 @@ export class WashEntrySupervisionPage {
   }
 
   private resetDecisionControls(): void {
-    this.identityConfirmed.set(false);
-    this.requirementsSatisfied.set(false);
     this.rejectionOpen.set(false);
     this.rejectionReason.set('');
     this.rejectionTouched.set(false);
     this.actionError.set(null);
+  }
+
+  private restoreManualSelection(): void {
+    const state = this.router.getCurrentNavigation()?.extras.state ?? history.state;
+    const selected = state['supervisorLookup'];
+    if (!this.isSupervisorLookup(selected)) {
+      return;
+    }
+
+    this.applyLookup(selected, {
+      lookupType: 'STUDENT_ENROLLMENT',
+      studentEnrollment: selected.student.studentEnrollment,
+    });
+  }
+
+  private applyLookup(lookup: SupervisorEntryLookup, request: EntryLookupRequest): void {
+    this.lastRequest = request;
+    this.lookup.set(lookup);
+    this.loadingLookup.set(false);
+    this.resetDecisionControls();
+  }
+
+  private navigateToValidation(lookup: SupervisorEntryLookup): void {
+    if (lookup.washExecution?.status !== 'PENDING_ENTRY') {
+      return;
+    }
+
+    void this.router.navigate(['/wash/supervision/entry/validation'], {
+      state: { supervisorLookup: lookup },
+    });
+  }
+
+  private isSupervisorLookup(value: unknown): value is SupervisorEntryLookup {
+    if (!value || typeof value !== 'object') {
+      return false;
+    }
+    const candidate = value as Partial<SupervisorEntryLookup>;
+    return (
+      typeof candidate.serviceDate === 'string' &&
+      typeof candidate.nextAction === 'string' &&
+      typeof candidate.student?.studentEnrollment === 'string' &&
+      typeof candidate.appointment?.appointmentId === 'string'
+    );
   }
 
   private createIdempotencyKey(): string {

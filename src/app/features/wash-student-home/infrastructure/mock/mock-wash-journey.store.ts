@@ -114,22 +114,35 @@ export class MockWashJourneyStore {
   private home: StudentWashHome = this.homeWith(this.appointmentWith('SCHEDULED', true));
   private readonly operations = new Map<string, PendingOperation>();
   private fixtureWasApplied = false;
+  private activeFixture: StudentHomeFixture | null = null;
+  private fixtureError: ApplicationError | null = null;
   private operationSequence = 0;
 
   loadStudentHome(fixture: StudentHomeFixture | null): Observable<StudentWashHome> {
     if (fixture && !this.fixtureWasApplied) {
-      const fixtureResult = this.fixtureResult(fixture);
-      this.fixtureWasApplied = true;
+      this.applyFixture(fixture);
+    }
 
-      if (fixtureResult instanceof ApplicationError) {
-        return throwError(() => fixtureResult).pipe(delay(fixture === 'loading' ? 10_000 : 550));
-      }
-
-      this.home = fixtureResult;
-      return of(this.home).pipe(delay(fixture === 'loading' ? 10_000 : 550));
+    if (this.fixtureError) {
+      return throwError(() => this.fixtureError).pipe(
+        delay(this.activeFixture === 'loading' ? 10_000 : 550),
+      );
     }
 
     return of(this.home).pipe(delay(250));
+  }
+
+  /** Punto de entrada exclusivo para la galería local de fixtures. */
+  applyFixture(fixture: StudentHomeFixture): void {
+    const fixtureResult = this.fixtureResult(fixture);
+    this.operations.clear();
+    this.fixtureWasApplied = true;
+    this.activeFixture = fixture;
+    this.fixtureError = fixtureResult instanceof ApplicationError ? fixtureResult : null;
+
+    if (!(fixtureResult instanceof ApplicationError)) {
+      this.home = fixtureResult;
+    }
   }
 
   getFormContext(): Observable<AppointmentFormContext> {
@@ -368,6 +381,108 @@ export class MockWashJourneyStore {
             executionVersion: execution.executionVersion + 1,
             exitSubmittedAt: '2026-08-27T11:45:00-06:00',
             submittedExitMaterials: command.materials,
+          },
+        });
+      }),
+    ).pipe(delay(250));
+  }
+
+  resolveReassignment(command: {
+    washExecutionId: string;
+    cabinId: string;
+    tankId: string;
+  }): Observable<AcceptedOperation> {
+    return of(
+      this.createOperation(() => {
+        const appointment = this.home.appointment;
+        const execution = appointment?.washExecution;
+        if (
+          !appointment ||
+          !execution ||
+          execution.washExecutionId !== command.washExecutionId ||
+          execution.status !== 'PENDING_REASSIGNMENT'
+        ) {
+          return;
+        }
+
+        this.home = this.homeWith({
+          ...appointment,
+          appointmentStatus: 'IN_PROGRESS',
+          qrUsageContext: 'STUDENT_EXIT',
+          washExecution: {
+            ...execution,
+            status: 'IN_PROGRESS',
+            executionVersion: execution.executionVersion + 1,
+            activeResourceAssignment: {
+              ...resourceAssignment,
+              cabinId: command.cabinId,
+              tankId: command.tankId,
+            },
+          },
+        });
+      }),
+    ).pipe(delay(250));
+  }
+
+  cancelForCapacity(command: { washExecutionId: string }): Observable<AcceptedOperation> {
+    return of(
+      this.createOperation(() => {
+        const appointment = this.home.appointment;
+        const execution = appointment?.washExecution;
+        if (
+          !appointment ||
+          !execution ||
+          execution.washExecutionId !== command.washExecutionId ||
+          execution.status !== 'PENDING_REASSIGNMENT'
+        ) {
+          return;
+        }
+
+        this.home = this.homeWith({
+          ...appointment,
+          appointmentStatus: 'CANCELLED',
+          qrUsageContext: 'NONE',
+          qrRepresentation: null,
+          washExecution: {
+            ...execution,
+            status: 'CANCELLED',
+            executionVersion: execution.executionVersion + 1,
+            activeResourceAssignment: null,
+          },
+        });
+      }),
+    ).pipe(delay(250));
+  }
+
+  completeExit(command: {
+    washExecutionId: string;
+    finalMaterials: ExitMaterials;
+  }): Observable<AcceptedOperation> {
+    return of(
+      this.createOperation(() => {
+        const appointment = this.home.appointment;
+        const execution = appointment?.washExecution;
+        if (
+          !appointment ||
+          !execution ||
+          execution.washExecutionId !== command.washExecutionId ||
+          execution.status !== 'EXIT_SUBMITTED'
+        ) {
+          return;
+        }
+
+        this.home = this.homeWith({
+          ...appointment,
+          appointmentStatus: 'COMPLETED',
+          qrUsageContext: 'NONE',
+          qrRepresentation: null,
+          washExecution: {
+            ...execution,
+            status: 'COMPLETED',
+            executionVersion: execution.executionVersion + 1,
+            completedAt: '2026-08-27T12:00:00-06:00',
+            finalExitMaterials: command.finalMaterials,
+            lastResourceAssignment: execution.activeResourceAssignment ?? resourceAssignment,
           },
         });
       }),

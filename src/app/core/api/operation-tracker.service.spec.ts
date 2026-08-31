@@ -32,7 +32,7 @@ describe('OperationTrackerService', () => {
 
     tick(2);
 
-    expect(receivedStatuses).toEqual(['PENDING', 'PENDING', 'SUCCEEDED']);
+    expect(receivedStatuses).toEqual(['SUCCEEDED']);
   }));
 
   it('fails after the configured number of pending polls', fakeAsync(() => {

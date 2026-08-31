@@ -2,19 +2,26 @@
   display: block;
 }
 .admin-nav {
+  background: rgb(255 255 255 / 62%);
+  border-radius: var(--radius-lg);
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-sm);
   margin-bottom: var(--space-xl);
+  padding: var(--space-sm);
 }
 .admin-nav a {
-  border: 1px solid var(--outline-variant);
+  border: 1px solid transparent;
   border-radius: var(--radius-full);
   color: var(--primary);
   font-size: var(--type-body-sm-size);
   font-weight: 700;
   padding: 0.45rem 0.75rem;
   text-decoration: none;
+}
+.admin-nav a:hover {
+  background: var(--surface);
+  box-shadow: 0 0.5rem 1rem rgb(15 92 110 / 10%);
 }
 .admin-dashboard {
   display: grid;

@@ -20,10 +20,12 @@ import {
   RestoreOperationalResourceCommand,
   SupervisorEntryLookup,
   SupervisorHome,
+  SupervisorManualAppointments,
 } from '../models/supervisor-entry';
 
 export interface WashSupervisionGateway {
   loadHome(): Observable<SupervisorHome>;
+  getManualAppointments(): Observable<SupervisorManualAppointments>;
   lookup(request: EntryLookupRequest): Observable<SupervisorEntryLookup>;
   registerArrival(command: RegisterWashArrivalCommand): Observable<AcceptedOperation>;
   decideEntry(command: DecideWashEntryCommand): Observable<AcceptedOperation>;

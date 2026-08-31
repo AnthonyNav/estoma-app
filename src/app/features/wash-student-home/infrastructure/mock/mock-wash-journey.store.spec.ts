@@ -184,6 +184,51 @@ describe('MockWashJourneyStore', () => {
     tick(250);
     expect(homeStatus).toBe('EXIT_SUBMITTED');
   }));
+
+  it('connects reassignment and exit completion fixtures with the student state', fakeAsync(() => {
+    store.applyFixture('pending-reassignment');
+
+    let reassignmentOperation = {} as AcceptedOperation;
+    store
+      .resolveReassignment({
+        washExecutionId: '44444444-4444-4444-4444-444444444444',
+        cabinId: '66666666-6666-6666-6666-666666666666',
+        tankId: '77777777-7777-7777-7777-777777777777',
+      })
+      .subscribe((operation) => (reassignmentOperation = operation));
+    tick(250);
+    resolveOperation(store, reassignmentOperation.operationId);
+
+    let reassignedStatus: string | undefined;
+    store
+      .loadStudentHome(null)
+      .subscribe((home) => (reassignedStatus = home.appointment?.washExecution?.status));
+    tick(250);
+    expect(reassignedStatus).toBe('IN_PROGRESS');
+
+    store.applyFixture('exit-submitted');
+    let completionOperation = {} as AcceptedOperation;
+    store
+      .completeExit({
+        washExecutionId: '44444444-4444-4444-4444-444444444444',
+        finalMaterials: {
+          packageCount: 3,
+          greenPaperCassette8Count: 1,
+          greenPaperCassette10Count: 0,
+          witnessTapePortionCount: 1,
+        },
+      })
+      .subscribe((operation) => (completionOperation = operation));
+    tick(250);
+    resolveOperation(store, completionOperation.operationId);
+
+    let completedStatus: string | undefined;
+    store
+      .loadStudentHome(null)
+      .subscribe((home) => (completedStatus = home.appointment?.washExecution?.status));
+    tick(250);
+    expect(completedStatus).toBe('COMPLETED');
+  }));
 });
 
 function scheduleAppointment(store: MockWashJourneyStore): AcceptedOperation {

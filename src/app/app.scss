@@ -5,24 +5,41 @@
 
 .app-header {
   align-items: center;
-  border-bottom: 1px solid var(--outline-variant);
+  background: rgb(255 255 255 / 74%);
+  backdrop-filter: blur(1.25rem);
+  box-shadow: 0 0.5rem 1.5rem rgb(15 92 110 / 6%);
   display: flex;
   justify-content: space-between;
   margin: 0 auto;
   max-width: 84rem;
-  padding: 1rem max(1rem, calc((100vw - 78rem) / 2));
+  padding: 0.875rem max(1rem, calc((100vw - 78rem) / 2));
+  position: relative;
+  z-index: 1;
 }
 
 .brand {
+  align-items: center;
   color: var(--color-ink);
+  display: inline-flex;
   font-size: 1.125rem;
   font-weight: 700;
+  gap: 0.625rem;
   letter-spacing: -0.02em;
   text-decoration: none;
 }
 
+.brand::before {
+  background: linear-gradient(145deg, var(--secondary), var(--primary));
+  border-radius: 0.625rem;
+  box-shadow: 0 0.5rem 1rem rgb(0 67 82 / 20%);
+  content: '';
+  height: 1.75rem;
+  width: 0.5rem;
+}
+
 .app-header__sign-out {
   align-items: center;
+  background: rgb(255 255 255 / 72%);
   border-radius: var(--radius-default);
   color: var(--on-surface-variant);
   display: inline-flex;
@@ -35,7 +52,8 @@
 }
 
 .app-header__sign-out:hover {
-  background: var(--surface-container-low);
+  background: var(--surface-container-lowest);
+  box-shadow: var(--shadow-float);
   color: var(--primary);
 }
 
@@ -52,7 +70,7 @@
 .app-content {
   margin: 0 auto;
   max-width: 84rem;
-  padding: clamp(1.5rem, 4vw, 3rem) max(1rem, calc((100vw - 78rem) / 2));
+  padding: clamp(1.5rem, 4vw, 3.5rem) max(1rem, calc((100vw - 78rem) / 2));
 }
 
 @media (max-width: 31.25rem) {

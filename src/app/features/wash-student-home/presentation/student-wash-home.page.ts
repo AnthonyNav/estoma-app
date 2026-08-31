@@ -10,6 +10,7 @@ import {
 import { RouterLink } from '@angular/router';
 
 import { ApplicationError, ApplicationErrorKind } from '../../../core/api/application-error';
+import { IdempotentIntentService } from '../../../core/api/idempotent-intent.service';
 import { LoadStudentWashHomeUseCase } from '../application/load-student-wash-home.use-case';
 import { ManageStudentWashLifecycleUseCase } from '../application/manage-student-wash-lifecycle.use-case';
 import { OperationTrackerService } from '../../../core/api/operation-tracker.service';
@@ -52,6 +53,7 @@ export class StudentWashHomePage {
   private readonly loadStudentWashHome = inject(LoadStudentWashHomeUseCase);
   private readonly lifecycle = inject(ManageStudentWashLifecycleUseCase);
   private readonly operationTracker = inject(OperationTrackerService);
+  private readonly intents = inject(IdempotentIntentService);
 
   @ViewChild('qrDialog') private qrDialog?: ElementRef<HTMLDialogElement>;
   private qrTrigger: HTMLElement | null = null;
@@ -122,11 +124,12 @@ export class StudentWashHomePage {
 
     this.cancelling.set(true);
     this.cancellationError.set(null);
+    const intent = `wash.appointment.cancel:${appointment.appointmentId}:${appointment.appointmentVersion ?? 1}`;
     this.lifecycle
       .cancelAppointment({
         appointmentId: appointment.appointmentId,
         expectedVersion: appointment.appointmentVersion ?? 1,
-        idempotencyKey: this.createIdempotencyKey(),
+        idempotencyKey: this.intents.key(intent),
       })
       .subscribe({
         next: (accepted) =>
@@ -135,6 +138,7 @@ export class StudentWashHomePage {
             .subscribe({
               next: (operation) => {
                 this.cancelling.set(false);
+                this.intents.complete(intent);
                 if (operation.status === 'SUCCEEDED') {
                   this.load();
                   return;
@@ -347,12 +351,5 @@ export class StudentWashHomePage {
     };
 
     return presentations[executionStatus];
-  }
-
-  private createIdempotencyKey(): string {
-    return (
-      globalThis.crypto?.randomUUID?.() ??
-      `wash-cancel-${Date.now()}-${Math.random().toString(16).slice(2)}`
-    );
   }
 }

@@ -20,6 +20,7 @@ import {
   RestoreOperationalResourceCommand,
   SupervisorEntryLookup,
   SupervisorHome,
+  SupervisorManualAppointments,
 } from '../domain/models/supervisor-entry';
 import { WASH_SUPERVISION_GATEWAY } from '../domain/ports/wash-supervision.gateway';
 
@@ -29,6 +30,10 @@ export class WashEntrySupervisionUseCase {
 
   loadHome(): Observable<SupervisorHome> {
     return this.gateway.loadHome();
+  }
+
+  getManualAppointments(): Observable<SupervisorManualAppointments> {
+    return this.gateway.getManualAppointments();
   }
 
   lookup(request: EntryLookupRequest): Observable<SupervisorEntryLookup> {

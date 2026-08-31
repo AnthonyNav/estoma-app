@@ -1,27 +1,37 @@
 <section class="sign-in" aria-labelledby="sign-in-title">
-  <p class="eyebrow">Account access</p>
-  <h1 id="sign-in-title">Sign in to Estoma</h1>
-  <p class="intro">The development environment uses the contract-faithful mock adapter.</p>
+  <div class="sign-in__identity">
+    <span aria-hidden="true" class="sign-in__mark"></span>
+    <p class="eyebrow">Estoma</p>
+    <h1 id="sign-in-title">Sign in to Estoma</h1>
+    <p class="intro">The development environment uses the contract-faithful mock adapter.</p>
+  </div>
 
-  @if (signedInAs(); as accountId) {
-    <p class="success" role="status">Signed in as {{ accountId }}.</p>
-  }
+  <div class="sign-in__card">
+    @if (signedInAs(); as accountId) {
+      <p class="success" role="status">Signed in as {{ accountId }}.</p>
+    }
 
-  @if (error(); as message) {
-    <p class="error" role="alert">{{ message }}</p>
-  }
+    @if (error(); as message) {
+      <p class="error" role="alert">{{ message }}</p>
+    }
 
-  <form [formGroup]="form" (ngSubmit)="submit()">
-    <label>
-      Identifier
-      <input autocomplete="username" formControlName="identifier" required />
-    </label>
-    <label>
-      Password
-      <input autocomplete="current-password" formControlName="password" required type="password" />
-    </label>
-    <button [disabled]="submitting()" type="submit">
-      {{ submitting() ? 'Signing in...' : 'Sign in' }}
-    </button>
-  </form>
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <label>
+        Identifier
+        <input autocomplete="username" formControlName="identifier" required />
+      </label>
+      <label>
+        Password
+        <input
+          autocomplete="current-password"
+          formControlName="password"
+          required
+          type="password"
+        />
+      </label>
+      <button [disabled]="submitting()" type="submit">
+        {{ submitting() ? 'Signing in...' : 'Sign in' }}
+      </button>
+    </form>
+  </div>
 </section>

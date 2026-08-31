@@ -1,5 +1,19 @@
 import { Routes } from '@angular/router';
 
+import { environment } from '../environments/environment';
+
+const fixtureRoutes: Routes = environment.useMockApi
+  ? [
+      {
+        path: 'wash/fixtures',
+        loadComponent: () =>
+          import('./features/wash-fixtures/presentation/wash-fixture-gallery.page').then(
+            (m) => m.WashFixtureGalleryPage,
+          ),
+      },
+    ]
+  : [];
+
 export const routes: Routes = [
   {
     path: 'authentication',
@@ -26,6 +40,7 @@ export const routes: Routes = [
         (m) => m.WashExitPage,
       ),
   },
+  ...fixtureRoutes,
   {
     path: 'wash/appointments/regulation',
     loadComponent: () =>
@@ -92,6 +107,22 @@ export const routes: Routes = [
       import('./features/wash-supervision/presentation/wash-entry-supervision.page').then(
         (m) => m.WashEntrySupervisionPage,
       ),
+    data: { mode: 'arrival' },
+  },
+  {
+    path: 'wash/supervision/entry/validation',
+    loadComponent: () =>
+      import('./features/wash-supervision/presentation/wash-entry-supervision.page').then(
+        (m) => m.WashEntrySupervisionPage,
+      ),
+    data: { mode: 'validation' },
+  },
+  {
+    path: 'wash/supervision/manual-search',
+    loadComponent: () =>
+      import(
+        './features/wash-supervision/presentation/wash-manual-appointment-selection.page'
+      ).then((m) => m.WashManualAppointmentSelectionPage),
   },
   {
     path: 'wash/supervision/reassignments',
@@ -106,6 +137,15 @@ export const routes: Routes = [
       import('./features/wash-supervision/presentation/wash-exit-review.page').then(
         (m) => m.WashExitReviewPage,
       ),
+    data: { mode: 'lookup' },
+  },
+  {
+    path: 'wash/supervision/exit/review',
+    loadComponent: () =>
+      import('./features/wash-supervision/presentation/wash-exit-review.page').then(
+        (m) => m.WashExitReviewPage,
+      ),
+    data: { mode: 'review' },
   },
   {
     path: 'wash/supervision/resources',

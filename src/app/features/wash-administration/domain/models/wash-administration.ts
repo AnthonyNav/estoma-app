@@ -5,6 +5,7 @@ import {
 
 export type AdministrativeStatus = 'ACTIVE' | 'INACTIVE' | 'RETIRED';
 export type CabinType = 'NORMAL' | 'JOURNEY' | 'IMMUNOCOMPROMISED';
+export type WashAccessStatus = 'ACTIVE' | 'SUSPENDED' | 'REVOKED';
 
 export interface WashAdministrationHome {
   referenceDate: string;
@@ -50,11 +51,34 @@ export interface AdministrativeClosure {
 }
 
 export interface CurrentWeekOperation {
-  calendarId: string;
-  calendarCode: string;
-  calendarName: string;
-  timezone: string;
-  days: WeeklyDay[];
+  referenceDate: string;
+  weekStart: string;
+  weekEnd: string;
+  calendar: {
+    calendarId: string;
+    code: string;
+    name: string;
+    timezone: string;
+    effectiveFrom: string;
+    effectiveUntil: string | null;
+    status: 'ACTIVE' | 'INACTIVE';
+  } | null;
+  editing: {
+    status: 'AVAILABLE' | 'NO_ACTIVE_CALENDAR' | 'CALENDAR_NOT_WEEK_SCOPED';
+    blockingReason: string | null;
+  };
+  days: CurrentWeekDay[];
+  existingClosures: AdministrativeClosure[];
+}
+
+export interface CurrentWeekDay {
+  dayOfWeek: number;
+  date: string;
+  intervals: VersionedServiceInterval[];
+}
+
+export interface VersionedServiceInterval extends ServiceInterval {
+  expectedVersion: number;
 }
 
 export interface WeekImpactPreview {
@@ -70,7 +94,8 @@ export interface WeekImpactPreview {
 export interface ReplaceWeekDayCommand {
   calendarId: string;
   dayOfWeek: number;
-  intervals: Omit<ServiceInterval, 'scheduleId'>[];
+  expectedSchedules: { scheduleId: string; expectedVersion: number }[];
+  desiredIntervals: Omit<ServiceInterval, 'scheduleId'>[];
   idempotencyKey: string;
 }
 
@@ -84,6 +109,9 @@ export interface AdminCabin {
   name: string;
   cabinType: CabinType;
   status: AdministrativeStatus;
+  version: number;
+  currentTankCount: number;
+  configuredCapacity: number;
   tanks: AdminTank[];
 }
 
@@ -93,35 +121,100 @@ export interface AdminTank {
   name: string;
   configuredCapacity: number;
   status: AdministrativeStatus;
+  version: number;
 }
 
-export interface AdminResourceCommand {
+export interface RegisterCabinCommand {
+  cabinId: string;
+  code: string;
+  name: string;
+  cabinType: CabinType;
+  idempotencyKey: string;
+}
+
+export interface UpdateCabinCommand {
+  cabinId: string;
+  name: string;
+  cabinType: CabinType;
+  expectedVersion: number;
+  idempotencyKey: string;
+}
+
+export interface RegisterTankCommand {
+  cabinId: string;
+  tankId: string;
+  code: string;
+  name: string;
+  configuredCapacity: number;
+  idempotencyKey: string;
+}
+
+export interface UpdateTankCommand {
+  tankId: string;
+  name: string;
+  configuredCapacity: number;
+  expectedVersion: number;
+  idempotencyKey: string;
+}
+
+export interface ChangeResourceStatusCommand {
   resourceType: 'CABIN' | 'TANK';
   resourceId: string;
   action: 'activate' | 'deactivate' | 'retire';
+  expectedVersion: number;
+  reason: string | null;
   idempotencyKey: string;
 }
 
 export interface AdminSupervisor {
+  personId: string;
   accountId: string;
   displayName: string;
+  firstName: string;
+  paternalSurname: string;
+  maternalSurname: string | null;
+  institutionalEmail: string;
   username: string;
-  personStatus: AdministrativeStatus;
-  accountStatus: AdministrativeStatus;
-  washAccessStatus: AdministrativeStatus;
+  personStatus: 'ACTIVE' | 'INACTIVE';
+  accountStatus: 'ACTIVE' | 'INACTIVE';
+  accountVersion: number;
+  roleCode: 'SUPERVISOR_LAVADO';
+  roleVersion: number;
+  systemAccessId: string | null;
+  washAccessStatus: WashAccessStatus | null;
+  washAccessVersion: number | null;
   effectiveAccess: boolean;
-  onboardingStatus:
-    | 'CONFIGURING'
-    | 'WAITING_FOR_CONVERGENCE'
-    | 'EMAIL_PENDING'
-    | 'COMPLETED'
-    | 'NEEDS_ATTENTION';
+  initialAccessDelivery?: {
+    status: 'PENDING_DELIVERY' | 'ACCEPTED' | 'FAILED';
+    expiresAt: string | null;
+  } | null;
 }
 
 export interface SupervisorPersonCommand {
-  fullName: string;
+  firstName: string;
+  paternalSurname: string;
+  maternalSurname: string | null;
   institutionalEmail: string;
   username: string;
+  idempotencyKey: string;
+}
+
+export interface SuspendWashAccessCommand {
+  accountId: string;
+  expectedVersion: number;
+  reasonCode: 'ADMINISTRATIVE_SUSPENSION';
+  reasonDetail: string | null;
+  idempotencyKey: string;
+}
+
+export interface RestoreWashAccessCommand {
+  accountId: string;
+  expectedVersion: number;
+  idempotencyKey: string;
+}
+
+export interface RegenerateSupervisorCredentialCommand {
+  accountId: string;
   idempotencyKey: string;
 }
 

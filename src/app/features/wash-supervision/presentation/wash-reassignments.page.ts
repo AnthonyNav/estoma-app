@@ -11,6 +11,7 @@ import { RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
 
 import { ApplicationError } from '../../../core/api/application-error';
+import { IdempotentIntentService } from '../../../core/api/idempotent-intent.service';
 import { OperationTrackerService } from '../../../core/api/operation-tracker.service';
 import {
   AcceptedOperation,
@@ -31,6 +32,7 @@ export class WashReassignmentsPage {
   private readonly destroyRef = inject(DestroyRef);
   private readonly supervision = inject(WashEntrySupervisionUseCase);
   private readonly operationTracker = inject(OperationTrackerService);
+  private readonly intents = inject(IdempotentIntentService);
 
   readonly pending = signal<PendingReassignment[]>([]);
   readonly candidates = signal<ReassignmentCandidates | null>(null);
@@ -78,13 +80,15 @@ export class WashReassignmentsPage {
     if (!candidates || !selected || this.submitting()) {
       return;
     }
+    const intent = `wash.reassignment:${candidates.washExecutionId}:${candidates.executionVersion}:${selected.cabinId}:${selected.tankId}`;
     this.track(
+      intent,
       this.supervision.reassign({
         washExecutionId: candidates.washExecutionId,
         cabinId: selected.cabinId,
         tankId: selected.tankId,
         expectedVersion: candidates.executionVersion,
-        idempotencyKey: this.createIdempotencyKey('reassignment'),
+        idempotencyKey: this.intents.key(intent),
       }),
     );
   }
@@ -94,12 +98,14 @@ export class WashReassignmentsPage {
     if (!candidates || !this.mayCancelForCapacity() || this.submitting()) {
       return;
     }
+    const intent = `wash.capacity-cancel:${candidates.washExecutionId}:${candidates.executionVersion}`;
     this.track(
+      intent,
       this.supervision.cancelForCapacity({
         washExecutionId: candidates.washExecutionId,
         expectedVersion: candidates.executionVersion,
         cancellationReason: null,
-        idempotencyKey: this.createIdempotencyKey('capacity-loss'),
+        idempotencyKey: this.intents.key(intent),
       }),
     );
   }
@@ -118,7 +124,7 @@ export class WashReassignmentsPage {
       });
   }
 
-  private track(request: Observable<AcceptedOperation>): void {
+  private track(intent: string, request: Observable<AcceptedOperation>): void {
     this.submitting.set(true);
     this.error.set(null);
     request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -131,6 +137,7 @@ export class WashReassignmentsPage {
           .subscribe({
             next: (operation) => {
               this.submitting.set(false);
+              this.intents.complete(intent);
               if (operation.status === 'SUCCEEDED') {
                 this.candidates.set(null);
                 this.selected.set(null);
@@ -153,13 +160,6 @@ export class WashReassignmentsPage {
     this.submitting.set(false);
     this.error.set(
       error instanceof ApplicationError ? error.message : 'No fue posible completar la operación.',
-    );
-  }
-
-  private createIdempotencyKey(scope: string): string {
-    return (
-      globalThis.crypto?.randomUUID?.() ??
-      `${scope}-${Date.now()}-${Math.random().toString(16).slice(2)}`
     );
   }
 }

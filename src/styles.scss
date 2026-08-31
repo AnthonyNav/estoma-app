@@ -76,6 +76,8 @@
   --type-label-lg-size: 0.875rem;
   --type-label-md-size: 0.75rem;
   --shadow-card: 0 1.25rem 3.5rem rgb(15 92 110 / 12%);
+  --shadow-card-hover: 0 1.5rem 4rem rgb(15 92 110 / 16%);
+  --shadow-float: 0 0.75rem 2.5rem rgb(0 67 82 / 10%);
 
   // Compatibility aliases for the existing foundation and authentication pilot.
   --color-accent: var(--primary);
@@ -85,6 +87,7 @@
   --color-surface: var(--background);
 
   color: var(--on-background);
+  color-scheme: light;
   font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
   font-synthesis: none;
   line-height: 1.5;
@@ -95,9 +98,12 @@
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(circle at 0 0, rgb(178 235 255 / 38%), transparent 28rem),
+    linear-gradient(180deg, var(--surface-bright) 0%, var(--background) 32rem);
   margin: 0;
   min-width: 20rem;
+  min-height: 100dvh;
 }
 
 button,
@@ -107,6 +113,19 @@ input {
 
 button {
   -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
 }
 
 button:not(:disabled):active,
