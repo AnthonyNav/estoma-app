@@ -62,7 +62,6 @@ h1 {
 }
 
 .status-card {
-  border: 1px solid var(--outline-variant);
   box-shadow: var(--shadow-card);
   overflow: hidden;
 }
@@ -72,7 +71,7 @@ h1 {
   background: var(--surface-container-low);
   display: flex;
   gap: var(--space-sm);
-  min-height: 4.25rem;
+  min-height: 4.5rem;
   padding: var(--space-md) var(--space-lg);
 }
 
@@ -152,15 +151,17 @@ h1 {
 
 .button--primary {
   background: var(--primary);
+  box-shadow: 0 0.625rem 1.5rem rgb(0 67 82 / 16%);
   color: var(--on-primary);
 }
 
 .button--primary:hover {
   background: var(--primary-container);
+  transform: translateY(-1px);
 }
 
 .button--secondary {
-  background: transparent;
+  background: var(--surface-container-low);
   border-color: var(--secondary);
   color: var(--secondary);
 }
@@ -170,18 +171,20 @@ h1 {
 }
 
 .appointment-details dl {
+  background: var(--surface-container-low);
+  border-radius: var(--radius-lg);
   display: grid;
-  border-top: 1px solid var(--outline-variant);
-  column-gap: var(--space-lg);
-  row-gap: 0;
+  gap: 1px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: 0;
+  overflow: hidden;
+  padding: 1px;
 }
 
 .appointment-details dl div {
-  border-bottom: 1px solid var(--outline-variant);
+  background: var(--surface);
   min-width: 0;
-  padding: 0.875rem 0;
+  padding: var(--space-md);
 }
 
 .appointment-details dl div:nth-child(odd) {
@@ -253,6 +256,7 @@ dd {
   gap: var(--space-lg);
   grid-template-columns: minmax(9rem, 12rem) minmax(0, 1fr);
   padding: var(--space-lg);
+  position: relative;
 }
 
 .qr-panel h3 {
@@ -447,8 +451,8 @@ dd {
 
   .appointment-details dl div:nth-child(odd),
   .appointment-details dl div:nth-child(even) {
-    padding-left: 0;
-    padding-right: 0;
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
   }
 
   .feedback-card {

@@ -1,91 +1,58 @@
 <section class="flow supervision" aria-labelledby="supervision-title">
   <header class="flow__header">
-    <h1 id="supervision-title">Validar ingreso</h1>
+    <h1 id="supervision-title">
+      {{ isValidationView ? 'Validar ingreso' : 'Registrar ingreso' }}
+    </h1>
     <p class="flow__intro">
-      Busca la cita de hoy por matrícula o por la representación opaca del código QR.
+      @if (isValidationView) {
+        Revisa los puntos de control antes de decidir si autorizas o rechazas el ingreso.
+      } @else {
+        Escanea el QR de una cita registrada o selecciónala desde la búsqueda manual.
+      }
     </p>
   </header>
 
-  <section class="flow-card lookup-card" aria-labelledby="lookup-title">
-    <div class="flow-card__heading">
-      <span class="flow-card__icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24">
-          <circle cx="10.5" cy="10.5" r="5.5" />
-          <path d="m15 15 4 4" />
-        </svg>
-      </span>
-      <div>
-        <h2 id="lookup-title">Localizar cita</h2>
-        <p>
-          La lectura del QR se consulta en el servidor; esta pantalla no decodifica el contenido.
-        </p>
+  @if (!isValidationView) {
+    <section class="flow-card lookup-card" aria-labelledby="lookup-title">
+      <div class="flow-card__heading">
+        <span class="flow-card__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <circle cx="10.5" cy="10.5" r="5.5" />
+            <path d="m15 15 4 4" />
+          </svg>
+        </span>
+        <div>
+          <h2 id="lookup-title">Localizar cita registrada</h2>
+          <p>El código QR se valida como una representación opaca en el servidor.</p>
+        </div>
       </div>
-    </div>
 
-    <form class="lookup-form" [formGroup]="lookupForm" (ngSubmit)="search()" novalidate>
-      <div class="field">
-        <label for="lookup-type">Buscar por</label>
-        <select
-          id="lookup-type"
-          formControlName="lookupType"
-          [disabled]="action() === 'ARRIVAL' || action() === 'DECISION'"
-        >
-          <option value="STUDENT_ENROLLMENT">Matrícula</option>
-          <option value="QR">Código QR</option>
-        </select>
-      </div>
-      <div
-        class="field"
-        [class.field--invalid]="
-          lookupForm.controls.query.invalid && lookupForm.controls.query.touched
-        "
-      >
-        <label for="lookup-query">
-          {{
-            lookupForm.controls.lookupType.value === 'QR'
-              ? 'Representación del código'
-              : 'Matrícula del alumno'
-          }}
-        </label>
-        <input
-          id="lookup-query"
-          type="text"
-          autocomplete="off"
-          formControlName="query"
-          [disabled]="action() === 'ARRIVAL' || action() === 'DECISION'"
-          [placeholder]="
-            lookupForm.controls.lookupType.value === 'QR'
-              ? 'Escanea o pega el código'
-              : 'Ej. 201945678'
-          "
-          [attr.aria-describedby]="
-            lookupForm.controls.query.invalid && lookupForm.controls.query.touched
-              ? 'lookup-query-error'
-              : null
-          "
-          [attr.aria-invalid]="
-            lookupForm.controls.query.invalid && lookupForm.controls.query.touched
-          "
-        />
-        @if (lookupForm.controls.query.invalid && lookupForm.controls.query.touched) {
-          <p class="field__error" id="lookup-query-error" role="alert">
-            Ingresa una matrícula o la representación del código QR.
-          </p>
-        }
-      </div>
-      <button
-        class="button button--primary"
-        type="submit"
+      <app-wash-qr-camera-scanner
         [disabled]="loadingLookup() || action() === 'ARRIVAL' || action() === 'DECISION'"
-      >
-        {{ loadingLookup() ? 'Buscando…' : 'Buscar cita' }}
-      </button>
-    </form>
+        (scanned)="searchByQr($event)"
+      />
 
-    @if (lookupError(); as error) {
-      <p class="field__error lookup-card__error" role="alert">{{ error }}</p>
-    }
-  </section>
+      <div class="manual-selection-link">
+        <h3>O búsqueda manual</h3>
+        <p>Consulta las citas registradas y en proceso de la jornada.</p>
+        <a class="button button--quiet" routerLink="/wash/supervision/manual-search">
+          Búsqueda manual
+        </a>
+      </div>
+    </section>
+  }
+
+  @if (lookupError(); as error) {
+    <p class="field__error lookup-card__error" role="alert">{{ error }}</p>
+  }
+
+  @if (isValidationView && !lookup() && !loadingLookup()) {
+    <section class="feedback" role="status">
+      <h2>No hay un ingreso pendiente por validar</h2>
+      <p>Primero localiza una cita y registra la llegada del alumno.</p>
+      <a class="button button--primary" routerLink="/wash/supervision/entry">Localizar cita</a>
+    </section>
+  }
 
   @if (lookup(); as lookup) {
     <section class="supervision-grid">
@@ -95,7 +62,7 @@
             <svg viewBox="0 0 24 24"><path d="M7 4h10v16H7zM9.5 8h5m-5 4h5m-5 4H12" /></svg>
           </span>
           <div>
-            <h2 id="appointment-title">{{ lookup.student.fullName }}</h2>
+            <h2 id="appointment-title">{{ lookup.student.displayName }}</h2>
             <p>
               {{ lookup.student.studentEnrollment }} · {{ lookup.student.currentSemester }}°
               semestre
@@ -111,8 +78,8 @@
           <li>
             <span>Curso</span>
             <strong
-              >{{ lookup.appointment.courseSection.nrc }} ·
-              {{ lookup.appointment.courseSection.name }}</strong
+              >{{ lookup.appointment.courseSectionReference.nrc }} ·
+              {{ lookup.appointment.courseSectionReference.name }}</strong
             >
           </li>
           <li>
@@ -126,158 +93,181 @@
       </article>
 
       <article class="flow-card entry-action" aria-labelledby="entry-title">
-        @switch (executionStatus()) {
-          @case ('NOT_ARRIVED') {
-            <div class="flow-card__heading">
-              <span class="flow-card__icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M5 12h12m-4-4 4 4-4 4" /></svg>
-              </span>
-              <div>
-                <h2 id="entry-title">Registrar llegada</h2>
-                <p>Confirma que el alumno se presentó en el área para iniciar la validación.</p>
+        @if (isValidationView) {
+          @switch (executionStatus()) {
+            @case ('PENDING_ENTRY') {
+              <div class="flow-card__heading">
+                <span class="flow-card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M12 7v6m0 4h.01" /></svg>
+                </span>
+                <div>
+                  <h2 id="entry-title">Validación pendiente</h2>
+                  <p>Revisa estos puntos antes de tomar una decisión.</p>
+                </div>
               </div>
-            </div>
-            <button
-              class="button button--primary"
-              type="button"
-              [disabled]="!mayRegisterArrival()"
-              (click)="registerArrival()"
-            >
-              @if (action() === 'ARRIVAL') {
-                Registrando llegada…
-              } @else if (action() === 'FAILED' && pendingAction()?.kind === 'ARRIVAL') {
-                Reintentar llegada
-              } @else {
-                Registrar llegada
-              }
-            </button>
+
+              <section class="validation-reminders" aria-labelledby="reminders-title">
+                <h3 id="reminders-title">Recordatorio de revisión</h3>
+                <ul>
+                  <li>Verifica la identidad con la matrícula o credencial del alumno.</li>
+                  <li>Confirma el horario, curso e instrumental que corresponden a la cita.</li>
+                  <li>Revisa que se cumplan las condiciones requeridas para el ingreso.</li>
+                </ul>
+              </section>
+
+              <div class="button-row">
+                <button
+                  class="button button--secondary"
+                  type="button"
+                  [disabled]="!mayOpenRejection()"
+                  (click)="openRejection($event)"
+                >
+                  {{
+                    action() === 'FAILED' && pendingAction()?.kind === 'DECISION'
+                      ? 'Reintentar rechazo'
+                      : 'Rechazar ingreso'
+                  }}
+                </button>
+                <button
+                  class="button button--primary"
+                  type="button"
+                  [disabled]="!mayAuthorize()"
+                  (click)="authorize()"
+                >
+                  @if (action() === 'DECISION') {
+                    Guardando…
+                  } @else if (action() === 'FAILED' && pendingAction()?.kind === 'DECISION') {
+                    Reintentar autorización
+                  } @else {
+                    Autorizar ingreso
+                  }
+                </button>
+              </div>
+            }
+            @case ('IN_PROGRESS') {
+              <div class="status-block status-block--success">
+                <span aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="m7 12 3.25 3.25L17.5 8" /></svg>
+                </span>
+                <div>
+                  <h2 id="entry-title">Ingreso autorizado</h2>
+                  @if (lookup.activeResourceAssignment; as assignment) {
+                    <p>
+                      Espacio asignado:
+                      <strong>{{ assignment.cabin.name }} · {{ assignment.tank.name }}</strong>
+                    </p>
+                  } @else {
+                    <p>La asignación de espacio fue confirmada por el servicio.</p>
+                  }
+                </div>
+              </div>
+            }
+            @case ('PENDING_REASSIGNMENT') {
+              <div class="status-block status-block--info">
+                <span aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="7" />
+                    <path d="M12 8v4l2.5 1.5" />
+                  </svg>
+                </span>
+                <div>
+                  <h2 id="entry-title">Esperando reasignación</h2>
+                  <p>
+                    El ingreso fue autorizado y el servicio está resolviendo un espacio disponible.
+                  </p>
+                </div>
+              </div>
+            }
+            @case ('ENTRY_REJECTED') {
+              <div class="status-block status-block--danger">
+                <span aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="m9 9 6 6m0-6-6 6" /></svg>
+                </span>
+                <div>
+                  <h2 id="entry-title">Ingreso rechazado</h2>
+                  <p>
+                    {{
+                      lookup.washExecution?.rejectionReason || 'Se registró un rechazo de ingreso.'
+                    }}
+                  </p>
+                </div>
+              </div>
+            }
+            @default {
+              <div class="status-block status-block--info">
+                <span aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M12 11v5m0-8h.01" /></svg>
+                </span>
+                <div>
+                  <h2 id="entry-title">Validación no disponible</h2>
+                  <p>La cita aún no tiene un ingreso pendiente por validar.</p>
+                </div>
+              </div>
+            }
           }
-          @case ('PENDING_ENTRY') {
-            <div class="flow-card__heading">
-              <span class="flow-card__icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M12 7v6m0 4h.01" /></svg>
-              </span>
-              <div>
-                <h2 id="entry-title">Validación pendiente</h2>
-                <p>
-                  Confirma la identidad y que el alumno cumple los requisitos antes de autorizar.
-                </p>
+        } @else {
+          @switch (executionStatus()) {
+            @case ('NOT_ARRIVED') {
+              <div class="flow-card__heading">
+                <span class="flow-card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M5 12h12m-4-4 4 4-4 4" /></svg>
+                </span>
+                <div>
+                  <h2 id="entry-title">Registrar llegada</h2>
+                  <p>Confirma que el alumno se presentó para iniciar la validación.</p>
+                </div>
               </div>
-            </div>
-            <div class="confirmation-checks">
-              <label class="check-card">
-                <input
-                  type="checkbox"
-                  [checked]="identityConfirmed()"
-                  [disabled]="pendingAction()?.kind === 'DECISION'"
-                  (change)="updateIdentityConfirmed($event)"
-                />
-                <span
-                  ><strong>Identidad confirmada</strong>
-                  <p>La matrícula corresponde a la persona presente.</p></span
-                >
-              </label>
-              <label class="check-card">
-                <input
-                  type="checkbox"
-                  [checked]="requirementsSatisfied()"
-                  [disabled]="pendingAction()?.kind === 'DECISION'"
-                  (change)="updateRequirementsSatisfied($event)"
-                />
-                <span
-                  ><strong>Requisitos completos</strong>
-                  <p>El material y las condiciones de ingreso están verificados.</p></span
-                >
-              </label>
-            </div>
-            <div class="button-row">
-              <button
-                class="button button--secondary"
-                type="button"
-                [disabled]="!mayOpenRejection()"
-                (click)="openRejection($event)"
-              >
-                {{
-                  action() === 'FAILED' && pendingAction()?.kind === 'DECISION'
-                    ? 'Reintentar rechazo'
-                    : 'Rechazar ingreso'
-                }}
-              </button>
               <button
                 class="button button--primary"
                 type="button"
-                [disabled]="!mayAuthorize()"
-                (click)="authorize()"
+                [disabled]="!mayRegisterArrival()"
+                (click)="registerArrival()"
               >
-                @if (action() === 'DECISION') {
-                  Guardando…
-                } @else if (action() === 'FAILED' && pendingAction()?.kind === 'DECISION') {
-                  Reintentar autorización
+                @if (action() === 'ARRIVAL') {
+                  Registrando llegada…
+                } @else if (action() === 'FAILED' && pendingAction()?.kind === 'ARRIVAL') {
+                  Reintentar llegada
                 } @else {
-                  Autorizar ingreso
+                  Registrar llegada
                 }
               </button>
-            </div>
-          }
-          @case ('IN_PROGRESS') {
-            <div class="status-block status-block--success">
-              <span aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="m7 12 3.25 3.25L17.5 8" /></svg>
-              </span>
-              <div>
-                <h2 id="entry-title">Ingreso autorizado</h2>
-                @if (lookup.washExecution?.activeResourceAssignment; as assignment) {
-                  <p>
-                    Espacio asignado:
-                    <strong>{{ assignment.cabinName }} · {{ assignment.tankName }}</strong>
-                  </p>
-                } @else {
-                  <p>La asignación de espacio fue confirmada por el servicio.</p>
-                }
+            }
+            @case ('PENDING_ENTRY') {
+              <div class="status-block status-block--info">
+                <span aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M12 11v5m0-8h.01" /></svg>
+                </span>
+                <div>
+                  <h2 id="entry-title">Llegada registrada</h2>
+                  <p>Continúa a la vista de validación para decidir el ingreso.</p>
+                </div>
               </div>
-            </div>
-          }
-          @case ('PENDING_REASSIGNMENT') {
-            <div class="status-block status-block--info">
-              <span aria-hidden="true">
-                <svg viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="7" />
-                  <path d="M12 8v4l2.5 1.5" />
-                </svg>
-              </span>
-              <div>
-                <h2 id="entry-title">Esperando reasignación</h2>
-                <p>
-                  El ingreso está autorizado; el servicio está resolviendo el espacio disponible.
-                </p>
+              <button class="button button--primary" type="button" (click)="continueToValidation()">
+                Continuar a validación
+              </button>
+            }
+            @case ('IN_PROGRESS') {
+              <div class="status-block status-block--success">
+                <span aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="m7 12 3.25 3.25L17.5 8" /></svg>
+                </span>
+                <div>
+                  <h2 id="entry-title">Ingreso autorizado</h2>
+                  <p>La atención ya está en proceso.</p>
+                </div>
               </div>
-            </div>
-          }
-          @case ('ENTRY_REJECTED') {
-            <div class="status-block status-block--danger">
-              <span aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="m9 9 6 6m0-6-6 6" /></svg>
-              </span>
-              <div>
-                <h2 id="entry-title">Ingreso rechazado</h2>
-                <p>
-                  {{
-                    lookup.washExecution?.rejectionReason || 'Se registró un rechazo de ingreso.'
-                  }}
-                </p>
+            }
+            @default {
+              <div class="status-block status-block--info">
+                <span aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M12 11v5m0-8h.01" /></svg>
+                </span>
+                <div>
+                  <h2 id="entry-title">Estado actualizado</h2>
+                  <p>La cita no permite registrar un nuevo ingreso.</p>
+                </div>
               </div>
-            </div>
-          }
-          @default {
-            <div class="status-block status-block--info">
-              <span aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M12 11v5m0-8h.01" /></svg>
-              </span>
-              <div>
-                <h2 id="entry-title">Estado actualizado</h2>
-                <p>Consulta nuevamente la cita para ver el siguiente paso disponible.</p>
-              </div>
-            </div>
+            }
           }
         }
 
@@ -288,7 +278,7 @@
     </section>
   }
 
-  @if (rejectionOpen()) {
+  @if (isValidationView && rejectionOpen()) {
     <dialog
       #rejectionDialog
       aria-describedby="rejection-description"

@@ -175,9 +175,9 @@ export class WashAppointmentAvailabilityPage {
       .schedule(command)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ operationId }) => {
-          this.registration.setScheduleOperation(operationId);
-          this.trackScheduleOperation(operationId);
+        next: (accepted) => {
+          this.registration.setScheduleOperation(accepted.operationId);
+          this.trackScheduleOperation(accepted.operationId, accepted.pollPath);
         },
         error: (error: unknown) => this.failSubmission(error, false),
       });
@@ -208,17 +208,27 @@ export class WashAppointmentAvailabilityPage {
       });
   }
 
-  private trackScheduleOperation(operationId: string): void {
-    this.operationTracker
-      .trackWith(() => this.appointmentRegistration.getOperation(operationId), {
-        intervalMs: 600,
-        maxPendingPolls: 100,
-      })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (operation) => this.completeScheduleOperation(operation),
-        error: (error: unknown) => this.failSubmission(error, true),
-      });
+  private trackScheduleOperation(operationId: string, pollPath?: string): void {
+    const tracked = pollPath
+      ? this.operationTracker.trackAccepted(
+          { operationId, pollPath },
+          () => this.appointmentRegistration.getOperation(operationId),
+          {
+            intervalMs: 600,
+            maxPendingPolls: 100,
+          },
+        )
+      : this.operationTracker.trackWith(
+          () => this.appointmentRegistration.getOperation(operationId),
+          {
+            intervalMs: 600,
+            maxPendingPolls: 100,
+          },
+        );
+    tracked.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (operation) => this.completeScheduleOperation(operation),
+      error: (error: unknown) => this.failSubmission(error, true),
+    });
   }
 
   private completeScheduleOperation(operation: DurableOperation): void {

@@ -1,0 +1,53 @@
+:host {
+  display: block;
+}
+
+.supervisor-metrics {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-bottom: var(--space-xl);
+}
+.supervisor-metrics article {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0.75rem 1.75rem rgb(15 92 110 / 8%);
+  padding: var(--space-lg);
+}
+.supervisor-metrics span {
+  color: var(--on-surface-variant);
+  display: block;
+  font-size: var(--type-label-md-size);
+  font-weight: 700;
+}
+.supervisor-metrics strong {
+  color: var(--primary);
+  display: block;
+  font-size: 2rem;
+  margin-top: var(--space-sm);
+}
+.supervisor-actions {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.supervisor-actions a {
+  color: inherit;
+  text-decoration: none;
+}
+.supervisor-actions a:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+.supervisor-actions p {
+  color: var(--on-surface-variant);
+  margin: 0;
+}
+@media (max-width: 55rem) {
+  .supervisor-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .supervisor-actions {
+    grid-template-columns: 1fr;
+  }
+}

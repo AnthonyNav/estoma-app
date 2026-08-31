@@ -3,6 +3,7 @@ import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 
 import { ApplicationError } from '../../../core/api/application-error';
+import { OperationTrackerService } from '../../../core/api/operation-tracker.service';
 import { StudentWashHome } from '../domain/models/student-wash-home';
 import {
   STUDENT_WASH_HOME_GATEWAY,
@@ -59,6 +60,12 @@ describe('StudentWashHomePage', () => {
           provide: STUDENT_WASH_HOME_GATEWAY,
           useValue: gateway,
         },
+        {
+          provide: OperationTrackerService,
+          useValue: jasmine.createSpyObj<OperationTrackerService>('OperationTrackerService', [
+            'trackWith',
+          ]),
+        },
       ],
     }).compileComponents();
   });
@@ -95,6 +102,7 @@ describe('StudentWashHomePage', () => {
           washExecution: {
             washExecutionId: '44444444-4444-4444-4444-444444444444',
             status: 'PENDING_ENTRY',
+            executionVersion: 1,
           },
         }),
       ),
@@ -149,6 +157,7 @@ describe('StudentWashHomePage', () => {
           washExecution: {
             washExecutionId: '44444444-4444-4444-4444-444444444444',
             status: 'ENTRY_REJECTED',
+            executionVersion: 1,
             rejectionReason: 'No cumple con los requisitos de ingreso.',
           },
         }),

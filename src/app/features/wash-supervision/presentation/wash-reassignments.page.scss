@@ -1,0 +1,39 @@
+:host {
+  display: block;
+}
+.reassignment-grid {
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: minmax(16rem, 0.8fr) minmax(0, 1.2fr);
+}
+.summary-list button {
+  margin-top: var(--space-sm);
+  width: max-content;
+}
+.candidate-list {
+  display: grid;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+}
+.candidate-list label {
+  align-items: center;
+  background: var(--surface-container-low);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: flex;
+  gap: var(--space-md);
+  padding: var(--space-md);
+}
+.candidate-list strong,
+.candidate-list small {
+  display: block;
+}
+.candidate-list small {
+  color: var(--on-surface-variant);
+  margin-top: var(--space-xs);
+}
+@media (max-width: 55rem) {
+  .reassignment-grid {
+    grid-template-columns: 1fr;
+  }
+}

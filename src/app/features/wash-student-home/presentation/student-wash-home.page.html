@@ -111,6 +111,20 @@
               + Registrar cita
             </a>
           }
+
+          @if (mayRegisterExit()) {
+            <a class="button button--primary" routerLink="/wash/student/exit">Registrar salida</a>
+          }
+
+          @if (mayCancelAppointment()) {
+            <button class="button button--secondary" type="button" (click)="cancelAppointment()">
+              {{ cancelling() ? 'Cancelando cita…' : 'Cancelar cita' }}
+            </button>
+          }
+
+          @if (cancellationError(); as cancellationError) {
+            <p class="field__error" role="alert">{{ cancellationError }}</p>
+          }
         </div>
 
         @if (home.appointment; as appointment) {

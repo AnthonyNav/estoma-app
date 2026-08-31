@@ -1,5 +1,19 @@
 import { Routes } from '@angular/router';
 
+import { environment } from '../environments/environment';
+
+const fixtureRoutes: Routes = environment.useMockApi
+  ? [
+      {
+        path: 'wash/fixtures',
+        loadComponent: () =>
+          import('./features/wash-fixtures/presentation/wash-fixture-gallery.page').then(
+            (m) => m.WashFixtureGalleryPage,
+          ),
+      },
+    ]
+  : [];
+
 export const routes: Routes = [
   {
     path: 'authentication',
@@ -19,6 +33,14 @@ export const routes: Routes = [
         (m) => m.StudentWashHomePage,
       ),
   },
+  {
+    path: 'wash/student/exit',
+    loadComponent: () =>
+      import('./features/wash-student-home/presentation/wash-exit.page').then(
+        (m) => m.WashExitPage,
+      ),
+  },
+  ...fixtureRoutes,
   {
     path: 'wash/appointments/regulation',
     loadComponent: () =>
@@ -41,10 +63,102 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'wash/admin',
+    loadComponent: () =>
+      import('./features/wash-administration/presentation/wash-administration.page').then(
+        (m) => m.WashAdministrationPage,
+      ),
+    data: { mode: 'home' },
+  },
+  {
+    path: 'wash/admin/operation',
+    loadComponent: () =>
+      import('./features/wash-administration/presentation/wash-administration.page').then(
+        (m) => m.WashAdministrationPage,
+      ),
+    data: { mode: 'week' },
+  },
+  {
+    path: 'wash/admin/resources',
+    loadComponent: () =>
+      import('./features/wash-administration/presentation/wash-administration.page').then(
+        (m) => m.WashAdministrationPage,
+      ),
+    data: { mode: 'resources' },
+  },
+  {
+    path: 'wash/admin/supervisors',
+    loadComponent: () =>
+      import('./features/wash-administration/presentation/wash-administration.page').then(
+        (m) => m.WashAdministrationPage,
+      ),
+    data: { mode: 'supervisors' },
+  },
+  {
+    path: 'wash/supervision',
+    loadComponent: () =>
+      import('./features/wash-supervision/presentation/wash-supervisor-home.page').then(
+        (m) => m.WashSupervisorHomePage,
+      ),
+  },
+  {
     path: 'wash/supervision/entry',
     loadComponent: () =>
       import('./features/wash-supervision/presentation/wash-entry-supervision.page').then(
         (m) => m.WashEntrySupervisionPage,
+      ),
+    data: { mode: 'arrival' },
+  },
+  {
+    path: 'wash/supervision/entry/validation',
+    loadComponent: () =>
+      import('./features/wash-supervision/presentation/wash-entry-supervision.page').then(
+        (m) => m.WashEntrySupervisionPage,
+      ),
+    data: { mode: 'validation' },
+  },
+  {
+    path: 'wash/supervision/manual-search',
+    loadComponent: () =>
+      import(
+        './features/wash-supervision/presentation/wash-manual-appointment-selection.page'
+      ).then((m) => m.WashManualAppointmentSelectionPage),
+  },
+  {
+    path: 'wash/supervision/reassignments',
+    loadComponent: () =>
+      import('./features/wash-supervision/presentation/wash-reassignments.page').then(
+        (m) => m.WashReassignmentsPage,
+      ),
+  },
+  {
+    path: 'wash/supervision/exit',
+    loadComponent: () =>
+      import('./features/wash-supervision/presentation/wash-exit-review.page').then(
+        (m) => m.WashExitReviewPage,
+      ),
+    data: { mode: 'lookup' },
+  },
+  {
+    path: 'wash/supervision/exit/review',
+    loadComponent: () =>
+      import('./features/wash-supervision/presentation/wash-exit-review.page').then(
+        (m) => m.WashExitReviewPage,
+      ),
+    data: { mode: 'review' },
+  },
+  {
+    path: 'wash/supervision/resources',
+    loadComponent: () =>
+      import('./features/wash-supervision/presentation/wash-operational-resources.page').then(
+        (m) => m.WashOperationalResourcesPage,
+      ),
+  },
+  {
+    path: 'wash/supervision/exceptional-authorizations',
+    loadComponent: () =>
+      import('./features/wash-supervision/presentation/wash-exceptional-authorization.page').then(
+        (m) => m.WashExceptionalAuthorizationPage,
       ),
   },
   { path: '', pathMatch: 'full', redirectTo: 'wash/student' },

@@ -1,0 +1,43 @@
+.fixture-gallery__notice {
+  margin: 0 0 2rem;
+  padding: 1rem;
+  border-left: 4px solid var(--color-primary, #0b5fff);
+  background: var(--color-surface-subtle, #f4f7fb);
+}
+
+.fixture-gallery__group + .fixture-gallery__group {
+  margin-top: 2.5rem;
+}
+
+.fixture-gallery__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1rem;
+}
+
+.fixture-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.fixture-card h3,
+.fixture-card p {
+  margin: 0;
+}
+
+.fixture-card__code {
+  color: var(--color-text-muted, #56606f);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.fixture-card__steps {
+  color: var(--color-text-muted, #56606f);
+  font-size: 0.9375rem;
+}
+
+.fixture-card .button {
+  margin-top: auto;
+}

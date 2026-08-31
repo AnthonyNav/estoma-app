@@ -1,6 +1,6 @@
 .flow {
   margin: 0 auto;
-  max-width: 65rem;
+  max-width: 68rem;
 }
 
 .flow__header {
@@ -41,8 +41,9 @@ h1 {
 
 .flow-card {
   background: var(--surface);
-  border: 1px solid var(--outline-variant);
+  border: 0;
   border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
   padding: var(--space-xl);
 }
 
@@ -64,9 +65,10 @@ h1 {
   color: var(--on-primary-fixed);
   display: inline-flex;
   flex: 0 0 auto;
-  height: 2.5rem;
+  box-shadow: 0 0.5rem 1rem rgb(0 67 82 / 10%);
+  height: 2.75rem;
   justify-content: center;
-  width: 2.5rem;
+  width: 2.75rem;
 }
 
 .flow-card__icon svg {
@@ -122,17 +124,23 @@ h1 {
 
 .button--primary {
   background: var(--primary);
+  box-shadow: 0 0.625rem 1.5rem rgb(0 67 82 / 16%);
   color: var(--on-primary);
 }
 
 .button--primary:hover:not(:disabled) {
   background: var(--primary-container);
+  transform: translateY(-1px);
 }
 
 .button--secondary {
-  background: transparent;
+  background: var(--surface-container-low);
   border-color: var(--secondary);
   color: var(--secondary);
+}
+
+.button--secondary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--secondary-fixed) 40%, var(--surface));
 }
 
 .button--quiet {
@@ -335,12 +343,15 @@ h1 {
   gap: var(--space-md);
   list-style: none;
   margin: 0;
-  padding: var(--space-lg);
+  padding: var(--space-md);
 }
 
 .summary-list li {
+  background: var(--surface);
+  border-radius: var(--radius-md);
   display: grid;
   gap: var(--space-xs);
+  padding: var(--space-md);
 }
 
 .summary-list span {
@@ -376,7 +387,7 @@ h1 {
 .slot-option__content {
   align-items: center;
   background: var(--surface-bright);
-  border: 1px solid var(--outline-variant);
+  border: 1px solid color-mix(in srgb, var(--outline-variant) 70%, var(--surface));
   border-radius: var(--radius-lg);
   display: grid;
   gap: var(--space-sm);

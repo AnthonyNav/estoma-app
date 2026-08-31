@@ -1,0 +1,39 @@
+<section class="flow fixture-gallery" aria-labelledby="fixture-gallery-title">
+  <header class="flow__header">
+    <p class="eyebrow">Lavado Ultrasónico · desarrollo</p>
+    <h1 id="fixture-gallery-title">Recorridos con fixtures</h1>
+    <p class="flow__intro">
+      Cada botón reinicia el estado mock necesario y abre la pantalla del caso. Las operaciones
+      durables se resuelven tras dos consultas simuladas y comparten el estado entre Alumno y
+      Supervisor.
+    </p>
+  </header>
+
+  <p class="fixture-gallery__notice" role="status">
+    Disponible únicamente cuando el adapter mock está activo. Vuelve aquí para iniciar otro
+    recorrido desde cero.
+  </p>
+
+  @for (actor of ['Alumno', 'Supervisor', 'Administrador']; track actor) {
+    <section class="fixture-gallery__group" [attr.aria-labelledby]="'fixtures-' + actor">
+      <h2 [id]="'fixtures-' + actor">{{ actor }}</h2>
+      <div class="fixture-gallery__cards">
+        @for (useCase of useCases; track useCase.code) {
+          @if (useCase.actor === actor) {
+            <article class="flow-card fixture-card">
+              <p class="fixture-card__code">{{ useCase.code }}</p>
+              <h3>{{ useCase.title }}</h3>
+              <p>{{ useCase.description }}</p>
+              <p class="fixture-card__steps">{{ useCase.steps }}</p>
+              <button class="button button--primary" type="button" (click)="run(useCase)">
+                Ejecutar recorrido
+              </button>
+            </article>
+          }
+        }
+      </div>
+    </section>
+  }
+
+  <a class="button button--quiet" routerLink="/wash/student">Volver al inicio de Alumno</a>
+</section>

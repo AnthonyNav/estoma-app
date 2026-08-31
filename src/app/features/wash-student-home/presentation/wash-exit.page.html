@@ -1,0 +1,71 @@
+<section class="flow" aria-labelledby="wash-exit-title">
+  <header class="flow__header">
+    <h1 id="wash-exit-title">Registrar salida</h1>
+    <p class="flow__intro">
+      Declara el material utilizado. El Supervisor revisará los valores antes de finalizar el
+      lavado.
+    </p>
+  </header>
+
+  @if (loading()) {
+    <article class="flow-card" aria-busy="true">
+      <div class="skeleton skeleton--large"></div>
+    </article>
+  } @else if (home()?.appointment?.washExecution?.status !== 'IN_PROGRESS') {
+    <section class="feedback" role="status">
+      <h2>La salida no está disponible</h2>
+      <p>Actualiza tu estado de Lavado para consultar el siguiente paso.</p>
+      <a class="button button--primary" routerLink="/wash/student">Volver a mi cita</a>
+    </section>
+  } @else {
+    <form class="flow-card materials-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <h2>Material utilizado</h2>
+      <p>Captura únicamente cantidades completas y no negativas.</p>
+      <div class="materials-form__grid">
+        <label class="field"
+          >Paquetes
+          <input type="number" min="0" formControlName="packageCount" inputmode="numeric" />
+        </label>
+        <label class="field"
+          >Cassettes verdes de 8
+          <input
+            type="number"
+            min="0"
+            formControlName="greenPaperCassette8Count"
+            inputmode="numeric"
+          />
+        </label>
+        <label class="field"
+          >Cassettes verdes de 10
+          <input
+            type="number"
+            min="0"
+            formControlName="greenPaperCassette10Count"
+            inputmode="numeric"
+          />
+        </label>
+        <label class="field"
+          >Porciones de cinta testigo
+          <input
+            type="number"
+            min="0"
+            formControlName="witnessTapePortionCount"
+            inputmode="numeric"
+          />
+        </label>
+      </div>
+      @if (!hasAtLeastOneMaterial() && form.touched) {
+        <p class="field__error" role="alert">Registra al menos un material.</p>
+      }
+      @if (error(); as error) {
+        <p class="field__error" role="alert">{{ error }}</p>
+      }
+      <div class="button-row">
+        <a class="button button--quiet" routerLink="/wash/student">Cancelar</a>
+        <button class="button button--primary" type="submit" [disabled]="!maySubmit()">
+          {{ submitting() ? 'Registrando salida…' : 'Enviar para revisión' }}
+        </button>
+      </div>
+    </form>
+  }
+</section>

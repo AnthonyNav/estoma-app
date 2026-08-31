@@ -45,7 +45,12 @@ export interface StudentWashAppointment {
   washExecution: WashExecution | null;
   qrUsageContext: QrUsageContext;
   qrRepresentation: string | null;
+  appointmentVersion?: number;
+  usesExceptionalAuthorization?: boolean;
+  studentCancellationAction?: StudentCancellationAction;
 }
+
+export type StudentCancellationAction = 'AVAILABLE' | 'DEADLINE_PASSED' | 'NOT_APPLICABLE';
 
 export interface CourseSection {
   courseSectionId: string;
@@ -58,15 +63,28 @@ export interface AppointmentTimeSlot {
   startsAt: string;
   endsAt: string;
   timezone: string;
+  cancellationDeadlineAt?: string | null;
 }
 
 export interface WashExecution {
   washExecutionId: string;
   status: WashExecutionStatus;
-  version?: number;
+  executionVersion: number;
   arrivedAt?: string | null;
   rejectionReason?: string | null;
+  exitSubmittedAt?: string | null;
+  submittedExitMaterials?: ExitMaterials | null;
+  completedAt?: string | null;
+  finalExitMaterials?: ExitMaterials | null;
   activeResourceAssignment?: ActiveResourceAssignment | null;
+  lastResourceAssignment?: ActiveResourceAssignment | null;
+}
+
+export interface ExitMaterials {
+  packageCount: number;
+  greenPaperCassette8Count: number;
+  greenPaperCassette10Count: number;
+  witnessTapePortionCount: number;
 }
 
 export interface ActiveResourceAssignment {

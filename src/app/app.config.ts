@@ -10,6 +10,7 @@ import { provideServiceWorker } from '@angular/service-worker';
 
 import { environment } from '../environments/environment';
 import { apiErrorInterceptor } from './core/api/api-error.interceptor';
+import { authTokenInterceptor } from './core/api/auth-token.interceptor';
 import { correlationIdInterceptor } from './core/api/correlation-id.interceptor';
 import { routes } from './app.routes';
 import { AUTHENTICATION_GATEWAY } from './features/authentication/domain/ports/authentication.gateway';
@@ -24,13 +25,18 @@ import { MockStudentWashHomeAdapter } from './features/wash-student-home/infrast
 import { WASH_SUPERVISION_GATEWAY } from './features/wash-supervision/domain/ports/wash-supervision.gateway';
 import { HttpWashSupervisionAdapter } from './features/wash-supervision/infrastructure/api/http-wash-supervision.adapter';
 import { MockWashSupervisionAdapter } from './features/wash-supervision/infrastructure/mock/mock-wash-supervision.adapter';
+import { WASH_ADMINISTRATION_GATEWAY } from './features/wash-administration/domain/ports/wash-administration.gateway';
+import { HttpWashAdministrationAdapter } from './features/wash-administration/infrastructure/api/http-wash-administration.adapter';
+import { MockWashAdministrationAdapter } from './features/wash-administration/infrastructure/mock/mock-wash-administration.adapter';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
-    provideHttpClient(withInterceptors([correlationIdInterceptor, apiErrorInterceptor])),
+    provideHttpClient(
+      withInterceptors([correlationIdInterceptor, authTokenInterceptor, apiErrorInterceptor]),
+    ),
     {
       provide: AUTHENTICATION_GATEWAY,
       useClass: environment.useMockApi ? MockAuthenticationAdapter : HttpAuthenticationAdapter,
@@ -46,6 +52,12 @@ export const appConfig: ApplicationConfig = {
     {
       provide: WASH_SUPERVISION_GATEWAY,
       useClass: environment.useMockApi ? MockWashSupervisionAdapter : HttpWashSupervisionAdapter,
+    },
+    {
+      provide: WASH_ADMINISTRATION_GATEWAY,
+      useClass: environment.useMockApi
+        ? MockWashAdministrationAdapter
+        : HttpWashAdministrationAdapter,
     },
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),

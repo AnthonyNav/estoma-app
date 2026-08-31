@@ -2,11 +2,23 @@
   display: block;
 }
 
-.lookup-form {
-  align-items: end;
+.manual-selection-link {
   display: grid;
-  gap: var(--space-md);
-  grid-template-columns: minmax(9rem, 0.7fr) minmax(0, 1.3fr) auto;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+}
+
+.manual-selection-link h3 {
+  margin-bottom: var(--space-2xs);
+}
+
+.manual-selection-link p {
+  color: var(--on-surface-variant);
+  margin-bottom: 0;
+}
+
+.manual-selection-link .button {
+  justify-self: start;
 }
 
 .lookup-form .button {
@@ -24,9 +36,25 @@
   margin-top: var(--space-lg);
 }
 
-.confirmation-checks {
+.validation-reminders {
+  background: color-mix(in srgb, var(--primary-fixed) 35%, var(--surface));
+  border-radius: var(--radius-md);
+  margin: var(--space-lg) 0;
+  padding: var(--space-md);
+}
+
+.validation-reminders h3 {
+  color: var(--text-main);
+  font-size: var(--type-body-md-size);
+  margin-bottom: var(--space-xs);
+}
+
+.validation-reminders ul {
+  color: var(--on-surface-variant);
   display: grid;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
+  margin: 0;
+  padding-left: 1.25rem;
 }
 
 .status-block {
@@ -94,12 +122,7 @@
 }
 
 @media (max-width: 47.9375rem) {
-  .lookup-form {
-    align-items: stretch;
-    grid-template-columns: 1fr;
-  }
-
-  .lookup-form .button {
+  .manual-selection-link .button {
     width: 100%;
   }
 }

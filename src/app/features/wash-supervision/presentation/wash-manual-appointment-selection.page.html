@@ -1,0 +1,87 @@
+<section class="flow" aria-labelledby="manual-selection-title">
+  <header class="flow__header">
+    <p class="eyebrow">Supervisor</p>
+    <h1 id="manual-selection-title">Búsqueda manual</h1>
+    <p class="flow__intro">
+      Selecciona una cita accionable de la jornada. El estado indica si corresponde registrar el
+      ingreso o revisar su salida.
+    </p>
+  </header>
+
+  @if (loading()) {
+    <section class="manual-selection-list" aria-busy="true" aria-label="Cargando citas">
+      @for (row of [1, 2, 3]; track row) {
+        <article class="flow-card manual-selection-card">
+          <div class="skeleton skeleton--line"></div>
+          <div class="skeleton skeleton--large"></div>
+        </article>
+      }
+    </section>
+  } @else if (error(); as error) {
+    <section class="feedback feedback--error" role="alert">
+      <h2>No fue posible cargar las citas</h2>
+      <p>{{ error }}</p>
+      <button class="button button--primary" type="button" (click)="retry()">Reintentar</button>
+    </section>
+  } @else if (appointments(); as appointments) {
+    <section class="manual-selection-heading" aria-label="Fecha de servicio">
+      <span>Jornada del {{ formatServiceDate(appointments.serviceDate) }}</span>
+      <strong>{{ appointments.appointments.length }} citas accionables</strong>
+    </section>
+
+    <div class="manual-selection-list">
+      @for (appointment of appointments.appointments; track appointment.appointment.appointmentId) {
+        <article class="flow-card manual-selection-card">
+          <header class="manual-selection-card__header">
+            <div>
+              <h2>{{ appointment.student.displayName }}</h2>
+              <p>
+                {{ appointment.student.studentEnrollment }} ·
+                {{ appointment.student.currentSemester }}° semestre
+              </p>
+            </div>
+            <span
+              class="status-badge"
+              [class.status-badge--registered]="appointment.manualSelectionStatus === 'REGISTERED'"
+              [class.status-badge--progress]="appointment.manualSelectionStatus === 'IN_PROGRESS'"
+            >
+              {{ statusLabel(appointment) }}
+            </span>
+          </header>
+
+          <dl class="appointment-details">
+            <div>
+              <dt>Horario</dt>
+              <dd>{{ formatTimeSlot(appointment) }}</dd>
+            </div>
+            <div>
+              <dt>Asignatura</dt>
+              <dd>
+                {{ appointment.appointment.courseSectionReference.nrc }} ·
+                {{ appointment.appointment.courseSectionReference.name }}
+              </dd>
+            </div>
+            <div>
+              <dt>Instrumental</dt>
+              <dd>
+                {{ appointment.appointment.instrumentCount }} instrumentos ·
+                {{ appointment.appointment.pieceType }}
+              </dd>
+            </div>
+          </dl>
+
+          <button class="button button--primary" type="button" (click)="select(appointment)">
+            {{ actionLabel(appointment) }}
+          </button>
+        </article>
+      } @empty {
+        <section class="feedback" role="status">
+          <h2>No hay citas accionables</h2>
+          <p>Las citas registradas o en proceso aparecerán aquí durante la jornada.</p>
+        </section>
+      }
+    </div>
+  }
+
+  <a class="button button--quiet" routerLink="/wash/supervision">Volver al inicio</a>
+</section>

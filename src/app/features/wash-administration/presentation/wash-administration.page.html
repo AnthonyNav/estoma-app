@@ -1,0 +1,449 @@
+<section class="flow" aria-labelledby="wash-administration-title">
+  <header class="flow__header">
+    <p class="eyebrow">Administración de Lavado</p>
+    <h1 id="wash-administration-title">
+      @switch (mode) {
+        @case ('home') {
+          Configuración actual
+        }
+        @case ('week') {
+          Operación semanal
+        }
+        @case ('resources') {
+          Cabinas y tinas
+        }
+        @case ('supervisors') {
+          Supervisores
+        }
+      }
+    </h1>
+    <p class="flow__intro">
+      Esta experiencia administra configuración persistente; no representa disponibilidad física ni
+      decisiones operativas.
+    </p>
+  </header>
+
+  <nav class="admin-nav" aria-label="Secciones de administración">
+    <a routerLink="/wash/admin">Inicio</a><a routerLink="/wash/admin/operation">Operación semanal</a
+    ><a routerLink="/wash/admin/resources">Recursos</a
+    ><a routerLink="/wash/admin/supervisors">Supervisores</a>
+  </nav>
+
+  @if (error(); as error) {
+    <section class="feedback feedback--error" role="alert">
+      <h2>No fue posible completar la acción</h2>
+      <p>{{ error }}</p>
+      <button class="button button--primary" type="button" (click)="retry()">
+        Reintentar lectura
+      </button>
+    </section>
+  }
+
+  @if (loading()) {
+    <article class="flow-card" aria-busy="true">
+      <div class="skeleton skeleton--large"></div>
+    </article>
+  } @else {
+    @switch (mode) {
+      @case ('home') {
+        @if (home(); as home) {
+          <section class="admin-dashboard">
+            <article class="flow-card">
+              <h2>Calendario vigente</h2>
+              @if (home.activeCalendar; as calendar) {
+                <p>
+                  <strong>{{ calendar.name }}</strong> · {{ calendar.effectiveFrom }} a
+                  {{ calendar.effectiveUntil }}
+                </p>
+              } @else {
+                <p>No hay calendario administrativo vigente.</p>
+              }
+            </article>
+            <article class="flow-card">
+              <h2>Horario de hoy</h2>
+              @if (home.todaySchedule.intervals.length) {
+                <ul>
+                  @for (interval of home.todaySchedule.intervals; track interval.scheduleId) {
+                    <li>
+                      {{ interval.openingTime }}–{{ interval.closingTime }} · bloques de
+                      {{ interval.slotDurationMinutes }} min
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <p>Sin horario configurado para hoy.</p>
+              }
+            </article>
+            <article class="flow-card">
+              <h2>Capacidad configurada</h2>
+              <p>
+                {{ home.resourceSummary.configuredActiveCapacity }} lugares en
+                {{ home.resourceSummary.activeTanks }} tinas activas.
+              </p>
+            </article>
+            <article class="flow-card">
+              <h2>Próximos cierres</h2>
+              @if (home.upcomingClosures.length) {
+                <ul>
+                  @for (closure of home.upcomingClosures; track closure.closureId) {
+                    <li>{{ closure.reason }} · {{ closure.startsAt }}</li>
+                  }
+                </ul>
+              } @else {
+                <p>No hay cierres próximos.</p>
+              }
+            </article>
+          </section>
+        }
+      }
+
+      @case ('week') {
+        @if (week(); as week) {
+          <section class="flow-card">
+            <h2>{{ week.calendar?.name ?? 'Sin calendario editable' }}</h2>
+            <p>
+              {{ week.calendar?.timezone }} · un cambio reemplaza de forma atómica la intención
+              completa del día.
+            </p>
+            @if (week.editing.status !== 'AVAILABLE') {
+              <p class="feedback feedback--error">
+                {{
+                  week.editing.blockingReason ?? 'La semana actual no está disponible para edición.'
+                }}
+              </p>
+            }
+            <ul class="summary-list">
+              @for (day of week.days; track day.dayOfWeek) {
+                <li>
+                  <span>{{ day.date }} · día {{ day.dayOfWeek }}</span
+                  ><strong>
+                    @for (interval of day.intervals; track interval.scheduleId) {
+                      {{ interval.openingTime }}–{{ interval.closingTime }}
+                    } @empty {
+                      Sin horario
+                    }
+                  </strong>
+                </li>
+              }
+            </ul>
+            <form class="week-form" [formGroup]="weekForm">
+              <label class="field"
+                >Día (1–7)<input type="number" min="1" max="7" formControlName="dayOfWeek"
+              /></label>
+              <label class="field"
+                >Apertura<input type="time" formControlName="openingTime"
+              /></label>
+              <label class="field">Cierre<input type="time" formControlName="closingTime" /></label>
+              <label class="field"
+                >Duración (min)<input type="number" min="1" formControlName="slotDurationMinutes"
+              /></label>
+              <div class="button-row">
+                <button
+                  class="button button--secondary"
+                  type="button"
+                  [disabled]="week.editing.status !== 'AVAILABLE' || submitting()"
+                  (click)="previewDay()"
+                >
+                  Vista previa de impacto
+                </button>
+                <button
+                  class="button button--primary"
+                  type="button"
+                  [disabled]="week.editing.status !== 'AVAILABLE' || submitting()"
+                  (click)="replaceDay()"
+                >
+                  {{ submitting() ? 'Guardando…' : 'Reemplazar horario del día' }}
+                </button>
+              </div>
+            </form>
+            @if (preview(); as preview) {
+              <div class="feedback">
+                <h3>Impacto estimado</h3>
+                <p>
+                  {{ preview.affectedTimeSlotsCount }} bloques y
+                  {{ preview.potentiallyAffectedAppointmentsCount }} citas potencialmente afectadas.
+                </p>
+              </div>
+            }
+          </section>
+        }
+      }
+
+      @case ('resources') {
+        <section class="flow-card">
+          <h2>Registrar cabina</h2>
+          <form class="week-form" [formGroup]="cabinForm" (ngSubmit)="registerCabin()">
+            <label class="field">Código<input formControlName="code" required /></label>
+            <label class="field">Nombre<input formControlName="name" required /></label>
+            <label class="field"
+              >Tipo<select formControlName="cabinType">
+                <option value="NORMAL">Normal</option>
+                <option value="JOURNEY">Jornada</option>
+                <option value="IMMUNOCOMPROMISED">Inmunocomprometido</option>
+              </select></label
+            >
+            <button class="button button--primary" type="submit" [disabled]="submitting()">
+              Registrar cabina
+            </button>
+          </form>
+        </section>
+        <label class="field"
+          >Motivo para desactivar o retirar<input [formControl]="resourceReason" maxlength="500"
+        /></label>
+        @if (resources(); as resources) {
+          <section class="admin-resource-layout">
+            <aside class="flow-card">
+              <h2>Cabinas</h2>
+              <ul class="summary-list">
+                @for (cabin of resources.cabins; track cabin.cabinId) {
+                  <li>
+                    <button class="button button--quiet" type="button" (click)="selectCabin(cabin)">
+                      {{ cabin.code }} · {{ cabin.status }}</button
+                    ><span
+                      >{{ cabin.currentTankCount }} tinas · capacidad
+                      {{ cabin.configuredCapacity }}</span
+                    >
+                  </li>
+                } @empty {
+                  <li>Sin cabinas registradas.</li>
+                }
+              </ul>
+            </aside>
+            <section class="flow-card">
+              @if (selectedCabin(); as cabin) {
+                <h2>{{ cabin.name }} · {{ cabin.cabinType }}</h2>
+                <p>
+                  Estado: <strong>{{ cabin.status }}</strong> · versión {{ cabin.version }}
+                </p>
+                @if (cabin.status !== 'RETIRED') {
+                  <form class="week-form" [formGroup]="cabinEditForm" (ngSubmit)="updateCabin()">
+                    <label class="field">Nombre<input formControlName="name" required /></label
+                    ><label class="field"
+                      >Tipo<select formControlName="cabinType">
+                        <option value="NORMAL">Normal</option>
+                        <option value="JOURNEY">Jornada</option>
+                        <option value="IMMUNOCOMPROMISED">Inmunocomprometido</option>
+                      </select></label
+                    ><button
+                      class="button button--secondary"
+                      type="submit"
+                      [disabled]="submitting()"
+                    >
+                      Guardar cabina
+                    </button>
+                  </form>
+                }
+                <div class="button-row">
+                  <button
+                    class="button button--quiet"
+                    type="button"
+                    [disabled]="submitting() || cabin.status === 'ACTIVE'"
+                    (click)="changeResource('CABIN', cabin, 'activate')"
+                  >
+                    Activar</button
+                  ><button
+                    class="button button--quiet"
+                    type="button"
+                    [disabled]="submitting() || cabin.status !== 'ACTIVE'"
+                    (click)="changeResource('CABIN', cabin, 'deactivate')"
+                  >
+                    Desactivar</button
+                  ><button
+                    class="button button--secondary"
+                    type="button"
+                    [disabled]="submitting() || cabin.status === 'RETIRED'"
+                    (click)="changeResource('CABIN', cabin, 'retire')"
+                  >
+                    Retirar
+                  </button>
+                </div>
+                @if (cabin.status !== 'RETIRED') {
+                  <form class="week-form" [formGroup]="tankForm" (ngSubmit)="registerTank()">
+                    <h3>Registrar tina</h3>
+                    <label class="field">Código<input formControlName="code" required /></label
+                    ><label class="field">Nombre<input formControlName="name" required /></label
+                    ><label class="field"
+                      >Capacidad configurada<input
+                        type="number"
+                        min="1"
+                        formControlName="configuredCapacity" /></label
+                    ><button class="button button--primary" type="submit" [disabled]="submitting()">
+                      Registrar tina
+                    </button>
+                  </form>
+                }
+                @if (selectedTank(); as tank) {
+                  <form class="week-form" [formGroup]="tankEditForm" (ngSubmit)="updateTank()">
+                    <h3>Editar tina {{ tank.code }}</h3>
+                    <label class="field">Nombre<input formControlName="name" required /></label
+                    ><label class="field"
+                      >Capacidad<input
+                        type="number"
+                        min="1"
+                        formControlName="configuredCapacity" /></label
+                    ><button
+                      class="button button--secondary"
+                      type="submit"
+                      [disabled]="submitting() || tank.status === 'RETIRED'"
+                    >
+                      Guardar tina
+                    </button>
+                  </form>
+                }
+                <ul class="summary-list">
+                  @for (tank of cabin.tanks; track tank.tankId) {
+                    <li>
+                      <span
+                        >{{ tank.code }} · {{ tank.name }} · capacidad
+                        {{ tank.configuredCapacity }}</span
+                      ><strong>{{ tank.status }} · v{{ tank.version }}</strong>
+                      @if (tank.status !== 'RETIRED') {
+                        <button
+                          class="button button--quiet"
+                          type="button"
+                          (click)="beginTankEdit(tank)"
+                        >
+                          Editar tina
+                        </button>
+                      }
+                      <div class="button-row">
+                        <button
+                          class="button button--quiet"
+                          type="button"
+                          [disabled]="submitting() || tank.status === 'ACTIVE'"
+                          (click)="changeResource('TANK', tank, 'activate')"
+                        >
+                          Activar</button
+                        ><button
+                          class="button button--quiet"
+                          type="button"
+                          [disabled]="submitting() || tank.status !== 'ACTIVE'"
+                          (click)="changeResource('TANK', tank, 'deactivate')"
+                        >
+                          Desactivar</button
+                        ><button
+                          class="button button--secondary"
+                          type="button"
+                          [disabled]="submitting() || tank.status === 'RETIRED'"
+                          (click)="changeResource('TANK', tank, 'retire')"
+                        >
+                          Retirar
+                        </button>
+                      </div>
+                    </li>
+                  } @empty {
+                    <li>Esta cabina aún no tiene tinas.</li>
+                  }
+                </ul>
+              } @else {
+                <p>Selecciona una cabina para consultar o editar su configuración.</p>
+              }
+            </section>
+          </section>
+        }
+      }
+
+      @case ('supervisors') {
+        <section class="admin-resource-layout">
+          <aside class="flow-card">
+            <form
+              class="supervisor-search"
+              [formGroup]="supervisorSearch"
+              (ngSubmit)="searchSupervisors()"
+            >
+              <label class="field"
+                >Buscar por nombre o correo<input formControlName="query" /></label
+              ><button class="button button--secondary" type="submit">Buscar</button>
+            </form>
+            <ul class="summary-list">
+              @for (supervisor of supervisors(); track supervisor.accountId) {
+                <li>
+                  <button
+                    class="button button--quiet"
+                    type="button"
+                    (click)="selectSupervisor(supervisor)"
+                  >
+                    {{ supervisor.displayName }}</button
+                  ><span
+                    >{{ supervisor.institutionalEmail }} ·
+                    {{ supervisor.washAccessStatus ?? 'SIN ACCESO' }}</span
+                  >
+                </li>
+              } @empty {
+                <li>Sin resultados</li>
+              }
+            </ul>
+          </aside>
+          <section class="flow-card">
+            @if (selectedSupervisor(); as supervisor) {
+              <h2>{{ supervisor.displayName }}</h2>
+              <p>{{ supervisor.institutionalEmail }} · {{ supervisor.username }}</p>
+              <p>
+                Cuenta: <strong>{{ supervisor.accountStatus }}</strong> · Acceso Lavado:
+                <strong>{{ supervisor.washAccessStatus ?? 'SIN ACCESO' }}</strong>
+              </p>
+              <p>
+                Acceso efectivo: <strong>{{ supervisor.effectiveAccess ? 'sí' : 'no' }}</strong> ·
+                Workflow: {{ supervisorWorkflowLabel(supervisor) }}
+              </p>
+              <div class="button-row">
+                <button
+                  class="button button--secondary"
+                  type="button"
+                  [disabled]="submitting()"
+                  (click)="regenerateCredential()"
+                >
+                  Regenerar credencial y enviar</button
+                ><button
+                  class="button button--secondary"
+                  type="button"
+                  [disabled]="submitting() || supervisor.washAccessStatus !== 'SUSPENDED'"
+                  (click)="restoreSupervisor()"
+                >
+                  Restaurar acceso
+                </button>
+              </div>
+              @if (supervisor.washAccessStatus === 'ACTIVE') {
+                <label class="field"
+                  >Motivo de suspensión<input
+                    [formControl]="suspensionReason"
+                    maxlength="500" /></label
+                ><button
+                  class="button button--secondary"
+                  type="button"
+                  [disabled]="submitting()"
+                  (click)="suspendSupervisor()"
+                >
+                  Suspender acceso
+                </button>
+              }
+            } @else {
+              <p>Selecciona un supervisor para consultar su estado.</p>
+            }
+          </section>
+        </section>
+        <section class="flow-card">
+          <h2>Registrar supervisor</h2>
+          <p>El flujo no muestra ni conserva contraseñas temporales.</p>
+          <form class="week-form" [formGroup]="supervisorForm" (ngSubmit)="createSupervisor()">
+            <label class="field">Nombre<input formControlName="firstName" required /></label
+            ><label class="field"
+              >Apellido paterno<input formControlName="paternalSurname" required /></label
+            ><label class="field"
+              >Apellido materno (opcional)<input formControlName="maternalSurname" /></label
+            ><label class="field"
+              >Correo institucional<input
+                type="email"
+                formControlName="institutionalEmail"
+                required /></label
+            ><label class="field"
+              >Nombre de usuario<input formControlName="username" required /></label
+            ><button class="button button--primary" type="submit" [disabled]="submitting()">
+              {{ submitting() ? 'Iniciando…' : 'Iniciar alta' }}
+            </button>
+          </form>
+        </section>
+      }
+    }
+  }
+</section>

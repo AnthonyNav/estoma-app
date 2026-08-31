@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, of, throwError, timer } from 'rxjs';
-import { exhaustMap, mergeMap, takeWhile } from 'rxjs/operators';
+import { exhaustMap, filter, mergeMap, takeWhile } from 'rxjs/operators';
 
 import { environment } from '../../../environments/environment';
 import { ApplicationError } from './application-error';
@@ -18,18 +18,40 @@ export interface OperationTrackingOptions {
   maxPendingPolls?: number;
 }
 
+export interface AcceptedOperationReference {
+  operationId: string;
+  pollPath: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class OperationTrackerService {
   private readonly http = inject(HttpClient);
 
   track(operationId: string, options: OperationTrackingOptions = {}): Observable<OperationResult> {
+    return this.trackPath(`/operations/${encodeURIComponent(operationId)}`, options);
+  }
+
+  trackPath(pollPath: string, options: OperationTrackingOptions = {}): Observable<OperationResult> {
+    const path = pollPath.startsWith('/api/v1/')
+      ? pollPath.slice('/api/v1'.length)
+      : pollPath.startsWith('/')
+        ? pollPath
+        : `/${pollPath}`;
+
     return this.trackWith(
-      () =>
-        this.http.get<OperationResult>(
-          `${environment.apiBaseUrl}/operations/${encodeURIComponent(operationId)}`,
-        ),
+      () => this.http.get<OperationResult>(`${environment.apiBaseUrl}${path}`),
       options,
     );
+  }
+
+  trackAccepted<T extends OperationResult>(
+    accepted: AcceptedOperationReference,
+    loadMockOperation: () => Observable<T>,
+    options: OperationTrackingOptions = {},
+  ): Observable<T | OperationResult> {
+    return environment.useMockApi
+      ? this.trackWith(loadMockOperation, options)
+      : this.trackPath(accepted.pollPath, options);
   }
 
   trackWith<T extends OperationResult>(
@@ -57,6 +79,7 @@ export class OperationTrackerService {
             );
       }),
       takeWhile((operation) => operation.status === 'PENDING', true),
+      filter((operation) => operation.status !== 'PENDING'),
     );
   }
 }

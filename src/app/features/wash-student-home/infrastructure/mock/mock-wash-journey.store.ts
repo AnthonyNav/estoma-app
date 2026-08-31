@@ -14,17 +14,22 @@ import {
   DecideWashEntryCommand,
   EntryLookupRequest,
   RegisterWashArrivalCommand,
-  SupervisorEntryLookup,
+  SupervisorLookup,
 } from '../../../wash-supervision/domain/models/supervisor-entry';
 import {
   ActiveResourceAssignment,
   AppointmentStatus,
   CourseSection,
+  ExitMaterials,
   StudentWashAppointment,
   StudentWashHome,
   StudentWashStudent,
   WashExecution,
 } from '../../domain/models/student-wash-home';
+import {
+  CancelStudentAppointmentCommand,
+  SubmitStudentExitCommand,
+} from '../../domain/ports/student-wash-home.gateway';
 
 export type StudentHomeFixture =
   | 'loading'
@@ -97,27 +102,47 @@ const resourceAssignment: ActiveResourceAssignment = {
   tankName: 'Tina B',
 };
 
+const defaultExitMaterials: ExitMaterials = {
+  packageCount: 3,
+  greenPaperCassette8Count: 1,
+  greenPaperCassette10Count: 0,
+  witnessTapePortionCount: 1,
+};
+
 @Injectable({ providedIn: 'root' })
 export class MockWashJourneyStore {
   private home: StudentWashHome = this.homeWith(this.appointmentWith('SCHEDULED', true));
   private readonly operations = new Map<string, PendingOperation>();
   private fixtureWasApplied = false;
+  private activeFixture: StudentHomeFixture | null = null;
+  private fixtureError: ApplicationError | null = null;
   private operationSequence = 0;
 
   loadStudentHome(fixture: StudentHomeFixture | null): Observable<StudentWashHome> {
     if (fixture && !this.fixtureWasApplied) {
-      const fixtureResult = this.fixtureResult(fixture);
-      this.fixtureWasApplied = true;
+      this.applyFixture(fixture);
+    }
 
-      if (fixtureResult instanceof ApplicationError) {
-        return throwError(() => fixtureResult).pipe(delay(fixture === 'loading' ? 10_000 : 550));
-      }
-
-      this.home = fixtureResult;
-      return of(this.home).pipe(delay(fixture === 'loading' ? 10_000 : 550));
+    if (this.fixtureError) {
+      return throwError(() => this.fixtureError).pipe(
+        delay(this.activeFixture === 'loading' ? 10_000 : 550),
+      );
     }
 
     return of(this.home).pipe(delay(250));
+  }
+
+  /** Punto de entrada exclusivo para la galería local de fixtures. */
+  applyFixture(fixture: StudentHomeFixture): void {
+    const fixtureResult = this.fixtureResult(fixture);
+    this.operations.clear();
+    this.fixtureWasApplied = true;
+    this.activeFixture = fixture;
+    this.fixtureError = fixtureResult instanceof ApplicationError ? fixtureResult : null;
+
+    if (!(fixtureResult instanceof ApplicationError)) {
+      this.home = fixtureResult;
+    }
   }
 
   getFormContext(): Observable<AppointmentFormContext> {
@@ -175,12 +200,15 @@ export class MockWashJourneyStore {
           washExecution: null,
           qrUsageContext: 'ENTRY',
           qrRepresentation: opaqueQrRepresentation,
+          appointmentVersion: 1,
+          usesExceptionalAuthorization: false,
+          studentCancellationAction: 'AVAILABLE',
         });
       }),
     ).pipe(delay(250));
   }
 
-  lookup(request: EntryLookupRequest): Observable<SupervisorEntryLookup> {
+  lookup(request: EntryLookupRequest): Observable<SupervisorLookup> {
     const appointment = this.home.appointment;
     const lookupValue =
       request.lookupType === 'QR' ? request.qrRepresentation : request.studentEnrollment;
@@ -195,13 +223,50 @@ export class MockWashJourneyStore {
 
     return of({
       serviceDate: this.home.serviceDate,
+      nextAction: this.nextActionFor(appointment.washExecution?.status ?? null),
       student: {
-        fullName: student.fullName,
+        studentAccountId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        displayName: student.fullName,
         studentEnrollment: student.studentEnrollment,
         currentSemester: student.currentSemester,
       },
-      appointment,
-      washExecution: appointment.washExecution,
+      appointment: {
+        appointmentId: appointment.appointmentId,
+        appointmentStatus: appointment.appointmentStatus,
+        appointmentType: appointment.appointmentType,
+        instrumentCount: appointment.instrumentCount,
+        pieceType: appointment.pieceType,
+        courseSectionReference: appointment.courseSection,
+        appointmentTimeSlot: appointment.timeSlot,
+      },
+      washExecution: appointment.washExecution
+        ? {
+            washExecutionId: appointment.washExecution.washExecutionId,
+            status: appointment.washExecution.status,
+            executionVersion: appointment.washExecution.executionVersion,
+            arrivedAt: appointment.washExecution.arrivedAt ?? null,
+            rejectionReason: appointment.washExecution.rejectionReason ?? null,
+            exitSubmittedAt: appointment.washExecution.exitSubmittedAt ?? null,
+            submittedExitMaterials: appointment.washExecution.submittedExitMaterials ?? null,
+          }
+        : null,
+      activeResourceAssignment: appointment.washExecution?.activeResourceAssignment
+        ? {
+            resourceAssignmentId:
+              appointment.washExecution.activeResourceAssignment.resourceAssignmentId,
+            assignmentType: 'INITIAL' as const,
+            cabin: {
+              resourceId: appointment.washExecution.activeResourceAssignment.cabinId,
+              code: appointment.washExecution.activeResourceAssignment.cabinCode,
+              name: appointment.washExecution.activeResourceAssignment.cabinName,
+            },
+            tank: {
+              resourceId: appointment.washExecution.activeResourceAssignment.tankId,
+              code: appointment.washExecution.activeResourceAssignment.tankCode,
+              name: appointment.washExecution.activeResourceAssignment.tankName,
+            },
+          }
+        : null,
     }).pipe(delay(350));
   }
 
@@ -218,7 +283,7 @@ export class MockWashJourneyStore {
           washExecution: {
             washExecutionId: '44444444-4444-4444-4444-444444444444',
             status: 'PENDING_ENTRY',
-            version: 1,
+            executionVersion: 1,
             arrivedAt: '2026-08-27T10:52:00-06:00',
           },
         });
@@ -261,6 +326,163 @@ export class MockWashJourneyStore {
             ...appointment.washExecution,
             status: 'IN_PROGRESS',
             activeResourceAssignment: resourceAssignment,
+          },
+        });
+      }),
+    ).pipe(delay(250));
+  }
+
+  cancelAppointment(command: CancelStudentAppointmentCommand): Observable<AcceptedOperation> {
+    return of(
+      this.createOperation(() => {
+        const appointment = this.home.appointment;
+        if (
+          !appointment ||
+          appointment.appointmentId !== command.appointmentId ||
+          appointment.studentCancellationAction !== 'AVAILABLE'
+        ) {
+          return;
+        }
+
+        this.home = this.homeWith({
+          ...appointment,
+          appointmentStatus: 'CANCELLED',
+          appointmentVersion: appointment.appointmentVersion
+            ? appointment.appointmentVersion + 1
+            : 1,
+          studentCancellationAction: 'NOT_APPLICABLE',
+          qrUsageContext: 'NONE',
+          qrRepresentation: null,
+        });
+      }),
+    ).pipe(delay(250));
+  }
+
+  submitExit(command: SubmitStudentExitCommand): Observable<AcceptedOperation> {
+    return of(
+      this.createOperation(() => {
+        const appointment = this.home.appointment;
+        const execution = appointment?.washExecution;
+        if (
+          !appointment ||
+          !execution ||
+          execution.washExecutionId !== command.washExecutionId ||
+          execution.status !== 'IN_PROGRESS'
+        ) {
+          return;
+        }
+
+        this.home = this.homeWith({
+          ...appointment,
+          qrUsageContext: 'SUPERVISOR_EXIT_REVIEW',
+          washExecution: {
+            ...execution,
+            status: 'EXIT_SUBMITTED',
+            executionVersion: execution.executionVersion + 1,
+            exitSubmittedAt: '2026-08-27T11:45:00-06:00',
+            submittedExitMaterials: command.materials,
+          },
+        });
+      }),
+    ).pipe(delay(250));
+  }
+
+  resolveReassignment(command: {
+    washExecutionId: string;
+    cabinId: string;
+    tankId: string;
+  }): Observable<AcceptedOperation> {
+    return of(
+      this.createOperation(() => {
+        const appointment = this.home.appointment;
+        const execution = appointment?.washExecution;
+        if (
+          !appointment ||
+          !execution ||
+          execution.washExecutionId !== command.washExecutionId ||
+          execution.status !== 'PENDING_REASSIGNMENT'
+        ) {
+          return;
+        }
+
+        this.home = this.homeWith({
+          ...appointment,
+          appointmentStatus: 'IN_PROGRESS',
+          qrUsageContext: 'STUDENT_EXIT',
+          washExecution: {
+            ...execution,
+            status: 'IN_PROGRESS',
+            executionVersion: execution.executionVersion + 1,
+            activeResourceAssignment: {
+              ...resourceAssignment,
+              cabinId: command.cabinId,
+              tankId: command.tankId,
+            },
+          },
+        });
+      }),
+    ).pipe(delay(250));
+  }
+
+  cancelForCapacity(command: { washExecutionId: string }): Observable<AcceptedOperation> {
+    return of(
+      this.createOperation(() => {
+        const appointment = this.home.appointment;
+        const execution = appointment?.washExecution;
+        if (
+          !appointment ||
+          !execution ||
+          execution.washExecutionId !== command.washExecutionId ||
+          execution.status !== 'PENDING_REASSIGNMENT'
+        ) {
+          return;
+        }
+
+        this.home = this.homeWith({
+          ...appointment,
+          appointmentStatus: 'CANCELLED',
+          qrUsageContext: 'NONE',
+          qrRepresentation: null,
+          washExecution: {
+            ...execution,
+            status: 'CANCELLED',
+            executionVersion: execution.executionVersion + 1,
+            activeResourceAssignment: null,
+          },
+        });
+      }),
+    ).pipe(delay(250));
+  }
+
+  completeExit(command: {
+    washExecutionId: string;
+    finalMaterials: ExitMaterials;
+  }): Observable<AcceptedOperation> {
+    return of(
+      this.createOperation(() => {
+        const appointment = this.home.appointment;
+        const execution = appointment?.washExecution;
+        if (
+          !appointment ||
+          !execution ||
+          execution.washExecutionId !== command.washExecutionId ||
+          execution.status !== 'EXIT_SUBMITTED'
+        ) {
+          return;
+        }
+
+        this.home = this.homeWith({
+          ...appointment,
+          appointmentStatus: 'COMPLETED',
+          qrUsageContext: 'NONE',
+          qrRepresentation: null,
+          washExecution: {
+            ...execution,
+            status: 'COMPLETED',
+            executionVersion: execution.executionVersion + 1,
+            completedAt: '2026-08-27T12:00:00-06:00',
+            finalExitMaterials: command.finalMaterials,
+            lastResourceAssignment: execution.activeResourceAssignment ?? resourceAssignment,
           },
         });
       }),
@@ -384,10 +606,14 @@ export class MockWashJourneyStore {
         startsAt: '2026-08-27T10:00:00-06:00',
         endsAt: '2026-08-27T11:00:00-06:00',
         timezone: 'America/Mexico_City',
+        cancellationDeadlineAt: '2026-08-27T09:50:00-06:00',
       },
       washExecution,
       qrUsageContext: includeQr ? 'ENTRY' : 'NONE',
       qrRepresentation: includeQr ? opaqueQrRepresentation : null,
+      appointmentVersion: 1,
+      usesExceptionalAuthorization: false,
+      studentCancellationAction: appointmentStatus === 'SCHEDULED' ? 'AVAILABLE' : 'NOT_APPLICABLE',
     };
   }
 
@@ -399,10 +625,32 @@ export class MockWashJourneyStore {
     return {
       washExecutionId: '44444444-4444-4444-4444-444444444444',
       status,
-      version: 1,
+      executionVersion: 1,
       arrivedAt: status === 'PENDING_ENTRY' ? '2026-08-27T10:52:00-06:00' : null,
       activeResourceAssignment,
       rejectionReason,
+      exitSubmittedAt: status === 'EXIT_SUBMITTED' ? '2026-08-27T11:45:00-06:00' : null,
+      submittedExitMaterials: status === 'EXIT_SUBMITTED' ? defaultExitMaterials : null,
+      completedAt: status === 'COMPLETED' ? '2026-08-27T12:00:00-06:00' : null,
+      finalExitMaterials: status === 'COMPLETED' ? defaultExitMaterials : null,
+      lastResourceAssignment: status === 'COMPLETED' ? resourceAssignment : null,
     };
+  }
+
+  private nextActionFor(status: WashExecution['status'] | null): SupervisorLookup['nextAction'] {
+    if (!status) {
+      return 'ENTRY';
+    }
+
+    const actions: Record<WashExecution['status'], SupervisorLookup['nextAction']> = {
+      PENDING_ENTRY: 'ENTRY_DECISION',
+      ENTRY_REJECTED: 'NONE',
+      PENDING_REASSIGNMENT: 'REASSIGNMENT',
+      IN_PROGRESS: 'EXIT_REVIEW',
+      EXIT_SUBMITTED: 'EXIT_REVIEW',
+      COMPLETED: 'NONE',
+      CANCELLED: 'NONE',
+    };
+    return actions[status];
   }
 }
