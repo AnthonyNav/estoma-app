@@ -11,6 +11,12 @@ import { SignInUseCase } from '../application/sign-in.use-case';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SignInPage {
+  readonly showPassword = signal<boolean>(false);
+
+  togglePassword(): void {
+    this.showPassword.update((value) => !value);
+  }
+
   private readonly signIn = inject(SignInUseCase);
   readonly form = new FormGroup({
     identifier: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
