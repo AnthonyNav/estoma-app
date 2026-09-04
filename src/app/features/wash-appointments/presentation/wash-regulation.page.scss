@@ -11,3 +11,51 @@
   padding: 0;
   list-style: none;
 }
+
+/* Caja del Reglamento con Desplazamiento Interno */
+.regulation-scrollbox {
+  max-height: 20rem;
+  overflow-y: auto;
+  background-color: var(--surface-container-low, #f8f9fb);
+  border: 1px solid var(--outline-variant, #aecbeb);
+  border-radius: var(--radius-md, 0.75rem);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--outline-variant, #aecbeb);
+    border-radius: 4px;
+  }
+
+  .regulation-group {
+    margin-bottom: 1.25rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    h3 {
+      color: var(--primary, #71a5de);
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 1.2rem;
+
+      li {
+        color: var(--text-main, #0f172a);
+        font-size: 0.875rem;
+        line-height: 1.45;
+        margin-bottom: 0.35rem;
+      }
+    }
+  }
+}
