@@ -7,6 +7,7 @@ The Angular client for the Estomatology platform. It communicates exclusively wi
 - Node.js 22
 - Corepack enabled (`corepack enable`)
 - pnpm 10 (pinned by `packageManager`)
+- Chrome or Chromium for `pnpm test:ci`. Set `CHROME_BIN` to the browser executable if it is not discovered automatically.
 
 ## Development
 
