@@ -76,6 +76,17 @@
                   "with": "src/environments/environment.staging.ts"
                 }
               ]
+            },
+            "auth-integration": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.development.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"
@@ -91,6 +102,10 @@
             },
             "staging": {
               "buildTarget": "estoma-app:build:staging"
+            },
+            "auth-integration": {
+              "buildTarget": "estoma-app:build:auth-integration",
+              "proxyConfig": "proxy.auth.json"
             }
           },
           "defaultConfiguration": "development"

@@ -11,7 +11,8 @@
     "lint": "ng lint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "start:auth": "ng serve --configuration auth-integration"
   },
   "prettier": {
     "printWidth": 100,

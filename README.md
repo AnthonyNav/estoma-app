@@ -15,7 +15,7 @@ pnpm install
 pnpm start
 ```
 
-The development build uses mock BFF adapters. Open `http://localhost:4200` and use any non-empty identifier and password in the authentication pilot.
+The development build uses simulated BFF responses. Open `http://localhost:4200` and use `202257019` with any non-empty synthetic password to exercise authentication. See [authentication fixtures](docs/auth-fixtures.md) for scenarios, session behavior, scope, and the prepared `pnpm start:auth` backend integration mode.
 See [the fixtures guide](docs/fixtures.md) to exercise the Wash flow and its error states without a backend.
 
 ## Commands
@@ -31,6 +31,7 @@ pnpm build --configuration staging
 ## Architecture
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for boundaries, feature layout, runtime rules, and environment behavior. See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch workflow and collaboration rules.
+See [the BFF contract analysis](docs/bff-contract-analysis.md) for the canonical integration reference, current flows, and gaps to resolve before connecting them.
 
 ## Delivery
 
