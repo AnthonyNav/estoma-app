@@ -1,16 +1,24 @@
-<header class="app-header">
-  <a class="brand" routerLink="/wash/student">Lavado ultrasónico</a>
+@if (!isAuthentication()) {
+  <header class="app-header">
+    <a class="brand" routerLink="/wash/student">Lavado ultrasónico</a>
 
-  @if (showSignOut()) {
-    <a aria-label="Cerrar sesión" class="app-header__sign-out" routerLink="/authentication/sign-in">
-      <svg aria-hidden="true" viewBox="0 0 24 24">
-        <path d="M14 8l4 4-4 4M18 12H8M11 5H5v14h6" />
-      </svg>
-      <span>Salir</span>
-    </a>
+    @if (showSignOut()) {
+      <nav aria-label="Sesión">
+        <a
+          class="app-header__sign-out"
+          routerLink="/authentication/access"
+          [queryParams]="{ choose: 1 }"
+          >Mis sistemas</a
+        >
+        <button type="button" class="app-header__sign-out" (click)="logout()">Salir</button>
+      </nav>
+    }
+  </header>
+}
+
+<main class="app-content" [class.app-content--authentication]="isAuthentication()">
+  @if (!isAuthentication() && sessionStore.notice(); as message) {
+    <p role="status">{{ message }}</p>
   }
-</header>
-
-<main class="app-content">
   <router-outlet />
 </main>

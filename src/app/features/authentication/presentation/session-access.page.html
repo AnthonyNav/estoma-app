@@ -1,0 +1,43 @@
+<div class="sign-in-screen">
+  <section class="sign-in-card" aria-labelledby="access-title" [attr.aria-busy]="loading()">
+    <header class="sign-in-heading">
+      <p class="institution">Facultad de Estomatología – BUAP</p>
+      <h1 id="access-title" tabindex="-1">
+        {{ context ? labels[auth.store.selectedSystemCode()] : 'Tus sistemas' }}
+      </h1>
+    </header>
+    @if (loading()) {
+      <p class="auth-description" role="status">Consultando tus accesos…</p>
+    } @else if (error(); as message) {
+      <p class="feedback feedback--error" role="alert">{{ message }}</p>
+      @if (traceId(); as trace) {
+        <p class="auth-help">Referencia para soporte: {{ trace }}</p>
+      }
+      <button class="sign-in-submit auth-full-width" type="button" (click)="load()">
+        Reintentar
+      </button>
+    } @else if (auth.store.profile(); as profile) {
+      <p class="auth-description">Hola, {{ profile.displayName }}.</p>
+      @if (context) {
+        <p class="feedback feedback--success" role="status">
+          Tu sesión está iniciada y tienes acceso a este sistema.
+        </p>
+      }
+      <div class="access-options">
+        @for (system of systems; track system) {
+          @if (
+            profile.availableSystemCodes.includes(system) &&
+            (!context || system !== auth.store.selectedSystemCode())
+          ) {
+            <button class="sign-in-submit" type="button" (click)="auth.enterSystem(system)">
+              {{ labels[system] }}
+            </button>
+          }
+        }
+      </div>
+    }
+    <button class="auth-link auth-full-width" type="button" (click)="auth.logout()">
+      Cerrar sesión
+    </button>
+  </section>
+</div>

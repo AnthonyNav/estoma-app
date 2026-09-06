@@ -1,6 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Injector, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
+import { SessionStore } from './features/authentication/application/session-store.service';
+import { AuthSessionService } from './features/authentication/application/auth-session.service';
 
 @Component({
   selector: 'app-root',
@@ -11,16 +14,26 @@ import { filter } from 'rxjs';
 })
 export class App {
   private readonly router = inject(Router);
+  private readonly injector = inject(Injector);
+  readonly sessionStore = inject(SessionStore);
+  logout(): void {
+    this.injector.get(AuthSessionService).logout();
+  }
 
-  // Iniciamos oculto por defecto para evitar cualquier parpadeo al recargar
+  readonly isAuthentication = signal(
+    this.router.url.split(/[?#]/)[0].startsWith('/authentication/'),
+  );
   showSignOut = signal<boolean>(false);
 
   constructor() {
-    // Escuchamos los cambios de ruta para actualizar la visibilidad en tiempo real
     this.router.events
-      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
       .subscribe((event) => {
         const url = event.urlAfterRedirects || event.url;
+        this.isAuthentication.set(url.split(/[?#]/)[0].startsWith('/authentication/'));
         const isPublic = url.includes('/authentication') || url.includes('/home');
         this.showSignOut.set(!isPublic);
       });

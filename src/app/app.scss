@@ -90,6 +90,11 @@ header,
   padding: clamp(1.5rem, 4vw, 3rem) max(1rem, calc((100vw - 78rem) / 2));
 }
 
+.app-content--authentication {
+  max-width: none;
+  padding: 0;
+}
+
 @media (max-width: 31.25rem) {
   header,
   .app-header {

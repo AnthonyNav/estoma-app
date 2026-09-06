@@ -1,4 +1,6 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { SessionLifecycleService } from '../../../core/session/session-lifecycle.service';
 
 import {
   AppointmentDraft,
@@ -27,6 +29,12 @@ export class AppointmentRegistrationDraftService {
   readonly selectedTimeSlot = signal<AvailableTimeSlot | null>(null);
   readonly pendingSchedule = this.pendingScheduleState.asReadonly();
   readonly canContinue = computed(() => this.draftState().regulationAccepted);
+
+  constructor() {
+    inject(SessionLifecycleService)
+      .ended$.pipe(takeUntilDestroyed())
+      .subscribe(() => this.reset());
+  }
 
   acceptRegulation(accepted: boolean): void {
     this.draftState.update((draft) => ({ ...draft, regulationAccepted: accepted }));
