@@ -1,9 +1,16 @@
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, map, timeout } from 'rxjs';
+import {
+  validateContext,
+  validateAvailability,
+  validateAccepted,
+  validateOperation,
+} from './booking-validation';
 
 import { environment } from '../../../../../environments/environment';
 import {
+  CancelAppointmentCommand,
   AcceptedOperation,
   AppointmentAvailability,
   AppointmentFormContext,
@@ -19,7 +26,9 @@ export class HttpWashAppointmentsAdapter implements WashAppointmentsGateway {
   private readonly baseUrl = `${environment.apiBaseUrl}/wash/appointments`;
 
   getFormContext(): Observable<AppointmentFormContext> {
-    return this.http.get<AppointmentFormContext>(`${this.baseUrl}/form-context`);
+    return this.http
+      .get<AppointmentFormContext>(`${this.baseUrl}/form-context`)
+      .pipe(timeout(15000), map(validateContext));
   }
 
   getAvailability(request: AvailabilityRequest): Observable<AppointmentAvailability> {
@@ -32,17 +41,39 @@ export class HttpWashAppointmentsAdapter implements WashAppointmentsGateway {
       },
     });
 
-    return this.http.get<AppointmentAvailability>(`${this.baseUrl}/availability`, { params });
+    return this.http
+      .get<AppointmentAvailability>(`${this.baseUrl}/availability`, { params })
+      .pipe(timeout(15000), map(validateAvailability));
   }
 
   schedule(command: ScheduleAppointmentCommand): Observable<AcceptedOperation> {
     const { idempotencyKey, ...body } = command;
-    return this.http.post<AcceptedOperation>(this.baseUrl, body, {
-      headers: new HttpHeaders({ 'Idempotency-Key': idempotencyKey }),
-    });
+    return this.http
+      .post<AcceptedOperation>(this.baseUrl, body, {
+        headers: new HttpHeaders({ 'Idempotency-Key': idempotencyKey }),
+      })
+      .pipe(timeout(15000), map(validateAccepted));
+  }
+
+  cancel(command: CancelAppointmentCommand): Observable<AcceptedOperation> {
+    const { appointmentId, idempotencyKey, ...body } = command;
+    return this.http
+      .post<AcceptedOperation>(
+        `${this.baseUrl}/${encodeURIComponent(appointmentId)}/cancel`,
+        body,
+        { headers: new HttpHeaders({ 'Idempotency-Key': idempotencyKey }) },
+      )
+      .pipe(timeout(15000), map(validateAccepted));
   }
 
   getOperation(operationId: string): Observable<DurableOperation> {
-    return this.http.get<DurableOperation>(`${environment.apiBaseUrl}/operations/${operationId}`);
+    return this.http
+      .get<DurableOperation>(
+        `${environment.apiBaseUrl}/operations/${encodeURIComponent(operationId)}`,
+      )
+      .pipe(
+        timeout(15000),
+        map((value) => validateOperation(value, operationId)),
+      );
   }
 }

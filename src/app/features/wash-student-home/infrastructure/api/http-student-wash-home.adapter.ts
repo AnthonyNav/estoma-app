@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, map, timeout } from 'rxjs';
+import { validateHome } from './home-validation';
 
 import { environment } from '../../../../../environments/environment';
 import { StudentWashHome } from '../../domain/models/student-wash-home';
@@ -11,6 +12,8 @@ export class HttpStudentWashHomeAdapter implements StudentWashHomeGateway {
   private readonly http = inject(HttpClient);
 
   loadHome(): Observable<StudentWashHome> {
-    return this.http.get<StudentWashHome>(`${environment.apiBaseUrl}/wash/student/home`);
+    return this.http
+      .get<StudentWashHome>(`${environment.apiBaseUrl}/wash/student/home`)
+      .pipe(timeout(15000), map(validateHome));
   }
 }

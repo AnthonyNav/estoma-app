@@ -10,10 +10,29 @@ import { MockWashJourneyStore } from './mock-wash-journey.store';
 describe('MockWashJourneyStore', () => {
   let store: MockWashJourneyStore;
 
+  afterEach(() => sessionStorage.removeItem('estoma.entry.demo.v2'));
+
   beforeEach(() => {
+    sessionStorage.removeItem('estoma.entry.demo.v2');
     TestBed.configureTestingModule({});
     store = TestBed.inject(MockWashJourneyStore);
   });
+
+  it('starts without an appointment and retains a confirmed booking on later home reads', fakeAsync(() => {
+    let appointmentId: string | null | undefined;
+    store
+      .loadStudentHome(null)
+      .subscribe((home) => (appointmentId = home.appointment?.appointmentId ?? null));
+    tick(250);
+    expect(appointmentId).toBeNull();
+    const scheduled = scheduleAppointment(store);
+    resolveOperation(store, scheduled.operationId);
+    store
+      .loadStudentHome(null)
+      .subscribe((home) => (appointmentId = home.appointment?.appointmentId ?? null));
+    tick(250);
+    expect(appointmentId).toBe('11111111-1111-1111-1111-111111111111');
+  }));
 
   it('connects appointment scheduling with the supervisor arrival and authorization flow', fakeAsync(() => {
     const scheduleOperation = scheduleAppointment(store);
@@ -78,10 +97,47 @@ describe('MockWashJourneyStore', () => {
     tick(350);
 
     expect(authorizedLookup.washExecution?.status).toBe('IN_PROGRESS');
-    expect(authorizedLookup.washExecution?.activeResourceAssignment?.cabinCode).toBe('107');
+    expect(authorizedLookup.activeResourceAssignment?.cabin.code).toBe('107');
+  }));
+
+  it('recovers an accepted decision after reload without losing the arrived appointment', fakeAsync(() => {
+    resolveOperation(store, scheduleAppointment(store).operationId);
+    let arrival!: AcceptedOperation;
+    store
+      .registerArrival({
+        appointmentId: '11111111-1111-1111-1111-111111111111',
+        idempotencyKey: 'arrival-reload',
+      })
+      .subscribe((value) => (arrival = value));
+    tick(250);
+    resolveOperation(store, arrival.operationId);
+    const command = {
+      washExecutionId: '44444444-4444-4444-4444-444444444444',
+      expectedVersion: 1,
+      decision: 'AUTHORIZED' as const,
+      identityConfirmed: true,
+      requirementsSatisfied: true,
+      rejectionReason: null,
+      idempotencyKey: 'decision-reload',
+    };
+    let accepted!: AcceptedOperation;
+    store.decideEntry(command).subscribe((value) => (accepted = value));
+    tick(250);
+    const restored = TestBed.runInInjectionContext(() => new MockWashJourneyStore());
+    restored
+      .decideEntry(command)
+      .subscribe((value) => expect(value.operationId).toBe(accepted.operationId));
+    tick(250);
+    resolveOperation(restored, accepted.operationId);
+    restored
+      .lookup({ lookupType: 'STUDENT_ENROLLMENT', studentEnrollment: '201945678' })
+      .subscribe((value) => expect(value.washExecution?.status).toBe('IN_PROGRESS'));
+    tick(350);
   }));
 
   it('propagates an entry rejection and its reason to the student home fixture', fakeAsync(() => {
+    const scheduled = scheduleAppointment(store);
+    resolveOperation(store, scheduled.operationId);
     let arrivalOperation = {} as AcceptedOperation;
     store
       .registerArrival({
