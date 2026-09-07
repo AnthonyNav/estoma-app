@@ -22,7 +22,9 @@ steps:
     image: woodpeckerci/plugin-kaniko:2.3.2
     when:
       event: push
-      branch: dev
+      branch:
+        - dev
+        - deploy/frontend-argo
     settings:
       registry: ghcr.io
       repo: anthonynav/estoma-app
