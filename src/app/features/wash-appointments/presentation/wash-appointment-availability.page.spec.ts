@@ -1,11 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 
 import { ApplicationError } from '../../../core/api/application-error';
 import { OperationTrackerService } from '../../../core/api/operation-tracker.service';
 import { WashAppointmentRegistrationUseCase } from '../application/wash-appointment-registration.use-case';
-import { AppointmentAvailability } from '../domain/models/appointment-registration';
+import {
+  AppointmentAvailability,
+  DurableOperation,
+} from '../domain/models/appointment-registration';
 import { AppointmentRegistrationDraftService } from './appointment-registration-draft.service';
 import { WashAppointmentAvailabilityPage } from './wash-appointment-availability.page';
 
@@ -82,5 +85,61 @@ describe('WashAppointmentAvailabilityPage', () => {
     expect(appointmentRegistration.schedule.calls.argsFor(1)[0]).toEqual(
       appointmentRegistration.schedule.calls.argsFor(0)[0],
     );
+  });
+  for (const status of ['FAILED', 'EXPIRED', 'SUCCEEDED'] as const) {
+    it(`preserves reconciliation data after ${status}`, () => {
+      const operations = new Subject<DurableOperation>();
+      const tracker = TestBed.inject(OperationTrackerService);
+      (tracker.trackWith as jasmine.Spy).and.returnValue(operations);
+      appointmentRegistration.schedule.and.returnValue(
+        of({
+          operationId: 'operation-1',
+          status: 'PENDING',
+          pollPath: '/api/v1/operations/operation-1',
+          submittedAt: '2026-09-06T12:00:00Z',
+        }),
+      );
+      const page = TestBed.createComponent(WashAppointmentAvailabilityPage).componentInstance;
+      page.availability.set(availability);
+      page.selectTimeSlot(availability.availableTimeSlots[0]);
+      page.confirmSchedule();
+      const original = registration.pendingSchedule()?.command;
+      operations.next({ operationId: 'operation-1', status: 'PENDING' });
+      expect(registration.pendingSchedule()?.command).toEqual(original);
+      operations.next({ operationId: 'operation-1', status });
+      expect(registration.pendingSchedule()?.result?.status).toBe(status);
+      expect(registration.pendingSchedule()?.command).toEqual(original);
+      expect(appointmentRegistration.schedule).toHaveBeenCalledTimes(1);
+    });
+  }
+
+  it('clears a rejected intention and discards the old slot before refreshing availability', () => {
+    const tracker = TestBed.inject(OperationTrackerService);
+    (tracker.trackWith as jasmine.Spy).and.returnValue(
+      of({ operationId: 'operation-1', status: 'REJECTED', errorCode: 'SLOT_CAPACITY_EXCEEDED' }),
+    );
+    appointmentRegistration.schedule.and.returnValue(
+      of({
+        operationId: 'operation-1',
+        status: 'PENDING',
+        pollPath: '/api/v1/operations/operation-1',
+        submittedAt: '2026-09-06T12:00:00Z',
+      }),
+    );
+    const page = TestBed.createComponent(WashAppointmentAvailabilityPage).componentInstance;
+    page.availability.set(availability);
+    page.selectTimeSlot(availability.availableTimeSlots[0]);
+    page.confirmSchedule();
+    expect(registration.pendingSchedule()).toBeNull();
+    expect(registration.selectedTimeSlot()).toBeNull();
+    expect(appointmentRegistration.getAvailability).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not submit a slot when the owner blocks scheduling', () => {
+    const page = TestBed.createComponent(WashAppointmentAvailabilityPage).componentInstance;
+    page.availability.set({ ...availability, canSchedule: false });
+    page.selectTimeSlot(availability.availableTimeSlots[0]);
+    page.confirmSchedule();
+    expect(appointmentRegistration.schedule).not.toHaveBeenCalled();
   });
 });

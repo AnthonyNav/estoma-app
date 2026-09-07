@@ -2,7 +2,7 @@
   <header class="flow__header">
     <h1 id="availability-title">Elige tu horario</h1>
     <p class="flow__intro">
-      Seleccionar un horario aún no lo reserva. Confírmalo en el siguiente paso.
+      Tu lugar se reserva al confirmar. Elige el horario que mejor te convenga.
     </p>
   </header>
 
@@ -12,7 +12,73 @@
     <li aria-current="step" data-step="3">Horario</li>
   </ol>
 
-  @if (loading()) {
+  <ng-template #requestSummary>
+    <dl class="request-details">
+      <div>
+        <dt>Tipo de lavado</dt>
+        <dd>{{ typeLabel() }}</dd>
+      </div>
+      <div>
+        <dt>Instrumental</dt>
+        <dd>{{ draft().instrumentCount }} instrumentos · {{ pieceLabel() }}</dd>
+      </div>
+      <div class="request-course">
+        <dt>Materia</dt>
+        <dd>{{ courseLabel() || 'Materia seleccionada en Datos' }}</dd>
+      </div>
+    </dl>
+  </ng-template>
+  @if (!pendingSchedule()) {
+    <section class="request-card" aria-labelledby="request-title">
+      <div class="request-heading">
+        <h2 id="request-title">Tu solicitud</h2>
+        <a routerLink="/wash/appointments/new">Editar datos</a>
+      </div>
+      <ng-container [ngTemplateOutlet]="requestSummary" />
+    </section>
+  }
+
+  @if (pendingSchedule(); as pending) {
+    <section class="flow-card" aria-live="polite">
+      <h2>
+        {{
+          pending.result?.status === 'SUCCEEDED'
+            ? 'Tu cita está confirmada'
+            : 'Estamos verificando tu solicitud'
+        }}
+      </h2>
+      <p>
+        {{
+          pending.result?.status === 'FAILED' || pending.result?.status === 'EXPIRED'
+            ? 'No podemos determinar el resultado definitivo. Conserva esta referencia y solicita apoyo al área de Lavado antes de intentar otra reserva.'
+            : 'Tu solicitud se conserva. Puedes volver a consultar sin crear otra cita.'
+        }}
+      </p>
+      <p class="operation-reference">
+        Referencia: {{ pending.operationId || pending.command.idempotencyKey }}
+      </p>
+      @if (submissionError(); as error) {
+        <p role="alert">{{ error }}</p>
+      }
+      <div class="button-row">
+        <a class="button button--quiet" routerLink="/wash/student">Volver al inicio</a>
+        <button
+          class="button button--primary"
+          type="button"
+          [disabled]="submissionState() === 'SUBMITTING'"
+          (click)="confirmSchedule()"
+        >
+          {{
+            submissionState() === 'SUBMITTING'
+              ? 'Comprobando…'
+              : pending.result?.status === 'SUCCEEDED'
+                ? 'Ver mi cita'
+                : 'Volver a consultar'
+          }}
+        </button>
+      </div>
+    </section>
+  } @else if (loading()) {
     <article class="flow-card" aria-busy="true" role="status">
       <span class="sr-only">Consultando horarios disponibles</span>
       <div class="skeleton skeleton--line"></div>
@@ -28,37 +94,52 @@
       </div>
     </section>
   } @else if (availability(); as availability) {
-    <article class="flow-card">
+    @if (submissionError(); as error) {
+      <p class="feedback feedback--error" role="alert">{{ error }}</p>
+    }
+    <div class="schedule-content">
       @if (!availability.canSchedule) {
         <div class="feedback" role="status">
           <h2>No hay horarios que puedas reservar ahora</h2>
           @if (availability.blockingReasons.length) {
             <ul>
               @for (reason of availability.blockingReasons; track reason) {
-                <li>{{ reason }}</li>
+                <li>{{ bookingMessage(reason) }}</li>
               }
             </ul>
           } @else {
             <p>Actualiza tus datos o consulta nuevamente más tarde.</p>
           }
         </div>
-      } @else {
-        <div class="flow-card__heading">
-          <span class="flow-card__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="7" />
-              <path d="M12 8v4l2.5 1.5" />
-            </svg>
-          </span>
-          <div>
-            <h2>Horarios disponibles hoy</h2>
-            <p>Los cupos cambian hasta que confirmes tu cita.</p>
-          </div>
+      } @else if (availability.availableTimeSlots.length === 0) {
+        <div class="feedback" role="status">
+          <h2>No hay horarios disponibles</h2>
+          <p>Puedes registrar una cita, pero no hay cupos disponibles en este momento.</p>
+          <button class="button button--secondary" type="button" (click)="retry()">
+            Actualizar horarios
+          </button>
         </div>
-
-        <div class="availability-list" role="radiogroup" aria-label="Horarios disponibles">
+      } @else {
+        <div class="schedule-heading">
+          <h2>Horarios disponibles</h2>
+          <span>{{ serviceDayLabel() }} · Hoy</span>
+        </div>
+        <div class="time-options" role="radiogroup" aria-label="Horarios disponibles">
           @for (timeSlot of availability.availableTimeSlots; track timeSlot.appointmentTimeSlotId) {
-            <label class="slot-option">
+            <label class="time-option">
+              <svg class="time-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="8" />
+                <path d="M12 7v5l3 2" />
+              </svg>
+              <span class="time-copy"
+                ><strong>{{ formatTime(timeSlot) }}</strong
+                ><small>{{ formatDeadline(timeSlot) }}</small></span
+              >
+              <span class="capacity" [class.capacity--last]="timeSlot.availableCapacity === 1">{{
+                timeSlot.availableCapacity === 1
+                  ? 'Último cupo'
+                  : timeSlot.availableCapacity + ' cupos'
+              }}</span>
               <input
                 type="radio"
                 name="time-slot"
@@ -68,24 +149,13 @@
                 [disabled]="pendingSchedule() !== null"
                 (change)="selectTimeSlot(timeSlot)"
               />
-              <span class="slot-option__content">
-                <span class="slot-option__indicator" aria-hidden="true"></span>
-                <span>
-                  <strong class="slot-option__time">{{ formatSlot(timeSlot) }}</strong>
-                  <small class="slot-option__deadline">{{ formatDeadline(timeSlot) }}</small>
-                </span>
-                <span class="slot-option__capacity">
-                  {{ timeSlot.availableCapacity }}
-                  {{ timeSlot.availableCapacity === 1 ? 'cupo' : 'cupos' }}
-                </span>
-              </span>
             </label>
           }
         </div>
       }
 
-      <div class="button-row">
-        <a class="button button--quiet" routerLink="/wash/appointments/new">Atrás</a>
+      <div class="schedule-actions">
+        <a class="button button--quiet" routerLink="/wash/appointments/new">Volver</a>
         @if (availability.canSchedule) {
           <button
             class="button button--primary"
@@ -93,14 +163,14 @@
             [disabled]="!canSchedule()"
             (click)="openConfirmation($event)"
           >
-            Confirmar horario
+            Revisar cita
           </button>
         }
       </div>
-    </article>
+    </div>
   }
 
-  @if (confirmationOpen() && selectedTimeSlot(); as timeSlot) {
+  @if (confirmationOpen() && !pendingSchedule() && selectedTimeSlot(); as timeSlot) {
     <dialog
       #confirmationDialog
       aria-describedby="confirm-description"
@@ -109,11 +179,16 @@
       (cancel)="preventConfirmationDismissal($event)"
       (close)="handleConfirmationClosed()"
     >
-      <h2 id="confirm-title">¿Confirmar esta cita?</h2>
-      <p id="confirm-description">
-        {{ formatSlot(timeSlot) }} · {{ timeSlot.availableCapacity }} cupos al momento de consultar.
-      </p>
-      <p>La disponibilidad se valida nuevamente al confirmar.</p>
+      <h2 id="confirm-title">Revisa tu cita</h2>
+      <p id="confirm-description">Confirma que tus datos y horario sean correctos.</p>
+      <div class="confirmation-slot">
+        <svg class="time-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="8" />
+          <path d="M12 7v5l3 2" /></svg
+        ><strong>{{ formatSlot(timeSlot) }}</strong>
+      </div>
+      <ng-container [ngTemplateOutlet]="requestSummary" />
+      <p class="confirmation-note">La disponibilidad se valida nuevamente al confirmar.</p>
       @if (submissionError(); as error) {
         <p class="field__error" role="alert">{{ error }}</p>
       }
@@ -139,7 +214,7 @@
               pendingSchedule()?.operationId ? 'Reintentar comprobación' : 'Reintentar confirmación'
             }}
           } @else {
-            Sí, confirmar cita
+            Confirmar cita
           }
         </button>
       </div>

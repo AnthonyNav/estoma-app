@@ -1,9 +1,8 @@
-<section class="flow" aria-labelledby="regulation-title">
+<section class="flow regulation" aria-labelledby="regulation-title">
   <header class="flow__header">
     <h1 id="regulation-title">Antes de registrar tu cita</h1>
     <p class="flow__intro">
-      Revisa los lineamientos de ingreso. El reglamento se confirma antes de consultar los horarios
-      disponibles.
+      Prepara lo necesario para ingresar al área de lavado y realizar tu proceso con seguridad.
     </p>
   </header>
 
@@ -13,59 +12,117 @@
     <li data-step="3">Horario</li>
   </ol>
 
-  <article class="flow-card">
-    <div class="flow-card__heading">
-      <span class="flow-card__icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="m7 12 3.25 3.25L17.5 8" /></svg>
-      </span>
-      <div>
-        <h2>Lineamientos de Lavado Ultrasónico</h2>
-        <p>Clínicas de Pregrado — Facultad de Estomatología</p>
-      </div>
-    </div>
-
-    <!-- Contenedor con scroll para todo el reglamento -->
-    <div
-      class="regulation-scrollbox"
-      tabindex="0"
-      role="region"
-      aria-label="Lineamientos completos"
-    >
-      @for (grupo of lineamientos; track grupo.categoria) {
-        <div class="regulation-group">
-          <h3>{{ grupo.categoria }}</h3>
-          <ul>
-            @for (item of grupo.items; track item) {
-              <li>{{ item }}</li>
-            }
-          </ul>
-        </div>
+  <article class="flow-card requirement-card">
+    <h2>Prepara tu ingreso</h2>
+    <p>
+      Presenta tu <strong>credencial vigente</strong> y regístrate con los Pasantes de Servicio
+      Social (PSS) antes de entrar a la cabina.
+    </p>
+    <h3>Debes traer tu EPP completo</h3>
+    <ul class="equipment-list">
+      @for (item of equipment; track item; let last = $last) {
+        <li>
+          <span class="check-icon" aria-hidden="true">✓</span
+          ><span [class.emphasized]="last">{{ item }}</span>
+        </li>
       }
-    </div>
-
-    <div class="check-card">
-      <input
-        id="regulation-accepted"
-        type="checkbox"
-        [checked]="accepted()"
-        (change)="setAccepted($event)"
-      />
-      <label for="regulation-accepted">
-        <strong>He leído y acepto los lineamientos de lavado</strong>
-        <p>Entiendo que el personal puede rechazar el ingreso si los requisitos no se cumplen.</p>
-      </label>
-    </div>
-
-    <div class="button-row">
-      <a class="button button--quiet" routerLink="/wash/student">Volver</a>
-      <button
-        class="button button--primary"
-        type="button"
-        [disabled]="!accepted()"
-        (click)="continue()"
-      >
-        Continuar
-      </button>
-    </div>
+    </ul>
+    <p class="card-note">
+      Cartilla de vacunación vigente o, de lo contrario, bajo responsabilidad propia. Uso exclusivo
+      para estudiantes cursando la clínica.
+    </p>
   </article>
+
+  <article class="flow-card requirement-card">
+    <h2>Prepara tu instrumental</h2>
+    <ul class="preparation-list">
+      <li>
+        <strong>Haz una limpieza previa con gasa húmeda</strong> inmediatamente después de la
+        actividad clínica e inspecciona las puntas de trabajo.
+      </li>
+      <li>
+        <strong>Transpórtalo en cassette o contenedor rígido.</strong> Separa el instrumental
+        codificado con cinta o goma del mismo color.
+      </li>
+      <li><strong>Lleva un infusor de té</strong> si traes limas, fresas o material pequeño.</li>
+    </ul>
+  </article>
+
+  <article class="flow-card requirement-card">
+    <h2>Durante el lavado</h2>
+    <ul class="key-rules">
+      <li><strong>15 minutos</strong><span>como máximo</span></li>
+      <li><strong>Individual</strong><span>realiza tu propio proceso</span></li>
+      <li><strong>5 alumnos</strong><span>como máximo en el área</span></li>
+    </ul>
+    <h3 class="prohibited-title">No se permite</h3>
+    <ul class="prohibited-list">
+      <li><span aria-hidden="true">×</span> Usar el celular durante el proceso</li>
+      <li><span aria-hidden="true">×</span> Ingerir alimentos</li>
+      <li><span aria-hidden="true">×</span> Entrar con mochilas o bolsas grandes a las cabinas</li>
+    </ul>
+  </article>
+
+  <aside class="safety-note" aria-labelledby="safety-title">
+    <span aria-hidden="true">!</span>
+    <div>
+      <h2 id="safety-title">Si ocurre un accidente, repórtalo</h2>
+      <p>
+        En caso de lesión o punción, acude a la <strong>Jefatura de Clínicas</strong> para dar
+        seguimiento al riesgo biológico.
+      </p>
+    </div>
+  </aside>
+
+  <section class="full-regulation" aria-labelledby="full-regulation-title">
+    <h2 id="full-regulation-title">Consulta el reglamento completo</h2>
+    <p>Lineamientos del sistema de Lavado Ultrasónico — Clínicas de Pregrado</p>
+    @for (grupo of lineamientos; track grupo.categoria; let first = $first) {
+      <details>
+        <summary>{{ grupo.categoria }}<span aria-hidden="true">+</span></summary>
+        <ul class="full-rules">
+          @for (item of grupo.items; track item; let index = $index) {
+            <li>
+              {{ item }}
+              @if (first && index === 1) {
+                <ol>
+                  @for (piece of equipment; track piece) {
+                    <li>{{ piece }}.</li>
+                  }
+                </ol>
+              }
+            </li>
+          }
+        </ul>
+      </details>
+    }
+    <p class="regulation-note">
+      <strong>Nota:</strong> Estos lineamientos están sujetos a cambios aprobados de acuerdo con las
+      necesidades de la Unidad Académica.
+    </p>
+    <p class="manual-note">Consulta el manual por cualquier duda.</p>
+  </section>
+
+  <div class="check-card acceptance">
+    <input
+      id="regulation-accepted"
+      type="checkbox"
+      [checked]="accepted()"
+      (change)="setAccepted($event)"
+    />
+    <label for="regulation-accepted"
+      >He leído y acepto los lineamientos de lavado ultrasónico.</label
+    >
+  </div>
+  <footer class="regulation-actions">
+    <a class="button button--quiet" routerLink="/wash/student">Volver</a>
+    <button
+      class="button button--primary"
+      type="button"
+      [disabled]="!accepted()"
+      (click)="continue()"
+    >
+      Continuar al registro <span aria-hidden="true">→</span>
+    </button>
+  </footer>
 </section>

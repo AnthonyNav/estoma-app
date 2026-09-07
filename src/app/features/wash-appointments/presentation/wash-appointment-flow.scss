@@ -1,6 +1,19 @@
+:host {
+  --primary: #0f5c6e;
+  --primary-container: #004352;
+  --on-primary: #fff;
+  --primary-fixed: #edf3f4;
+  --on-primary-fixed: #004352;
+  --outline-variant: #dde7ea;
+  --surface: #fff;
+  --text-main: #192d33;
+  --on-surface-variant: #53636a;
+  --surface-container-low: #f2f5f6;
+  display: block;
+}
 .flow {
   margin: 0 auto;
-  max-width: 65rem;
+  max-width: 44rem;
 }
 
 .flow__header {
@@ -146,41 +159,58 @@ h1 {
 }
 
 .stepper {
-  display: flex;
-  gap: var(--space-sm);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   list-style: none;
-  margin: 0 0 var(--space-xl);
+  margin: 0 0 2rem;
   padding: 0;
 }
-
 .stepper li {
-  align-items: center;
-  color: var(--on-surface-variant);
+  position: relative;
   display: flex;
-  font-size: var(--type-label-md-size);
-  font-weight: 700;
-  gap: var(--space-xs);
-}
-
-.stepper li::before {
+  flex-direction: column;
   align-items: center;
-  background: var(--surface-container-high);
-  border-radius: 50%;
+  gap: 0.5rem;
+  color: #53636a;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.stepper li::before {
   content: attr(data-step);
-  display: inline-flex;
-  height: 1.5rem;
-  justify-content: center;
-  width: 1.5rem;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: #dde7ea;
+  color: #53636a;
+  z-index: 1;
 }
-
+.stepper li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 1rem;
+  left: calc(50% + 1.25rem);
+  width: calc(100% - 2.5rem);
+  height: 2px;
+  background: #dde7ea;
+}
 .stepper li[aria-current='step'] {
-  color: var(--primary);
+  color: #004352;
+  font-weight: 800;
 }
-
-.stepper li[aria-current='step']::before,
+.stepper li[aria-current='step']::before {
+  background: #0f5c6e;
+  color: white;
+  box-shadow: 0 0 0 4px #e3edef;
+}
 .stepper li.is-complete::before {
-  background: var(--primary);
-  color: var(--on-primary);
+  content: '✓';
+  background: #e3edef;
+  color: #0f5c6e;
+}
+.stepper li.is-complete::after {
+  background: #0f5c6e;
 }
 
 .flow-form {
@@ -530,18 +560,6 @@ h1 {
     width: 100%;
   }
 
-  .stepper {
-    gap: var(--space-md);
-  }
-
-  .stepper li {
-    font-size: 0;
-  }
-
-  .stepper li::before {
-    font-size: var(--type-label-md-size);
-  }
-
   .slot-option__content {
     grid-template-columns: auto minmax(0, 1fr);
   }
@@ -549,5 +567,19 @@ h1 {
   .slot-option__capacity {
     grid-column: 2;
     text-align: left;
+  }
+}
+
+.operation-reference {
+  overflow-wrap: anywhere;
+  font-size: 0.8125rem;
+}
+.button:focus-visible {
+  outline: 3px solid #00696c;
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
   }
 }
