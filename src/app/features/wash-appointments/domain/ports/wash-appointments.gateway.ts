@@ -2,6 +2,7 @@ import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import {
+  CancelAppointmentCommand,
   AcceptedOperation,
   AppointmentAvailability,
   AppointmentFormContext,
@@ -14,6 +15,8 @@ export interface WashAppointmentsGateway {
   getFormContext(): Observable<AppointmentFormContext>;
   getAvailability(request: AvailabilityRequest): Observable<AppointmentAvailability>;
   schedule(command: ScheduleAppointmentCommand): Observable<AcceptedOperation>;
+  cancel(command: CancelAppointmentCommand): Observable<AcceptedOperation>;
+
   getOperation(operationId: string): Observable<DurableOperation>;
 }
 

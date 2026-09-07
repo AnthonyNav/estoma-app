@@ -1,3 +1,4 @@
+import { ExitMaterials } from '../../../wash-exit/domain/student-exit';
 export type AppointmentStatus =
   | 'SCHEDULED'
   | 'CANCELLED'
@@ -31,17 +32,20 @@ export interface StudentWashStudent {
   firstName: string;
   fullName: string;
   studentEnrollment: string;
-  currentSemester: number;
+  currentSemester?: number | null;
 }
 
 export interface StudentWashAppointment {
   appointmentId: string;
   appointmentStatus: AppointmentStatus;
+  appointmentVersion?: number;
+  usesExceptionalAuthorization?: boolean;
+  studentCancellationAction?: 'AVAILABLE' | 'DEADLINE_PASSED' | 'NOT_APPLICABLE';
   appointmentType: AppointmentType;
-  instrumentCount: number;
-  pieceType: PieceType;
-  courseSection: CourseSection;
-  timeSlot: AppointmentTimeSlot;
+  instrumentCount?: number | null;
+  pieceType?: PieceType | null;
+  courseSection?: Partial<CourseSection> | null;
+  timeSlot?: Partial<AppointmentTimeSlot> | null;
   washExecution: WashExecution | null;
   qrUsageContext: QrUsageContext;
   qrRepresentation: string | null;
@@ -58,12 +62,19 @@ export interface AppointmentTimeSlot {
   startsAt: string;
   endsAt: string;
   timezone: string;
+  cancellationDeadlineAt?: string | null;
 }
 
 export interface WashExecution {
   washExecutionId: string;
   status: WashExecutionStatus;
   version?: number;
+  executionVersion?: number;
+  exitSubmittedAt?: string | null;
+  submittedExitMaterials?: ExitMaterials | null;
+  finalExitMaterials?: ExitMaterials | null;
+  completedAt?: string | null;
+  lastResourceAssignment?: ActiveResourceAssignment | null;
   arrivedAt?: string | null;
   rejectionReason?: string | null;
   activeResourceAssignment?: ActiveResourceAssignment | null;

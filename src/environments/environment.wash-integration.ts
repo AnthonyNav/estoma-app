@@ -3,8 +3,8 @@ export const environment = {
   enableSupervisorExecutionRead: true,
   enableSupervisorPreview: false,
   apiBaseUrl: '/api/v1',
-  name: 'staging',
+  name: 'wash-integration',
   production: false,
-  useMockWashBooking: false,
   useMockApi: false,
+  useMockWashBooking: false,
 } as const;
