@@ -1,0 +1,61 @@
+<section class="approved" aria-labelledby="approved-title">
+  <header class="approved-heading" role="status">
+    <span class="success-icon" aria-hidden="true"
+      ><svg viewBox="0 0 24 24"><path d="m6 12 4 4 8-8" /></svg
+    ></span>
+    <h1 id="approved-title">Ingreso aprobado</h1>
+  </header>
+  <article class="approved-card">
+    <h2>{{ lookup().student.displayName }}</h2>
+    <p class="student-meta">
+      {{ lookup().student.studentEnrollment }} · {{ lookup().student.currentSemester }}° semestre
+    </p>
+    <div class="tags">
+      <span
+        ><svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3s-7 8-7 12a7 7 0 0 0 14 0c0-4-7-12-7-12Z" /></svg
+        >{{ typeLabel() }}</span
+      ><span
+        ><svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 7h16v14H4zM9 7V3h6v4M12 11v6m-3-3h6" /></svg
+        >{{ lookup().appointment.instrumentCount }} instrumentos</span
+      >
+    </div>
+    @if (lookup().activeResourceAssignment; as assignment) {
+      <div class="resource-section">
+        <p class="label">Espacio asignado</p>
+        <div class="resources">
+          <div>
+            <span>Cabina</span><strong>{{ assignment.cabin.name }}</strong>
+          </div>
+          <div class="tank">
+            <span>Tina</span><strong>{{ assignment.tank.name }}</strong>
+          </div>
+        </div>
+        <p class="instruction">Indica al alumno dónde continuar su lavado.</p>
+      </div>
+    } @else {
+      <div class="resource-section">
+        <p class="label">Asignación por consultar</p>
+        <p class="instruction">
+          El ingreso está aprobado. Los detalles de la cabina y tina aún no aparecen; actualiza
+          antes de indicar una ubicación.
+        </p>
+        <button class="update" type="button" [disabled]="busy()" (click)="refresh.emit()">
+          {{ busy() ? 'Consultando…' : 'Consultar asignación' }}
+        </button>
+      </div>
+    }
+  </article>
+  <div class="next-actions">
+    <button class="next" type="button" [disabled]="busy()" (click)="nextStudent.emit()">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M3 9V3h6m6 0h6v6M3 15v6h6m6 0h6v-6M7 7h3v3H7zM14 7h3v3h-3zM7 14h3v3H7zM14 14h3v3h-3m3 0h3v3h-3"
+        /></svg
+      >Escanear siguiente alumno</button
+    ><button class="home" type="button" [disabled]="busy()" (click)="home.emit()">
+      Volver al inicio
+    </button>
+  </div>
+</section>
