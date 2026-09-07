@@ -1,0 +1,76 @@
+<section class="scanner" aria-labelledby="scanner-title">
+  <a class="back" routerLink="/wash/supervision" aria-label="Volver al inicio de supervisión"
+    ><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7" /></svg
+    ><span>Volver</span></a
+  >
+  <header>
+    <p class="eyebrow">Escanear QR</p>
+    <h1 id="scanner-title">Identificar alumno</h1>
+    <p>Consulta su cita de Lavado ultrasónico.</p>
+  </header>
+  @if (flow.pending() || flow.busy()) {
+    <p class="notice">
+      Hay una consulta o solicitud en seguimiento.
+      <a routerLink="/wash/supervision/entry">Continuar atención →</a>
+    </p>
+  }
+  <div class="viewfinder" [class.is-live]="state() === 'scanning'">
+    <video
+      #camera
+      autoplay
+      playsinline
+      muted
+      aria-label="Vista de la cámara para escanear el QR"
+    ></video>
+    <div class="frame" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    @if (state() !== 'scanning') {
+      <div class="camera-placeholder">
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M3 10V3h7m12 0h7v7M3 22v7h7m12 0h7v-7M8 8h6v6H8zM19 8h5v6h-5zM8 19h6v5H8zM19 19h3v3h3v3h-6v-3m6-5v2"
+          />
+        </svg>
+        <p>
+          {{
+            state() === 'opening'
+              ? 'Esperando acceso a la cámara…'
+              : state() === 'detected'
+                ? 'Código leído'
+                : 'Coloca el QR frente a la cámara'
+          }}
+        </p>
+        @if (state() !== 'detected') {
+          <button
+            type="button"
+            (click)="start()"
+            [disabled]="state() === 'opening' || !!flow.pending() || flow.busy()"
+          >
+            {{
+              state() === 'opening'
+                ? 'Abriendo cámara…'
+                : state() === 'error'
+                  ? 'Intentar de nuevo'
+                  : 'Activar cámara'
+            }}
+          </button>
+        }
+      </div>
+    } @else {
+      <span class="live-label"><span></span>Cámara activa</span>
+      <button class="pause" type="button" (click)="stop()">Detener cámara</button>
+    }
+  </div>
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+  <div class="instructions" aria-live="polite">
+    <h2>{{ state() === 'detected' ? 'Consultando la cita' : 'Apunta al código QR' }}</h2>
+    <p>Centra el código del alumno en el recuadro.<br />La lectura se realiza automáticamente.</p>
+  </div>
+  <div class="divider"><span>O buscar manualmente</span></div>
+  <a class="manual" routerLink="/wash/supervision/manual" (click)="manual()"
+    ><svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 5h18v14H3zM6 9h1m3 0h1m3 0h1m3 0h0M6 12h1m3 0h1m3 0h1m3 0h0M7 16h10" /></svg
+    >Buscar por matrícula</a
+  >
+</section>

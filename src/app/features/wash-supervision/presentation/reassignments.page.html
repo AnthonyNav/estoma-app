@@ -1,0 +1,285 @@
+<section class="page" aria-labelledby="title">
+  @if (!flow.pending() && !flow.busy()) {
+    @if (active() || flow.completed()) {
+      <button class="back" (click)="back()">← Volver a pendientes</button>
+    } @else {
+      <a class="back" routerLink="/wash/supervision">← Volver al inicio</a>
+    }
+  }
+  @if (flow.completed(); as result) {
+    <div class="success">
+      <span class="success-icon" aria-hidden="true">✓</span>
+      <h1 id="title">
+        {{
+          result.appointment.appointmentStatus === 'CANCELLED'
+            ? 'Cita cancelada'
+            : 'Espacio asignado'
+        }}
+      </h1>
+      <p>
+        {{
+          result.appointment.appointmentStatus === 'CANCELLED'
+            ? 'Se registró la cancelación por falta de espacio.'
+            : 'El alumno puede continuar su lavado en el espacio indicado.'
+        }}
+      </p>
+      <article class="card result-card">
+        <h2>{{ result.student.displayName }}</h2>
+        <p>
+          {{ result.student.studentEnrollment }} · {{ result.student.currentSemester }}° semestre
+        </p>
+        <div class="tags">
+          <span>{{ type(result.appointment.appointmentType) }}</span
+          ><span>{{ result.appointment.instrumentCount }} instrumentos</span>
+        </div>
+        @if (result.appointment.appointmentStatus !== 'CANCELLED') {
+          <div class="assigned">
+            <div>
+              <span class="eyebrow">Cabina asignada</span
+              ><strong>{{ result.activeResourceAssignment?.cabin?.name }}</strong>
+            </div>
+            <span class="tank">{{ result.activeResourceAssignment?.tank?.name }}</span>
+          </div>
+        }
+      </article>
+      <button class="primary" (click)="back()">
+        Atender otra reasignación <span aria-hidden="true">→</span>
+      </button>
+      <a class="back" routerLink="/wash/supervision" (click)="flow.reset()">Volver al inicio</a>
+    </div>
+  } @else if (flow.pending()) {
+    <div class="state processing" aria-live="polite">
+      <span class="state-icon" [class.spinning]="flow.busy()" aria-hidden="true">↻</span>
+      <h1 id="title">
+        {{ flow.busy() ? 'Confirmando la solicitud' : 'Solicitud en seguimiento' }}
+      </h1>
+      <p>Estamos comprobando el resultado antes de continuar con la atención.</p>
+      @if (flow.error()) {
+        <p class="error" role="alert">{{ flow.error() }}</p>
+        <button class="primary" [disabled]="flow.busy()" (click)="flow.resume()">
+          Consultar resultado
+        </button>
+      }
+      <small>Tu solicitud se conserva si recargas esta página.</small>
+    </div>
+  } @else {
+    <header>
+      <p class="eyebrow">Gestión de espacios</p>
+      <h1 id="title">{{ active() ? 'Asignar un espacio' : 'Reasignaciones pendientes' }}</h1>
+      <p>
+        {{
+          active()
+            ? 'Selecciona dónde continuará el alumno.'
+            : 'Ayuda a cada alumno a continuar su lavado.'
+        }}
+      </p>
+    </header>
+    @if (flow.error()) {
+      <p class="error" role="alert">{{ flow.error() }}</p>
+    }
+    @if (active(); as row) {
+      <div class="detail-grid">
+        <article class="card student-card">
+          <div class="identity">
+            <div>
+              <h2>{{ row.student?.displayName }}</h2>
+              <p>
+                {{ row.student?.enrollment }}
+                @if (row.student?.currentSemester) {
+                  · {{ row.student?.currentSemester }}° semestre
+                }
+              </p>
+            </div>
+          </div>
+          <div class="tags">
+            <span>{{ type(row.appointment?.appointmentType) }}</span
+            ><span>{{ row.appointment?.instrumentCount }} instrumentos</span>
+          </div>
+          <p class="schedule">◷ {{ slot(row) }}</p>
+          <div class="previous">
+            <span class="eyebrow">{{
+              row.activeResourceAssignment ? 'Asignación anterior' : 'Primera asignación'
+            }}</span>
+            <p>
+              {{
+                row.activeResourceAssignment
+                  ? row.activeResourceAssignment.cabin.name +
+                    ' · ' +
+                    row.activeResourceAssignment.tank.name
+                  : 'El alumno está esperando su primer espacio.'
+              }}
+            </p>
+          </div>
+        </article>
+        <div class="options">
+          <div class="section-title">
+            <h2>Espacios disponibles</h2>
+            <span class="live"><i></i> Se actualiza automáticamente</span>
+          </div>
+          @if (notice()) {
+            <p class="notice" role="status">{{ notice() }}</p>
+          }
+          @if (unavailable()) {
+            <div class="state card">
+              <span class="state-icon" aria-hidden="true">↻</span>
+              <h3>No pudimos consultar disponibilidad</h3>
+              <p>Intenta de nuevo en unos momentos. Tu cita permanece pendiente.</p>
+              <button class="secondary" (click)="refreshCandidates()" [disabled]="checking()">
+                Volver a consultar</button
+              ><button class="back" (click)="back()">Revisar lista de pendientes</button>
+            </div>
+          } @else if (snapshot(); as data) {
+            @if (data.candidates.length) {
+              <div class="candidates" role="group" aria-label="Selecciona cabina y tina">
+                @for (candidate of data.candidates; track key(candidate)) {
+                  <button
+                    class="candidate"
+                    [class.selected]="selection() === key(candidate)"
+                    [attr.aria-pressed]="selection() === key(candidate)"
+                    (click)="select(candidate)"
+                  >
+                    <span class="resource-icon" aria-hidden="true"
+                      ><svg viewBox="0 0 24 24">
+                        <path d="M4 21V4h16v17M9 21v-8h6v8M8 8h1m6 0h1M2 21h20" /></svg
+                    ></span>
+                    <span class="candidate-copy">
+                      @if (
+                        data.recommendedCandidate &&
+                        key(data.recommendedCandidate) === key(candidate)
+                      ) {
+                        <span class="recommended">Recomendada</span>
+                      }
+                      <strong>{{ candidate.cabinName }}</strong
+                      ><span
+                        >{{ candidate.tankName }} <span aria-hidden="true">·</span>
+                        {{ candidate.availableCapacity }}
+                        {{
+                          candidate.availableCapacity === 1
+                            ? 'lugar disponible'
+                            : 'lugares disponibles'
+                        }}</span
+                      ></span
+                    >
+                    <span class="radio" aria-hidden="true">{{
+                      selection() === key(candidate) ? '✓' : ''
+                    }}</span>
+                  </button>
+                }
+              </div>
+              <p class="help">La disponibilidad se confirma al guardar la asignación.</p>
+              <button
+                class="primary confirm"
+                [disabled]="!choice() || checking()"
+                (click)="confirm()"
+              >
+                Confirmar asignación <span aria-hidden="true">→</span>
+              </button>
+            } @else {
+              <div class="state card">
+                <span class="state-icon" aria-hidden="true">◷</span>
+                <h3>Sin espacios disponibles</h3>
+                <p>
+                  El alumno sigue en espera. Las opciones aparecerán aquí cuando haya un espacio
+                  disponible.
+                </p>
+                <span class="waiting">Buscando espacios automáticamente</span>
+              </div>
+              <div class="cancel-option">
+                <p>Si no es posible continuar con la atención, puedes cancelar la cita.</p>
+                <button class="danger-link" (click)="openCancel()" [disabled]="checking()">
+                  Cancelar por falta de espacio
+                </button>
+              </div>
+            }
+          } @else {
+            <div class="state card" role="status">
+              <span class="state-icon spinning" aria-hidden="true">↻</span>
+              <p>Consultando espacios disponibles…</p>
+            </div>
+          }
+        </div>
+      </div>
+    } @else {
+      @if (listError()) {
+        <div class="state card" role="alert">
+          <h2>No pudimos actualizar los pendientes</h2>
+          <p>Vuelve a consultar antes de seleccionar un alumno.</p>
+          <button class="secondary" (click)="load()">Reintentar</button>
+        </div>
+      } @else if (loading() && !rows().length) {
+        <p class="state" role="status">Consultando alumnos pendientes…</p>
+      } @else {
+        <div class="list-heading">
+          <span
+            >{{ rows().length }}
+            {{ rows().length === 1 ? 'alumno en espera' : 'alumnos en espera' }}</span
+          ><span>En orden de autorización</span>
+        </div>
+        <div class="pending-list">
+          @for (row of rows(); track row.washExecutionId) {
+            <article class="card pending-card">
+              <div class="identity">
+                <div>
+                  <h2>{{ row.student?.displayName || 'Datos del alumno pendientes' }}</h2>
+                  <p>{{ row.student?.enrollment || 'Matrícula no disponible' }}</p>
+                </div>
+              </div>
+              <span class="badge">En espera</span>
+              <div class="tags">
+                <span>{{ type(row.appointment?.appointmentType) }}</span>
+                @if (row.appointment?.instrumentCount; as count) {
+                  <span>{{ count }} instrumentos</span>
+                }
+              </div>
+              <p class="schedule">◷ {{ slot(row) }}</p>
+              <button class="row-action" [disabled]="!canReassign(row)" (click)="open(row)">
+                {{
+                  canReassign(row) ? 'Ver espacios disponibles' : 'Esperando información completa'
+                }}
+                <span aria-hidden="true">→</span>
+              </button>
+            </article>
+          } @empty {
+            <div class="state card">
+              <span class="success-icon" aria-hidden="true">✓</span>
+              <h2>Todo al día</h2>
+              <p>No hay alumnos esperando una reasignación.</p>
+              <a class="back" routerLink="/wash/supervision">Volver al inicio</a>
+            </div>
+          }
+        </div>
+      }
+    }
+  }
+  @if (isDemo) {
+    <p class="demo">Vista de demostración · Datos simulados</p>
+  }
+</section>
+<dialog #cancelDialog aria-labelledby="cancel-title" aria-describedby="cancel-description">
+  <form (ngSubmit)="cancel()">
+    <span class="warning-icon" aria-hidden="true">!</span>
+    <h2 id="cancel-title">¿Cancelar por falta de espacio?</h2>
+    <p id="cancel-description">
+      La cita finalizará sin completar el lavado. Registra el motivo para dejar constancia.
+    </p>
+    <label for="reason">Motivo de cancelación</label
+    ><textarea
+      id="reason"
+      name="reason"
+      [(ngModel)]="reason"
+      maxlength="500"
+      rows="3"
+      placeholder="Escribe el motivo de la cancelación"
+      [attr.aria-invalid]="reasonError"
+      aria-describedby="reason-feedback"
+    ></textarea>
+    <div id="reason-feedback">
+      <span>{{ reasonError ? 'Escribe el motivo para continuar.' : 'Máximo 500 caracteres' }}</span
+      ><span>{{ reason.length }}/500</span>
+    </div>
+    <button class="danger" type="submit">Confirmar cancelación</button
+    ><button class="secondary" type="button" (click)="cancelDialog.close()">
+      Seguir esperando
+    </button>
+  </form>
+</dialog>

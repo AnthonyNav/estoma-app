@@ -1,0 +1,136 @@
+<section class="directory" aria-labelledby="directory-title">
+  <a class="back" routerLink="/wash/supervision/scan">← Volver al escáner</a>
+  <header>
+    <p class="eyebrow">Atención al alumno</p>
+    <h1 id="directory-title">Búsqueda manual</h1>
+    <p>
+      Citas registradas y en proceso <span>{{ day() ? '· ' + day() : '' }}</span>
+    </p>
+  </header>
+  @if (!isDemo) {
+    <div class="empty">
+      <h2>Consulta por matrícula</h2>
+      <p>Escribe la matrícula completa para consultar la cita del alumno.</p>
+      <form (submit)="$event.preventDefault(); searchEnrollment()">
+        <label class="sr-only" for="exact-enrollment">Matrícula completa</label>
+        <input
+          id="exact-enrollment"
+          class="exact-enrollment"
+          name="enrollment"
+          maxlength="120"
+          autocomplete="off"
+          placeholder="Matrícula del alumno"
+          [value]="query()"
+          (input)="input($event)"
+        />
+        <button type="submit" [disabled]="!query().trim() || flow.busy() || !!flow.pending()">
+          Consultar cita
+        </button>
+      </form>
+    </div>
+  } @else {
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="10" cy="10" r="6" />
+        <path d="m15 15 5 5" /></svg
+      ><label class="sr-only" for="student-search">Buscar por nombre o matrícula</label
+      ><input
+        id="student-search"
+        type="search"
+        maxlength="120"
+        autocomplete="off"
+        placeholder="Nombre o matrícula del alumno"
+        [value]="query()"
+        (input)="input($event)"
+      />
+    </div>
+    <div class="filters" role="group" aria-label="Filtrar citas por estado">
+      @for (item of filters; track item.key) {
+        <button
+          type="button"
+          [attr.aria-pressed]="filter() === item.key"
+          (click)="filter.set(item.key)"
+        >
+          {{ item.label }}
+        </button>
+      }
+    </div>
+    @if (flow.pending() || flow.busy()) {
+      <p class="notice">
+        Tienes una atención en seguimiento.
+        <a routerLink="/wash/supervision/entry">Continuar atención →</a>
+      </p>
+    }
+    @if (loading()) {
+      <div class="empty" role="status" aria-busy="true">Consultando citas de hoy…</div>
+    } @else if (error()) {
+      <div class="empty" role="alert">
+        <h2>No pudimos consultar las citas</h2>
+        <p>Intenta nuevamente. Conservaremos tu búsqueda.</p>
+        <button type="button" (click)="load()">Reintentar</button>
+      </div>
+    } @else {
+      <p class="result-count" role="status">
+        {{ visible().length }} {{ visible().length === 1 ? 'cita' : 'citas' }}
+      </p>
+      <ul class="appointments">
+        @for (row of visible(); track row.appointment.appointmentId) {
+          <li>
+            <button
+              class="appointment"
+              type="button"
+              (click)="select(row)"
+              [disabled]="!!flow.pending() || flow.busy()"
+              [attr.aria-label]="'Consultar cita de ' + row.student.displayName"
+            >
+              <div class="card-top">
+                <div>
+                  <h2>{{ row.student.displayName }}</h2>
+                  <p class="enrollment">
+                    {{ row.student.studentEnrollment }} · {{ row.student.currentSemester }}°
+                    semestre
+                  </p>
+                </div>
+                <span
+                  class="status"
+                  [class.in-progress]="row.appointment.appointmentStatus === 'IN_PROGRESS'"
+                  >{{
+                    row.appointment.appointmentStatus === 'IN_PROGRESS'
+                      ? 'En proceso'
+                      : 'Registrada'
+                  }}</span
+                >
+              </div>
+              <div class="card-bottom">
+                <div>
+                  <span class="label">Tipo de lavado</span><strong>{{ type(row) }}</strong>
+                </div>
+                <div>
+                  <span class="label">Horario</span><strong>{{ slot(row) }}</strong>
+                </div>
+                <span class="arrow" aria-hidden="true">→</span>
+              </div>
+            </button>
+          </li>
+        } @empty {
+          <li class="empty">
+            <h2>
+              {{ rows().length ? 'No encontramos coincidencias' : 'No hay citas activas hoy' }}
+            </h2>
+            <p>
+              {{
+                rows().length
+                  ? 'Prueba con otro nombre, matrícula o estado.'
+                  : 'Las citas registradas y en proceso aparecerán aquí.'
+              }}
+            </p>
+            @if (query() || filter() !== 'ALL') {
+              <button type="button" (click)="clear()">Limpiar búsqueda</button>
+            }
+          </li>
+        }
+      </ul>
+    }
+    <p class="demo">Vista de demostración · Datos de prueba</p>
+  }
+</section>

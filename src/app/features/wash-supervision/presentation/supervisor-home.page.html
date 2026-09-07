@@ -1,0 +1,134 @@
+<section class="supervisor-home" aria-labelledby="home-title">
+  <header class="heading">
+    <div>
+      <p class="eyebrow">Supervisión</p>
+      <h1 id="home-title">Actividad de hoy</h1>
+      @if (home(); as data) {
+        <p class="date">{{ dateLabel(data.serviceDate) }}</p>
+      }
+    </div>
+  </header>
+  @if (error()) {
+    <p class="error" role="alert">
+      No pudimos actualizar los indicadores.
+      {{
+        home()
+          ? 'Se conservan los últimos datos consultados.'
+          : 'Volveremos a intentarlo automáticamente.'
+      }}
+    </p>
+  }
+  <div class="metrics" [attr.aria-busy]="loading()" aria-label="Resumen de citas">
+    @for (metric of metrics; track metric.key) {
+      <article class="metric" [class]="'metric ' + metric.tone">
+        <div class="metric-top">
+          <span class="icon"
+            ><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="metric.icon" /></svg
+          ></span>
+          <strong>{{ home()?.summary?.[metric.key] ?? '—' }}</strong>
+        </div>
+        <span class="metric-label">{{ metric.label }}</span>
+      </article>
+    }
+  </div>
+  @if (flow.pending()) {
+    <a class="notice" routerLink="/wash/supervision/entry"
+      ><strong>Tienes una solicitud en seguimiento</strong><span>Consultar el resultado →</span></a
+    >
+  }
+  @if (reassignments.pending()) {
+    <a class="notice" routerLink="/wash/supervision/reassignments"
+      ><strong>Hay una reasignación en seguimiento</strong><span>Consultar el resultado →</span></a
+    >
+  }
+  @if (exits.pending()) {
+    <a class="notice" routerLink="/wash/supervision/exit"
+      ><strong>Hay una salida en seguimiento</strong><span>Consultar el resultado →</span></a
+    >
+  }
+  <section class="attention" aria-labelledby="attention-title">
+    <div class="attention-copy">
+      <p class="eyebrow">Atención al alumno</p>
+      <h2 id="attention-title">Todo empieza con su cita</h2>
+      <p>Consulta sus datos y el siguiente paso de su atención.</p>
+    </div>
+    <div class="attention-actions">
+      <a class="scan" routerLink="/wash/supervision/scan" (click)="openLookup()">
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M3 10V3h7m12 0h7v7M3 22v7h7m12 0h7v-7M8 8h6v6H8zM19 8h5v6h-5zM8 19h6v5H8zM19 19h3v3h3v3h-6v-3m6-5v2"
+          />
+        </svg>
+        <span>Escanear QR</span
+        ><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 12h16m-6-6 6 6-6 6" />
+        </svg>
+      </a>
+      <p class="scan-help">Usa la cámara para identificar al alumno.</p>
+      <a class="enrollment" routerLink="/wash/supervision/manual" (click)="openLookup()"
+        >Búsqueda manual <span aria-hidden="true">→</span></a
+      >
+    </div>
+  </section>
+  <section class="management" aria-labelledby="management-title">
+    <div class="section-heading">
+      <h2 id="management-title">Gestión operativa</h2>
+      <span>Próximamente</span>
+    </div>
+    <ul>
+      @for (item of management; track item.title) {
+        <li>
+          <span [class]="'icon ' + item.tone"
+            ><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="item.icon" /></svg
+          ></span>
+          <div>
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.description }}</p>
+          </div>
+          <span class="unavailable">No disponible</span>
+        </li>
+      }
+    </ul>
+  </section>
+  <section class="reassignments" aria-labelledby="reassignments-title">
+    <div class="section-heading">
+      <h2 id="reassignments-title">Reasignaciones pendientes</h2>
+      <span class="pending-count" aria-label="Cantidad de reasignaciones pendientes">{{
+        home()?.pendingReassignmentsCount ?? '—'
+      }}</span>
+    </div>
+    <div class="reassignment-card" aria-live="polite">
+      <span class="icon"
+        ><svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4" /></svg
+      ></span>
+      <div>
+        @if (home(); as data) {
+          @if (data.pendingReassignmentsCount > 0) {
+            <h3>
+              {{
+                data.pendingReassignmentsCount === 1
+                  ? 'Un alumno espera asignación'
+                  : 'Hay alumnos esperando asignación'
+              }}
+            </h3>
+            <p>Pendientes de recibir una cabina y tina disponibles.</p>
+            <a routerLink="/wash/supervision/reassignments"
+              >Atender reasignaciones <span aria-hidden="true">→</span></a
+            >
+          } @else {
+            <h3>No hay reasignaciones pendientes</h3>
+            <p>Aquí verás si hay alumnos esperando un nuevo espacio.</p>
+            <a routerLink="/wash/supervision/reassignments">Consultar pendientes →</a>
+          }
+        } @else {
+          <h3>{{ error() ? 'Información no disponible' : 'Consultando reasignaciones…' }}</h3>
+          <p>El estado se actualizará automáticamente.</p>
+        }
+      </div>
+    </div>
+  </section>
+  @if (isDemo) {
+    <p class="demo">Vista de demostración · Matrícula de prueba: <strong>201945678</strong></p>
+  }
+</section>
