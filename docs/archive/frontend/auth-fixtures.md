@@ -1,3 +1,5 @@
+> Archivo de trazabilidad: refleja el estado de su fecha original, no el estado vigente. Consultar el [índice actual](../../README.md).
+
 # Autenticación V1 con fixtures
 
 ## Alcance
@@ -66,9 +68,9 @@ Los tiempos acortados son exclusivos de los escenarios de prueba. El proveedor d
 
 ## Navegación sin implementar otros flujos
 
-Alumno con Lavado entra a `/wash/student`; supervisor con Lavado a `/wash/supervision/entry`. Se agregaron guards a las rutas existentes, sin modificar sus casos de uso ni alinear todavía sus DTO con el BFF.
+Alumno con Lavado entra a `/wash/student`; supervisor con Lavado a `/wash/supervision`. Ambas rutas tienen guards de sesión y perfil. La integración posterior de sus DTO y recorridos se documenta en [booking-integration.md](booking-integration.md) y [supervision-integration.md](supervision-integration.md).
 
-Prácticas y administración muestran una confirmación de contexto autenticado en `/authentication/context`. Esta pantalla no es un dashboard de negocio. La selección de sistemas permitidos reutiliza la sesión; `roleCode` no sustituye `availableSystemCodes`.
+Prácticas y administración muestran una confirmación de contexto autenticado en `/authentication/context`. Esta pantalla no es un dashboard de negocio. El sistema se elige únicamente en el login. Para cambiarlo se debe cerrar sesión e iniciar de nuevo; `roleCode` no sustituye `availableSystemCodes`.
 
 ## Conectar solo autenticación al BFF
 
@@ -97,7 +99,7 @@ pnpm build
 pnpm format:check
 ```
 
-Resultado de esta entrega: 35 pruebas automatizadas aprobadas; compilaciones de producción y `auth-integration`, lint, formato y comprobación del diff aprobados. Se ejecutaron además recorridos en Chrome con los JSON de desarrollo para login, selección/cambio de sistema, cambio obligatorio, errores y reintentos, renovación automática, expiración y logout. Los bundles de producción e integración no contienen el transporte de fixtures.
+Resultado de esta entrega: 35 pruebas automatizadas aprobadas; compilaciones de producción y `auth-integration`, lint, formato y comprobación del diff aprobados. Se ejecutaron además recorridos en Chrome con los JSON de desarrollo para login, selección de sistema en login, cambio obligatorio, errores y reintentos, renovación automática, expiración y logout. Los bundles de producción e integración no contienen el transporte de fixtures.
 
 Karma conserva avisos 404 de fuentes Manrope en el entorno de pruebas, ya presentes antes de estos cambios; no impidieron la suite. Estas verificaciones demuestran el funcionamiento con fixtures; la certificación contra el BFF y sus cuentas sigue pendiente de conexión.
 
@@ -116,3 +118,9 @@ El borrador de citas se limpia de forma síncrona al cerrar, expirar, denegar o 
 Las respuestas de `/me` de una sesión anterior se descartan sin modificar ni revocar la sesión nueva. La rotación de tokens no invalida una consulta de perfil pendiente de la misma sesión.
 
 Se agregaron siete pruebas de regresión que fallaban antes de corregir estos casos. La suite actual tiene 42 pruebas aprobadas; lint, build de producción, formato y comprobación del diff aprobados. La conexión real al BFF sigue pendiente.
+
+## Selección de sistema y encabezado
+
+Por decisión posterior del usuario, las pantallas autenticadas no ofrecen cambio de sistema. `/authentication/access`, incluso con `?choose=1`, continúa al sistema elegido en el login. El contexto de Prácticas y administración tampoco muestra opciones para cambiar. Las rutas de Lavado comprueban, además del rol y acceso, que Lavado sea el sistema seleccionado. Esta restricción es de navegación del cliente; la autorización efectiva sigue perteneciendo al BFF.
+
+Lavado utiliza un encabezado común con nombre, símbolo y cierre de sesión. El saludo y la identidad académica aparecen en el contenido del inicio del alumno. En el estado sin cita, la acción principal abre el reglamento para comenzar el registro.

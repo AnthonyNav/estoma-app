@@ -1,3 +1,5 @@
+> Archivo de trazabilidad: refleja el estado de su fecha original, no el estado vigente. Consultar el [índice actual](../../README.md).
+
 # Contrato BFF y revisión de flujos
 
 > Este análisis registra la revisión inicial. Para el estado implementado de AUTH-01 y su transición obligatoria a AUTH-02, consultar [autenticación con fixtures](auth-fixtures.md). Las aclaraciones posteriores del proveedor y ADR 0006 resuelven la clasificación de login, los estados y la política de sesión descritos aquí como pendientes.
@@ -23,7 +25,7 @@ Se cuenta un flujo por resultado funcional. Los pasos de un formulario, el modal
 | F-05 | Registrar llegada                                                 | `POST /api/v1/wash/executions/arrivals`                                                                                      | Acción en pantalla de supervisión; ruta local incompatible.                               |
 | F-06 | Autorizar o rechazar ingreso                                      | `POST /api/v1/wash/executions/{washExecutionId}/entry-decision`                                                              | Acción en pantalla de supervisión; ruta, cuerpo y lectura de versión requieren ajuste.    |
 
-El enlace «Salir» solo navega al login y no cuenta como cierre de sesión implementado. `/home` es una pantalla técnica de la base del proyecto.
+El enlace «Salir» solo navega al login y no cuenta como cierre de sesión implementado. `/home` era una pantalla técnica de la base del proyecto; fue retirada y su URL redirige al login.
 
 ## Diferencias demostradas frente al código
 

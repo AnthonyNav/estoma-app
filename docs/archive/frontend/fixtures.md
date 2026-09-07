@@ -1,3 +1,5 @@
+> Archivo de trazabilidad: refleja el estado de su fecha original, no el estado vigente. Consultar el [índice actual](../../README.md).
+
 # Guía de fixtures de frontend
 
 Los fixtures permiten construir y revisar el flujo de Lavado Ultrasónico sin esperar a que el BFF
@@ -13,7 +15,7 @@ aplicación con:
 pnpm start
 ```
 
-Abre `http://localhost:4200/wash/student`. No se requiere un servicio backend local.
+Inicia sesión en `http://127.0.0.1:4200` con `202257019` y una contraseña sintética no vacía. Selecciona Lavado: el inicio del alumno muestra **sin cita** de forma predeterminada, sin parámetros de URL. No se requiere un servicio backend local. Una cita creada durante esa instancia se conserva al volver al inicio.
 
 ## Probar estados del alumno
 
