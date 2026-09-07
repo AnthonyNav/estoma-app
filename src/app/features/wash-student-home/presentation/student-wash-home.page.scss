@@ -16,7 +16,7 @@
 }
 
 .eyebrow {
-  color: #71a5de;
+  color: #0f5c6e;
   font-size: var(--type-label-md-size);
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -32,17 +32,11 @@ p {
 }
 
 h1 {
-  color: #0f172a;
+  color: #192d33;
   font-size: clamp(1.5rem, 4vw, 2rem);
   letter-spacing: -0.01em;
   line-height: 1.25;
   margin-bottom: var(--space-xs);
-}
-
-.student-identity {
-  color: #475569;
-  font-size: var(--type-body-sm-size);
-  margin-bottom: 0;
 }
 
 .wash-home__support svg {
@@ -62,18 +56,15 @@ h1 {
 }
 
 .status-card {
-  border: 1px solid #aecbeb;
-  box-shadow:
-    0 10px 30px -5px rgba(113, 165, 222, 0.2),
-    0 8px 10px -6px rgba(174, 203, 235, 0.2);
+  border: 1px solid #dde7ea;
   overflow: hidden;
 }
 
 /* Barra superior de estado ("Cita programada") */
 .status-card__topline {
   align-items: center;
-  background: #e1ecf7;
-  border-bottom: 1px solid #aecbeb;
+  background: #edf3f4;
+  border-bottom: 1px solid #dde7ea;
   display: flex;
   gap: var(--space-sm);
   min-height: 4.25rem;
@@ -82,7 +73,7 @@ h1 {
 
 .status-card__icon {
   align-items: center;
-  background: #71a5de;
+  background: #0f5c6e;
   border-radius: 50%;
   color: #ffffff;
   display: inline-flex;
@@ -106,7 +97,7 @@ h1 {
 }
 
 .status-chip {
-  color: #0f172a;
+  color: #192d33;
   font-size: var(--type-label-lg-size);
   font-weight: 700;
 }
@@ -123,7 +114,7 @@ h1 {
 
 .status-card__summary h2,
 .feedback-card h1 {
-  color: #0f172a;
+  color: #192d33;
   font-size: clamp(1.5rem, 4vw, 2rem);
   line-height: 1.25;
   margin-bottom: var(--space-sm);
@@ -133,7 +124,6 @@ h1 {
 .feedback-card p,
 .qr-panel p,
 .wash-home__support p {
-  color: #475569;
   font-size: var(--type-body-md-size);
   line-height: 1.5;
 }
@@ -142,43 +132,29 @@ h1 {
    BOTONES
    ========================================== */
 .button {
-  align-items: center;
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  display: inline-flex;
-  font-size: var(--type-label-lg-size);
-  font-weight: 700;
-  justify-content: center;
-  line-height: 1.25;
   margin-top: var(--space-md);
-  min-height: 2.75rem;
-  padding: 0.6875rem var(--space-md);
-  text-decoration: none;
-  transition: all 0.2s ease-in-out;
+  line-height: 1.25;
 }
 
 .button--primary {
-  background: #71a5de !important;
+  background: #0f5c6e !important;
   color: #ffffff !important;
-  box-shadow: 0 4px 10px rgba(113, 165, 222, 0.3);
 }
 
 .button--primary:hover {
-  background: #5b93d3 !important;
-  box-shadow: 0 6px 14px rgba(113, 165, 222, 0.4);
+  background: #004352 !important;
 }
 
 .button--secondary {
   background: transparent;
-  border-color: #aecbeb;
+  border-color: #dde7ea;
   color: #475569;
 }
 
 .button--secondary:hover {
-  background: #e1ecf7;
-  color: #71a5de;
-  border-color: #71a5de;
+  background: #edf3f4;
+  color: #0f5c6e;
+  border-color: #0f5c6e;
 }
 
 /* ==========================================
@@ -186,7 +162,7 @@ h1 {
    ========================================== */
 .appointment-details dl {
   display: grid;
-  border-top: 1px solid #aecbeb;
+  border-top: 1px solid #dde7ea;
   column-gap: var(--space-lg);
   row-gap: 0;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -194,7 +170,7 @@ h1 {
 }
 
 .appointment-details dl div {
-  border-bottom: 1px solid #aecbeb;
+  border-bottom: 1px solid #dde7ea;
   min-width: 0;
   padding: 0.875rem 0;
 }
@@ -210,7 +186,7 @@ h1 {
 dt,
 .resource-assignment__label,
 .rejection-reason span {
-  color: #71a5de;
+  color: #0f5c6e;
   font-size: var(--type-label-md-size);
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -218,7 +194,7 @@ dt,
 }
 
 dd {
-  color: #0f172a;
+  color: #192d33;
   font-size: var(--type-label-lg-size);
   font-weight: 700;
   line-height: 1.45;
@@ -235,12 +211,13 @@ dd {
 }
 
 .resource-assignment {
-  background: #e1ecf7;
-  border: 1px solid #aecbeb;
+  margin-top: 0;
+  background: #edf3f4;
+  border: 1px solid #dde7ea;
 }
 
 .resource-assignment strong {
-  color: #0f172a;
+  color: #192d33;
   font-size: var(--type-headline-sm-size);
 }
 
@@ -268,81 +245,31 @@ dd {
 .qr-panel {
   align-items: center;
   background: #f8f9fb;
-  border: 1px solid #aecbeb;
+  border: 1px solid #dde7ea;
   border-radius: var(--radius-lg);
   display: grid;
   gap: var(--space-lg);
   grid-template-columns: minmax(9rem, 12rem) minmax(0, 1fr);
   padding: var(--space-lg);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
   margin-top: 1.5rem;
 }
 
-/* Mapeo directo a todas las formas posibles de encapsulamiento del QR */
-.qr-panel > div:first-child,
-.qr-panel__qr,
-.qr-panel__image,
-.qr-panel img,
-.qr-panel canvas,
-.qr-panel svg {
-  background: #ffffff !important;
-  border: 1.5px solid #aecbeb !important;
-  border-radius: 0.75rem !important;
-  padding: 0.75rem !important;
-  box-shadow: 0 4px 10px rgba(113, 165, 222, 0.15) !important;
-  display: block;
-}
-
 .qr-panel h3 {
-  color: #0f172a;
+  color: #192d33;
   font-size: var(--type-headline-sm-size);
   font-weight: 800;
-  letter-spacing: -0.02em;
   margin-bottom: var(--space-sm);
 }
 
 .qr-panel p {
-  color: #475569;
   font-size: 0.925rem;
   line-height: 1.5;
   margin-bottom: var(--space-md, 1rem);
 }
 
-/* Botón 'Ampliar QR' */
-.qr-panel button {
-  background-color: #71a5de !important;
-  color: #ffffff !important;
-  border: none;
-  border-radius: 0.5rem;
-  padding: 0.65rem 1.15rem;
-  font-size: 0.875rem;
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: all 0.2s ease-in-out;
-  box-shadow: 0 4px 10px rgba(113, 165, 222, 0.3);
-
-  &:hover {
-    background-color: #5b93d3 !important;
-    transform: translateY(-1px);
-    box-shadow: 0 6px 14px rgba(113, 165, 222, 0.4);
-  }
-}
-
 /* ==========================================
    VARIACIONES DE ESTADO (TOPLINE)
    ========================================== */
-.status-card--success .status-card__topline {
-  background: #e1ecf7;
-  border-bottom-color: #aecbeb;
-}
-
-.status-card--success .status-card__icon {
-  background: #71a5de;
-  color: #ffffff;
-}
 
 .status-card--warning .status-card__topline {
   background: #fef3c7;
@@ -364,14 +291,10 @@ dd {
   color: #ffffff;
 }
 
-.status-card--neutral .status-card__topline {
-  background: #e1ecf7;
-}
-
 .wash-home__support {
   align-items: flex-start;
-  background: #e1ecf7;
-  border: 1px solid #aecbeb;
+  background: #edf3f4;
+  border: 1px solid #dde7ea;
   border-radius: var(--radius-lg);
   display: flex;
   gap: var(--space-md);
@@ -380,19 +303,18 @@ dd {
 }
 
 .wash-home__support svg {
-  color: #71a5de;
+  color: #0f5c6e;
   flex: 0 0 auto;
   margin-top: 0.125rem;
 }
 
 .wash-home__support h2 {
-  color: #0f172a;
+  color: #192d33;
   font-size: var(--type-label-lg-size);
   margin-bottom: var(--space-xs);
 }
 
 .wash-home__support p {
-  color: #475569;
   font-size: var(--type-body-sm-size);
   margin-bottom: 0;
 }
@@ -402,7 +324,7 @@ dd {
    ========================================== */
 @media (min-width: 48rem) {
   .status-card__content {
-    grid-template-columns: minmax(0, 1.15fr) minmax(20rem, 0.85fr);
+    grid-template-columns: 1fr;
   }
 
   .qr-panel {
@@ -412,7 +334,7 @@ dd {
 
 @media (min-width: 64rem) {
   .wash-home {
-    max-width: 60rem;
+    max-width: 42rem;
   }
 
   .wash-home__header {
@@ -468,4 +390,176 @@ dd {
   .skeleton {
     animation: none;
   }
+}
+
+.wash-home {
+  padding: 2rem 1.25rem;
+}
+.wash-home--empty {
+  max-width: 33rem;
+  padding-top: clamp(1.5rem, 4vh, 2.5rem);
+  padding-bottom: max(2rem, env(safe-area-inset-bottom));
+}
+@media (max-width: 359px) {
+  .wash-home {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+.student-welcome {
+  margin-bottom: 1.5rem;
+}
+.student-welcome__greeting {
+  margin: 0;
+  color: #192d33;
+  font-size: 1.375rem;
+  line-height: 1.4;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+}
+.student-welcome__details {
+  margin: 0.25rem 0 0;
+  color: #53636a;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.booking-result {
+  padding: 2rem;
+}
+.operation-reference {
+  overflow-wrap: anywhere;
+  font-size: 0.8125rem;
+}
+.qr-unavailable {
+  margin: 0;
+  padding: 1rem;
+  background: #edf3f4;
+  color: #53636a;
+  border-radius: 1rem;
+  line-height: 1.6;
+}
+
+.status-card--scheduled {
+  .status-card__topline {
+    justify-content: center;
+    min-height: auto;
+    padding: 1rem;
+    border: 0;
+    background: #fff;
+  }
+  .status-chip {
+    color: #0f5c6e;
+  }
+  .status-card__content {
+    gap: 1.25rem;
+    padding: 0 1.5rem 1.5rem;
+  }
+  .appointment-details {
+    order: 0;
+  }
+  .status-card__summary {
+    order: 1;
+    text-align: center;
+    border-top: 1px solid #dde7ea;
+    padding-top: 1rem;
+  }
+  .status-card__summary p {
+    margin: 0;
+    font-size: 0.875rem;
+  }
+  .qr-panel,
+  .qr-unavailable {
+    order: 2;
+  }
+  .qr-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.75rem;
+    padding: 0;
+    background: white;
+    border: 0;
+  }
+  .qr-panel h3 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+  }
+  .qr-panel p {
+    font-size: 0.8125rem;
+    margin: 0;
+    max-width: 22rem;
+  }
+  .appointment-details dl {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .appointment-details dl > div {
+    padding: 0;
+    border: 0;
+  }
+  .appointment-details dd {
+    font-size: 0.9375rem;
+  }
+  .appointment-details dl > div:last-child {
+    grid-column: 1 / -1;
+  }
+}
+.qr-unavailable {
+  text-align: center;
+}
+.qr-unavailable h3 {
+  font-size: 1rem;
+  color: #004352;
+  margin: 0.75rem 0 0.5rem;
+}
+.qr-unavailable p {
+  font-size: 0.875rem;
+  margin: 0;
+}
+.qr-pending-icon {
+  width: 2rem;
+  height: 2rem;
+  fill: none;
+  stroke: #53636a;
+  stroke-width: 1.5;
+}
+.wash-home__support a {
+  color: #0f5c6e;
+  text-underline-offset: 0.2em;
+}
+
+.cancellation-action {
+  order: 3;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: #53636a;
+}
+.button--cancel {
+  color: #a52c35;
+  background: transparent;
+}
+.button--cancel-confirm {
+  background: #a52c35;
+  color: white;
+}
+.cancellation-message {
+  background: #fff6f4;
+  border: 1px solid #ebceca;
+  border-radius: 1rem;
+  padding: 1rem;
+  color: #8d3035;
+}
+.cancellation-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+.cancellation-dialog {
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
 }

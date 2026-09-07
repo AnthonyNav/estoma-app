@@ -1,0 +1,204 @@
+<section class="page" aria-labelledby="exit-title">
+  @if (!flow.pending()) {
+    <button class="back" (click)="next('manual')">← Volver a búsqueda manual</button>
+  }
+  @if (flow.pending(); as pending) {
+    <article class="state card" aria-live="polite">
+      <span class="state-icon" aria-hidden="true">↻</span>
+      <h1 id="exit-title">
+        {{
+          pending.result?.status === 'SUCCEEDED' ? 'Autorización aplicada' : 'Confirmando la salida'
+        }}
+      </h1>
+      <p>{{ pending.studentName }}</p>
+      <p>
+        {{
+          pending.result?.status === 'SUCCEEDED'
+            ? 'Estamos comprobando que el cierre y los materiales finales ya se reflejen en esta cita.'
+            : 'Espera mientras registramos la revisión. No necesitas autorizar otra vez.'
+        }}
+      </p>
+      @if (flow.error()) {
+        <p class="error" role="alert">{{ flow.error() }}</p>
+        <button class="primary" [disabled]="flow.busy()" (click)="flow.resume()">
+          Consultar resultado
+        </button>
+      }
+      <details>
+        <summary>Referencia de la solicitud</summary>
+        <small>{{ pending.operationId || pending.command.idempotencyKey }}</small>
+      </details>
+    </article>
+  } @else if (flow.settled(); as result) {
+    <div class="result">
+      <span class="state-icon" aria-hidden="true">✓</span>
+      <h1 id="exit-title">Salida autorizada</h1>
+      <p>El lavado ha finalizado y el espacio quedó liberado.</p>
+      <article class="card">
+        <span class="status">Lavado completado</span>
+        <h2>{{ result.student.displayName }}</h2>
+        <p>
+          {{ result.student.studentEnrollment }} · {{ result.student.currentSemester }}° semestre
+        </p>
+        <div class="assignment">
+          <strong>{{ result.washExecution.lastResourceAssignment?.cabin?.name }}</strong
+          ><span>{{ result.washExecution.lastResourceAssignment?.tank?.name }}</span>
+        </div>
+        <h3>Materiales confirmados</h3>
+        <dl>
+          @for (field of fields; track field.key) {
+            <div>
+              <dt>{{ field.label }}</dt>
+              <dd>{{ result.washExecution.finalExitMaterials?.[field.key] }}</dd>
+            </div>
+          }
+        </dl>
+      </article>
+      <button class="primary" (click)="next('scan')">
+        Escanear siguiente alumno <span aria-hidden="true">→</span></button
+      ><button class="back" (click)="next('home')">Volver al inicio</button>
+    </div>
+  } @else if (lookup(); as student) {
+    <header>
+      <p class="eyebrow">Finalizar atención</p>
+      <h1 id="exit-title">Revisar salida</h1>
+      <p>Verifica los materiales con el alumno antes de autorizar su salida.</p>
+    </header>
+    <div class="layout">
+      <aside class="card summary">
+        <span class="status">{{
+          student.washExecution?.status === 'EXIT_SUBMITTED'
+            ? 'Pendiente de revisión'
+            : 'Lavado en proceso'
+        }}</span>
+        <h2>{{ student.student.displayName }}</h2>
+        <p>
+          {{ student.student.studentEnrollment }} · {{ student.student.currentSemester }}° semestre
+        </p>
+        @if (student.activeResourceAssignment; as assignment) {
+          <div class="assignment">
+            <strong>{{ assignment.cabin.name }}</strong
+            ><span>{{ assignment.tank.name }}</span>
+          </div>
+        }
+        <p class="note">
+          {{ student.appointment.instrumentCount }} instrumentos ·
+          {{
+            student.appointment.appointmentType === 'NORMAL'
+              ? 'Normal'
+              : student.appointment.appointmentType === 'JOURNEY'
+                ? 'Jornada'
+                : 'Inmunocomprometido'
+          }}
+        </p>
+      </aside>
+      @if (student.washExecution?.status === 'IN_PROGRESS') {
+        <article class="state card waiting">
+          <span class="state-icon" aria-hidden="true">◷</span>
+          <h2>Falta el formulario del alumno</h2>
+          <p>
+            Pídele que registre los materiales desde su cuenta. Podrás revisar y autorizar la salida
+            cuando termine de enviarlos.
+          </p>
+          <span class="live">Esta pantalla se actualiza automáticamente.</span
+          ><button class="back" [disabled]="refreshing()" (click)="refresh()">
+            Consultar ahora
+          </button>
+        </article>
+      } @else if (ready()) {
+        <form (ngSubmit)="submit()" novalidate>
+          <div class="section-title">
+            <h2>Materiales a confirmar</h2>
+            <span>Puedes corregir cantidades</span>
+          </div>
+          <div class="card materials">
+            @for (field of fields; track field.key) {
+              <div class="material" [class.corrected]="changed(field.key)">
+                <span class="material-icon" aria-hidden="true"
+                  ><svg viewBox="0 0 24 24"><path [attr.d]="field.icon" /></svg
+                ></span>
+                <div class="material-copy">
+                  <label [for]="field.key">{{ field.label }}</label
+                  ><small class="original"
+                    >Alumno: {{ original(field.key) }}
+                    @if (changed(field.key)) {
+                      · Modificado
+                    }
+                  </small>
+                </div>
+                <div class="counter">
+                  <button
+                    type="button"
+                    [disabled]="values()[field.key] <= 0"
+                    (click)="step(field.key, -1)"
+                    [attr.aria-label]="'Reducir ' + field.label"
+                  >
+                    −</button
+                  ><input
+                    [id]="field.key"
+                    [name]="field.key"
+                    type="number"
+                    min="0"
+                    max="2147483647"
+                    step="1"
+                    inputmode="numeric"
+                    [ngModel]="values()[field.key]"
+                    (ngModelChange)="change(field.key, $event)"
+                    [attr.aria-invalid]="touched() && invalid(field.key)"
+                  /><button
+                    type="button"
+                    [disabled]="values()[field.key] >= 2147483647"
+                    (click)="step(field.key, 1)"
+                    [attr.aria-label]="'Aumentar ' + field.label"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+          @if (touched() && !canSubmit() && !flow.error() && !readError()) {
+            <p class="error" role="alert">
+              Usa cantidades enteras no negativas y registra al menos un material.
+            </p>
+          }
+          <p class="help">
+            Al autorizar confirmas estas cantidades y finalizas el lavado. Después del cierre no se
+            podrán editar.
+          </p>
+          <button
+            class="primary"
+            type="submit"
+            [disabled]="refreshing() || !!flow.error() || !!readError()"
+          >
+            Autorizar salida <span aria-hidden="true">→</span>
+          </button>
+        </form>
+      } @else {
+        <article class="state card">
+          <h2>Esta atención no está lista para finalizar</h2>
+          <p>
+            Consulta su estado actualizado. Los materiales enviados deben estar disponibles antes de
+            autorizar.
+          </p>
+          <button class="primary" [disabled]="refreshing()" (click)="refresh()">
+            Consultar atención
+          </button>
+        </article>
+      }
+    </div>
+    @if (flow.error() || readError()) {
+      <p class="error" role="alert">{{ flow.error() || readError() }}</p>
+      <button class="back" [disabled]="refreshing()" (click)="refresh()">
+        Actualizar atención
+      </button>
+    }
+  } @else {
+    <article class="state card">
+      <h1 id="exit-title">Selecciona una cita</h1>
+      <p>Identifica al alumno con su QR o desde la búsqueda manual.</p>
+      <button class="primary" (click)="next('scan')">Escanear QR</button
+      ><button class="back" (click)="next('manual')">Búsqueda manual</button>
+    </article>
+  }
+</section>

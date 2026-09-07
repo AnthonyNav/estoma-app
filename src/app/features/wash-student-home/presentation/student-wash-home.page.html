@@ -1,5 +1,99 @@
-<section class="wash-home" aria-labelledby="wash-home-title">
-  @if (state() === 'LOADING') {
+<section
+  class="wash-home"
+  [class.wash-home--empty]="state() === 'NO_APPOINTMENT'"
+  aria-labelledby="wash-home-title"
+>
+  @if (home(); as home) {
+    <div class="student-welcome">
+      <p class="student-welcome__greeting">Hola, {{ home.student.firstName }}</p>
+      <p class="student-welcome__details">
+        {{ home.student.studentEnrollment }}
+        @if (home.student.currentSemester !== null && home.student.currentSemester !== undefined) {
+          <span aria-hidden="true"> · </span>{{ home.student.currentSemester }}° semestre
+        }
+      </p>
+    </div>
+  }
+  @if (cancellation.message(); as message) {
+    <p class="cancellation-message" role="alert">{{ message }}</p>
+  }
+  @if (registration.pendingSchedule(); as pending) {
+    <section class="feedback-card booking-result" role="status">
+      <h1 id="wash-home-title">
+        {{
+          pending.result?.status === 'SUCCEEDED'
+            ? 'Tu cita está confirmada'
+            : 'Tienes una solicitud por verificar'
+        }}
+      </h1>
+      <p>
+        {{
+          pending.result?.status === 'SUCCEEDED'
+            ? 'Estamos actualizando los detalles de tu cita. No necesitas registrarla otra vez.'
+            : 'Consulta el resultado de tu solicitud antes de registrar otra cita.'
+        }}
+      </p>
+      <p class="operation-reference">
+        Referencia: {{ pending.operationId || pending.command.idempotencyKey }}
+      </p>
+      @if (pending.result?.status === 'SUCCEEDED') {
+        <button
+          class="button button--primary"
+          type="button"
+          [disabled]="synchronizing() || loading()"
+          (click)="retry()"
+        >
+          {{ synchronizing() || loading() ? 'Actualizando tu cita…' : 'Actualizar mi cita' }}
+        </button>
+      } @else {
+        <a class="button button--primary" routerLink="/wash/appointments/availability"
+          >Consultar solicitud</a
+        >
+      }
+    </section>
+  } @else if (cancellation.pending(); as pending) {
+    <section class="feedback-card booking-result" aria-live="polite">
+      <h1 id="wash-home-title">
+        {{
+          pending.result?.status === 'SUCCEEDED'
+            ? 'Tu cita fue cancelada'
+            : 'Estamos verificando la cancelación'
+        }}
+      </h1>
+      <p>
+        {{
+          pending.result?.status === 'SUCCEEDED'
+            ? 'Estamos actualizando tu inicio.'
+            : 'La cita conservará su estado hasta que recibamos la confirmación.'
+        }}
+      </p>
+      <details>
+        <summary>Referencia de la solicitud</summary>
+        <p class="operation-reference">
+          {{ pending.operationId || pending.command.idempotencyKey }}
+        </p>
+      </details>
+      @if (pending.result?.status === 'SUCCEEDED') {
+        <button
+          class="button button--primary"
+          type="button"
+          [disabled]="loading() || synchronizing()"
+          (click)="retry()"
+        >
+          Actualizar mi estado
+        </button>
+      } @else {
+        <button
+          class="button button--primary"
+          type="button"
+          [disabled]="cancellation.busy()"
+          (click)="cancellation.resume()"
+        >
+          {{ cancellation.busy() ? 'Comprobando…' : 'Volver a consultar' }}
+        </button>
+      }
+    </section>
+  } @else if (state() === 'LOADING') {
     <div aria-busy="true" class="wash-home__skeleton" role="status">
       <span class="sr-only">Cargando tu estado de Lavado</span>
       <div class="skeleton skeleton--eyebrow"></div>
@@ -59,150 +153,251 @@
       </div>
       <a class="button button--secondary" routerLink="/authentication/sign-in">Cambiar sesión</a>
     </section>
+  } @else if (state() === 'NO_APPOINTMENT') {
+    <app-no-appointment />
   } @else if (home(); as home) {
-    <header class="wash-home__header">
-      <div>
-        <h1 id="wash-home-title">Tu cita de Lavado</h1>
-        <p class="student-identity">
-          Hola, {{ home.student.firstName }} · {{ home.student.studentEnrollment }} ·
-          {{ home.student.currentSemester }}° semestre
-        </p>
-      </div>
-    </header>
+    @if (presentation(); as presentation) {
+      <header class="wash-home__header">
+        <div>
+          <h1 id="wash-home-title">Tu cita de Lavado</h1>
+        </div>
+      </header>
 
-    <section
-      [class]="'status-card status-card--' + presentation().tone"
-      [attr.aria-label]="presentation().label"
-    >
-      <div class="status-card__topline">
-        <span class="status-card__icon" aria-hidden="true">
-          @switch (presentation().tone) {
-            @case ('success') {
-              <svg viewBox="0 0 24 24"><path d="m7 12 3.25 3.25L17.5 8" /></svg>
+      <section
+        [class]="'status-card status-card--' + presentation.tone"
+        [attr.aria-label]="presentation.label"
+        [class.status-card--scheduled]="
+          home.appointment?.appointmentStatus === 'SCHEDULED' && !home.appointment?.washExecution
+        "
+      >
+        <div class="status-card__topline">
+          <span class="status-card__icon" aria-hidden="true">
+            @switch (presentation.tone) {
+              @case ('success') {
+                <svg viewBox="0 0 24 24"><path d="m7 12 3.25 3.25L17.5 8" /></svg>
+              }
+              @case ('warning') {
+                <svg viewBox="0 0 24 24"><path d="M12 7v6m0 4h.01" /></svg>
+              }
+              @case ('danger') {
+                <svg viewBox="0 0 24 24"><path d="m9 9 6 6m0-6-6 6" /></svg>
+              }
+              @case ('info') {
+                <svg viewBox="0 0 24 24"><path d="M12 11v5m0-8h.01" /></svg>
+              }
+              @default {
+                <svg viewBox="0 0 24 24">
+                  <path
+                    d="M7 4v3m10-3v3M5 9h14M7 6h10a2 2 0 012 2v9a2 2 0 01-2 2H7a2 2 0 01-2-2V8a2 2 0 012-2Z"
+                  />
+                </svg>
+              }
             }
-            @case ('warning') {
-              <svg viewBox="0 0 24 24"><path d="M12 7v6m0 4h.01" /></svg>
-            }
-            @case ('danger') {
-              <svg viewBox="0 0 24 24"><path d="m9 9 6 6m0-6-6 6" /></svg>
-            }
-            @case ('info') {
-              <svg viewBox="0 0 24 24"><path d="M12 11v5m0-8h.01" /></svg>
-            }
-            @default {
-              <svg viewBox="0 0 24 24">
-                <path
-                  d="M7 4v3m10-3v3M5 9h14M7 6h10a2 2 0 012 2v9a2 2 0 01-2 2H7a2 2 0 01-2-2V8a2 2 0 012-2Z"
-                />
-              </svg>
-            }
-          }
-        </span>
-        <span class="status-chip">{{ presentation().label }}</span>
-      </div>
-
-      <div class="status-card__content">
-        <div class="status-card__summary">
-          <h2>{{ presentation().title }}</h2>
-          <p>{{ presentation().description }}</p>
-
-          @if (state() === 'NO_APPOINTMENT') {
-            <a class="button button--primary" routerLink="/wash/appointments/regulation">
-              + Registrar cita
-            </a>
-          }
+          </span>
+          <span class="status-chip">{{ presentation.label }}</span>
         </div>
 
-        @if (home.appointment; as appointment) {
-          <div class="appointment-details">
-            <dl>
-              <div>
-                <dt>Turno</dt>
-                <dd>{{ formatTimeSlot(appointment) }}</dd>
-              </div>
-              <div>
-                <dt>Tipo de lavado</dt>
-                <dd>
-                  {{ appointmentTypeLabel(appointment.appointmentType) }} ·
-                  {{ appointment.instrumentCount }} instrumentos
-                </dd>
-              </div>
-              <div>
-                <dt>Tipo de pieza</dt>
-                <dd>{{ pieceTypeLabel(appointment.pieceType) }}</dd>
-              </div>
-              <div>
-                <dt>NRC</dt>
-                <dd>{{ appointment.courseSection.nrc }} · {{ appointment.courseSection.name }}</dd>
-              </div>
-            </dl>
-
-            @if (appointment.washExecution?.activeResourceAssignment; as assignment) {
-              <div class="resource-assignment">
-                <span class="resource-assignment__label">Espacio asignado</span>
-                <strong>{{ assignment.cabinName }}</strong>
-                <span>{{ assignment.tankName }}</span>
-              </div>
+        <div class="status-card__content">
+          @if (home.appointment?.washExecution?.activeResourceAssignment; as assignment) {
+            <div class="resource-assignment">
+              <span class="resource-assignment__label">Espacio asignado</span>
+              <strong>{{ assignment.cabinName }}</strong>
+              <span>{{ assignment.tankName }}</span>
+            </div>
+          }
+          <div class="status-card__summary">
+            @if (
+              home.appointment?.appointmentStatus !== 'SCHEDULED' || home.appointment?.washExecution
+            ) {
+              <h2>{{ presentation.title }}</h2>
             }
-
-            @if (appointment.washExecution?.rejectionReason; as rejectionReason) {
-              <div class="rejection-reason">
-                <span>Motivo</span>
-                <p>{{ rejectionReason }}</p>
-              </div>
-            }
+            <p>{{ presentation.description }}</p>
           </div>
 
-          @if (appointment.qrRepresentation && presentation().qrLabel; as qrLabel) {
-            <div class="qr-panel">
-              <app-appointment-qr [qrRepresentation]="appointment.qrRepresentation" />
-              <div>
-                <h3>Código de tu cita</h3>
-                <p>{{ qrLabel }}</p>
-                <button class="button button--secondary" type="button" (click)="openQr($event)">
-                  Ampliar QR
-                </button>
-              </div>
+          @if (home.appointment; as appointment) {
+            <div class="appointment-details">
+              <dl>
+                <div>
+                  <dt>Turno</dt>
+                  <dd>{{ formatTimeSlot(appointment) }}</dd>
+                </div>
+                <div>
+                  <dt>Tipo de lavado</dt>
+                  <dd>
+                    {{ appointmentTypeLabel(appointment.appointmentType) }} ·
+                    {{ appointment.instrumentCount ?? '—' }} instrumentos
+                  </dd>
+                </div>
+                <div>
+                  <dt>Tipo de pieza</dt>
+                  <dd>{{ pieceTypeLabel(appointment.pieceType) }}</dd>
+                </div>
+                <div>
+                  <dt>NRC</dt>
+                  <dd>
+                    {{ appointment.courseSection?.nrc || 'NRC no disponible' }} ·
+                    {{ appointment.courseSection?.name || 'Materia no disponible' }}
+                  </dd>
+                </div>
+              </dl>
+
+              @if (appointment.washExecution?.rejectionReason; as rejectionReason) {
+                <div class="rejection-reason">
+                  <span>Motivo</span>
+                  <p>{{ rejectionReason }}</p>
+                </div>
+              }
             </div>
 
-            <dialog
-              #qrDialog
-              aria-describedby="qr-dialog-description"
-              aria-labelledby="qr-dialog-title"
-              class="qr-dialog"
-              (close)="restoreQrFocus()"
-            >
-              <div class="qr-dialog__header">
+            @if (appointment.washExecution?.status === 'IN_PROGRESS') {
+              <a class="button button--primary" routerLink="/wash/student/exit"
+                >Registrar salida →</a
+              >
+            } @else if (appointment.washExecution?.status === 'EXIT_SUBMITTED') {
+              <a class="button button--primary" routerLink="/wash/student/exit"
+                >Consultar mi envío →</a
+              >
+            } @else if (appointment.washExecution?.status === 'COMPLETED') {
+              <a class="button button--secondary" routerLink="/wash/student/exit"
+                >Ver materiales confirmados</a
+              >
+            }
+            @if (!appointment.qrRepresentation && appointment.appointmentStatus === 'SCHEDULED') {
+              <section class="qr-unavailable" aria-labelledby="qr-pending-title">
+                <svg class="qr-pending-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="3" width="6" height="6" rx="1" />
+                  <rect x="15" y="3" width="6" height="6" rx="1" />
+                  <rect x="3" y="15" width="6" height="6" rx="1" />
+                  <path d="M15 15h6v6h-6z" />
+                </svg>
+                <h3 id="qr-pending-title">Tu QR aún no está disponible</h3>
+                <p>
+                  Tu cita está registrada. Puedes volver a consultar el código antes de presentarte.
+                </p>
+                <button class="button button--secondary" type="button" (click)="retry()">
+                  Actualizar QR
+                </button>
+              </section>
+            }
+            @if (showQr() && appointment.qrRepresentation) {
+              <div class="qr-panel">
+                <app-appointment-qr [qrRepresentation]="appointment.qrRepresentation" />
                 <div>
-                  <h2 id="qr-dialog-title">Código de tu cita</h2>
-                  <p id="qr-dialog-description">{{ qrLabel }}</p>
+                  <h3>{{ demoQr ? 'QR de demostración' : 'Código de tu cita' }}</h3>
+                  <p>
+                    {{
+                      demoQr
+                        ? 'Vista de prueba. No es válido para ingresar al área de Lavado.'
+                        : qrInstruction(appointment)
+                    }}
+                  </p>
+                  <button class="button button--secondary" type="button" (click)="openQr($event)">
+                    Ampliar QR
+                  </button>
                 </div>
+              </div>
+
+              <dialog
+                #qrDialog
+                aria-describedby="qr-dialog-description"
+                aria-labelledby="qr-dialog-title"
+                class="qr-dialog"
+                (close)="restoreQrFocus()"
+              >
+                <div class="qr-dialog__header">
+                  <div>
+                    <h2 id="qr-dialog-title">
+                      {{ demoQr ? 'QR de demostración' : 'Código de tu cita' }}
+                    </h2>
+                    <p id="qr-dialog-description">
+                      {{ qrInstruction(appointment) }}
+                    </p>
+                  </div>
+                  <button
+                    aria-label="Cerrar código QR ampliado"
+                    class="icon-button"
+                    type="button"
+                    (click)="closeQr()"
+                  >
+                    <svg aria-hidden="true" viewBox="0 0 24 24">
+                      <path d="m7 7 10 10m0-10L7 17" />
+                    </svg>
+                  </button>
+                </div>
+                <app-appointment-qr
+                  [qrRepresentation]="appointment.qrRepresentation"
+                  size="large"
+                />
+              </dialog>
+            }
+            @if (canCancel()) {
+              <div class="cancellation-action">
                 <button
-                  aria-label="Cerrar código QR ampliado"
-                  class="icon-button"
+                  class="button button--cancel"
                   type="button"
-                  (click)="closeQr()"
+                  (click)="openCancellation($event)"
                 >
-                  <svg aria-hidden="true" viewBox="0 0 24 24">
-                    <path d="m7 7 10 10m0-10L7 17" />
-                  </svg>
+                  Cancelar cita
                 </button>
               </div>
-              <app-appointment-qr [qrRepresentation]="appointment.qrRepresentation" size="large" />
-            </dialog>
+              <dialog
+                #cancelDialog
+                class="qr-dialog cancellation-dialog"
+                aria-labelledby="cancel-title"
+                aria-describedby="cancel-description"
+                (close)="restoreCancelFocus()"
+              >
+                <h2 id="cancel-title">¿Cancelar tu cita?</h2>
+                <p id="cancel-description">
+                  Solicitaremos cancelar tu cita de {{ formatTimeSlot(appointment) }}. Esta acción
+                  se confirmará cuando termine la verificación.
+                </p>
+                <p>
+                  Si después necesitas otro horario, tendrás que consultar la disponibilidad
+                  nuevamente.
+                </p>
+                <div class="cancellation-buttons">
+                  <button
+                    class="button button--secondary"
+                    type="button"
+                    (click)="closeCancellation()"
+                  >
+                    Conservar cita
+                  </button>
+                  <button
+                    class="button button--cancel-confirm"
+                    type="button"
+                    (click)="confirmCancellation()"
+                  >
+                    Sí, cancelar cita
+                  </button>
+                </div>
+              </dialog>
+            } @else if (appointment.appointmentStatus === 'CANCELLED') {
+              <div class="cancellation-action">
+                <a class="button button--primary" routerLink="/wash/appointments/regulation"
+                  >Consultar otra cita</a
+                >
+              </div>
+            } @else if (appointment.studentCancellationAction === 'DEADLINE_PASSED') {
+              <p class="cancellation-action">El plazo para cancelar esta cita terminó.</p>
+            }
           }
-        }
-      </div>
-    </section>
+        </div>
+      </section>
 
-    <aside class="wash-home__support" aria-label="Información de apoyo">
-      <svg aria-hidden="true" viewBox="0 0 24 24">
-        <path d="M12 3a8 8 0 100 16 8 8 0 000-16zm0 5v4l2.5 1.5M12 21v-2M12 3V1M3 12H1m22 0h-2" />
-      </svg>
-      <div>
-        <h2>Recuerda tus requisitos de ingreso</h2>
-        <p>Consulta el reglamento antes de presentarte al área de Lavado.</p>
-      </div>
-    </aside>
+      <aside class="wash-home__support" aria-label="Información de apoyo">
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M12 3a8 8 0 100 16 8 8 0 000-16zm0 5v4l2.5 1.5M12 21v-2M12 3V1M3 12H1m22 0h-2" />
+        </svg>
+        <div>
+          <h2>Recuerda tus requisitos de ingreso</h2>
+          <p>
+            <a routerLink="/wash/appointments/regulation">Consulta el reglamento</a> antes de
+            presentarte al área de Lavado.
+          </p>
+        </div>
+      </aside>
+    }
   }
 </section>

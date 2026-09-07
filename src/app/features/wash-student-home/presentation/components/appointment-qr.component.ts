@@ -27,10 +27,10 @@ export class AppointmentQrComponent implements OnChanges {
     try {
       const imageUrl = await toDataURL(representation, {
         width: 280,
-        margin: 1,
+        margin: 4,
         errorCorrectionLevel: 'M',
         color: {
-          dark: '#004352',
+          dark: '#000000',
           light: '#ffffffff',
         },
       });
