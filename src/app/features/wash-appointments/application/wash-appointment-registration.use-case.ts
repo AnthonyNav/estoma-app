@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import {
+  CancelAppointmentCommand,
   AcceptedOperation,
   AppointmentAvailability,
   AppointmentFormContext,
@@ -25,6 +26,10 @@ export class WashAppointmentRegistrationUseCase {
 
   schedule(command: ScheduleAppointmentCommand): Observable<AcceptedOperation> {
     return this.gateway.schedule(command);
+  }
+
+  cancel(command: CancelAppointmentCommand): Observable<AcceptedOperation> {
+    return this.gateway.cancel(command);
   }
 
   getOperation(operationId: string): Observable<DurableOperation> {
