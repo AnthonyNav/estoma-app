@@ -6,7 +6,6 @@ export class SessionStore {
   readonly profile = signal<SessionProfile | null>(null);
   readonly selectedSystemCode = signal<SystemCode>('LAVADO_ULTRASONICO');
   readonly notice = signal<string | null>(null);
-  readonly profileLoadError = signal<unknown>(null);
   revision = 0;
   // Changes only when a session ends or is replaced, never during token renewal.
   generation = 0;
@@ -15,7 +14,6 @@ export class SessionStore {
     this.revision++;
     this.session.set(null);
     this.profile.set(null);
-    this.profileLoadError.set(null);
     this.notice.set(message);
   }
 }

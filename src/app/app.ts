@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, Injector, inject, signal } from '@angular/core';
-import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
 import { SessionStore } from './features/authentication/application/session-store.service';
@@ -7,7 +7,7 @@ import { AuthSessionService } from './features/authentication/application/auth-s
 
 @Component({
   selector: 'app-root',
-  imports: [RouterLink, RouterOutlet],
+  imports: [RouterOutlet],
   templateUrl: './app.html',
   styleUrl: './app.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,7 +23,8 @@ export class App {
   readonly isAuthentication = signal(
     this.router.url.split(/[?#]/)[0].startsWith('/authentication/'),
   );
-  showSignOut = signal<boolean>(false);
+  readonly isWash = signal(this.router.url.split(/[?#]/)[0].startsWith('/wash/'));
+  readonly isStudentHome = signal(this.router.url.split(/[?#]/)[0] === '/wash/student');
 
   constructor() {
     this.router.events
@@ -34,8 +35,8 @@ export class App {
       .subscribe((event) => {
         const url = event.urlAfterRedirects || event.url;
         this.isAuthentication.set(url.split(/[?#]/)[0].startsWith('/authentication/'));
-        const isPublic = url.includes('/authentication') || url.includes('/home');
-        this.showSignOut.set(!isPublic);
+        this.isWash.set(url.split(/[?#]/)[0].startsWith('/wash/'));
+        this.isStudentHome.set(url.split(/[?#]/)[0] === '/wash/student');
       });
   }
 }

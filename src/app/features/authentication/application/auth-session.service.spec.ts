@@ -359,4 +359,25 @@ describe('AuthSessionService contract lifecycle', () => {
     auth.logout();
     flushMicrotasks();
   }));
+  it('keeps the login system when another allowed system is requested', fakeAsync(() => {
+    gateway.profile.and.returnValue(
+      of({
+        ...profile,
+        availableSystemCodes: ['LAVADO_ULTRASONICO', 'PRACTICAS_PROFESIONALES'],
+      }),
+    );
+    void auth.login({ identifier: 'a', password: 'b' });
+    flushMicrotasks();
+    void auth.continueAfterLogin();
+    flushMicrotasks();
+    router.navigate.calls.reset();
+    void auth.enterSystem('PRACTICAS_PROFESIONALES');
+    flushMicrotasks();
+    expect(auth.store.selectedSystemCode()).toBe('LAVADO_ULTRASONICO');
+    expect(auth.store.session()).not.toBeNull();
+    expect(router.navigate).not.toHaveBeenCalled();
+    expect(gateway.logout).not.toHaveBeenCalled();
+    auth.logout();
+    flushMicrotasks();
+  }));
 });

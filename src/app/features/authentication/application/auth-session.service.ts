@@ -174,11 +174,12 @@ export class AuthSessionService {
       this.denyAccess();
       return;
     }
-    this.store.selectedSystemCode.set(code);
+    // System selection belongs to the login interaction.
+    if (code !== this.store.selectedSystemCode()) return;
     const route =
       code === 'LAVADO_ULTRASONICO'
         ? (
-            { ALUMNO: '/wash/student', SUPERVISOR_LAVADO: '/wash/supervision/entry' } as Record<
+            { ALUMNO: '/wash/student', SUPERVISOR_LAVADO: '/wash/supervision' } as Record<
               string,
               string
             >

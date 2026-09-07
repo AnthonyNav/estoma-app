@@ -1,3 +1,4 @@
+import { environment } from '../../../../../environments/environment';
 import {
   HttpErrorResponse,
   HttpHeaders,
@@ -33,7 +34,10 @@ const routes: Record<string, Operation> = {
 @Injectable({ providedIn: 'root' })
 export class AuthFixtureTransport {
   private readonly scenarioName =
-    new URLSearchParams(location.search).get('authFixture') ?? 'normal';
+    new URLSearchParams(location.search).get('authFixture') ??
+    (environment.enableSupervisorPreview && location.pathname.startsWith('/wash/supervision')
+      ? 'supervisor'
+      : 'normal');
   private readonly scenario: Scenario | undefined = (data.scenarios as Record<string, Scenario>)[
     this.scenarioName
   ];

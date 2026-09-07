@@ -419,11 +419,6 @@ svg {
 .auth-full-width {
   width: 100%;
 }
-.access-options {
-  display: grid;
-  gap: 0.5rem;
-  margin: 1rem 0;
-}
 @media (prefers-reduced-motion: reduce) {
   .auth-link {
     transition: none;
