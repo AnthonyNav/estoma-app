@@ -18,6 +18,7 @@ interface Receipt {
   command: CompleteExitCommand;
   appointmentId: string;
   studentName: string;
+  attempted?: boolean;
   operationId?: string;
   pollPath?: string;
   result?: DurableOperation;
@@ -105,11 +106,14 @@ export class SupervisorExitService {
   async resume(): Promise<void> {
     let receipt = this.pending();
     if (!receipt || this.busy()) return;
+    const previouslyAttempted = receipt.attempted === true;
     const epoch = this.epoch;
     this.busy.set(true);
     this.error.set(null);
     try {
       if (!receipt.operationId) {
+        receipt = { ...receipt, attempted: true };
+        if (!this.save(receipt)) return;
         const accepted = await this.read(this.api.complete(receipt.command));
         if (epoch !== this.epoch) return;
         receipt = { ...receipt, operationId: accepted.operationId, pollPath: accepted.pollPath };
@@ -129,12 +133,12 @@ export class SupervisorExitService {
               { intervalMs: 1500, maxPendingPolls: 35 },
             )
             .pipe(filter((r) => r.status !== 'PENDING')),
-        );
+        ).catch(() => undefined);
         if (epoch !== this.epoch) return;
         receipt = { ...receipt, result };
         this.save(receipt);
       }
-      if (receipt.result!.status === 'REJECTED') {
+      if (receipt.result?.status === 'REJECTED') {
         const code = receipt.result!.errorCode;
         this.save(null);
         this.error.set(
@@ -144,13 +148,8 @@ export class SupervisorExitService {
         );
         return;
       }
-      if (receipt.result!.status !== 'SUCCEEDED') {
-        this.error.set(
-          'El resultado no es concluyente. Conservamos la referencia; solicita apoyo antes de realizar otra acción.',
-        );
-        return;
-      }
-      for (let attempt = 0; attempt < 15; attempt++) {
+      const confirmed = receipt.result?.status === 'SUCCEEDED';
+      for (let attempt = 0; attempt < (confirmed ? 15 : 1); attempt++) {
         const detail = await this.read(this.api.detail(receipt.command.washExecutionId));
         if (epoch !== this.epoch) return;
         const execution = detail.washExecution;
@@ -171,14 +170,17 @@ export class SupervisorExitService {
           if (this.save(null)) this.settled.set(detail);
           return;
         }
-        await this.read(timer(2000));
+        if (confirmed) await this.read(timer(2000));
       }
       this.error.set(
-        'La autorización se aplicó y los datos siguen actualizándose. Consulta el resultado sin repetir la acción.',
+        !confirmed
+          ? 'El resultado sigue pendiente de comprobar. Conservamos la referencia; solicita revisión si persiste.'
+          : 'La autorización se aplicó y los datos siguen actualizándose. Consulta el resultado sin repetir la acción.',
       );
     } catch (error: unknown) {
       if (epoch !== this.epoch) return;
       if (
+        !previouslyAttempted &&
         !receipt.operationId &&
         error instanceof ApplicationError &&
         [400, 403, 422].includes(error.status ?? 0)

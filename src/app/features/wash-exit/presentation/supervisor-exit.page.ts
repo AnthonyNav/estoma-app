@@ -56,19 +56,22 @@ export class SupervisorExitPage {
       !this.flow.error() &&
       !this.readError(),
   );
+  private initialized = '';
   constructor() {
     effect(() => {
       const lookup = this.lookup();
-      if (
-        lookup?.washExecution?.status === 'EXIT_SUBMITTED' &&
-        validMaterials(lookup.washExecution.submittedExitMaterials)
-      )
+      if (canCompleteExit(lookup))
         untracked(() => {
-          this.values.set(structuredClone(lookup.washExecution!.submittedExitMaterials!));
+          const identity = `${lookup!.washExecution!.washExecutionId}:${lookup!.washExecution!.executionVersion}`;
+          if (this.initialized === identity) return;
+          this.initialized = identity;
+          this.values.set(
+            structuredClone(lookup!.washExecution!.submittedExitMaterials ?? emptyMaterials()),
+          );
           try {
             const draft = JSON.parse(sessionStorage.getItem(this.draftKey()) ?? 'null');
             if (
-              draft?.version === lookup.washExecution!.executionVersion &&
+              draft?.version === lookup!.washExecution!.executionVersion &&
               validMaterials(draft.values)
             )
               this.values.set(draft.values);
@@ -115,7 +118,7 @@ export class SupervisorExitPage {
     return this.lookup()?.washExecution?.submittedExitMaterials?.[key];
   }
   changed(key: keyof ExitMaterials) {
-    return this.original(key) !== this.values()[key];
+    return this.original(key) != null && this.original(key) !== this.values()[key];
   }
   invalid(key: keyof ExitMaterials) {
     const value = this.values()[key];

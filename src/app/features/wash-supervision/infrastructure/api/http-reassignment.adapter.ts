@@ -8,20 +8,17 @@ import {
   ReassignmentCandidates,
   ReassignmentCommand,
 } from '../../domain/models/reassignment';
-import {
-  AcceptedOperation,
-  DurableOperation,
-  SupervisorEntryLookup,
-} from '../../domain/models/supervisor-entry';
+import { AcceptedOperation, DurableOperation } from '../../domain/models/supervisor-entry';
 import {
   invalidBookingResponse,
   validateAccepted,
   validateOperation,
 } from '../../../wash-appointments/infrastructure/api/booking-validation';
-import { validateSupervisorLookup } from './supervisor-lookup.validation';
+import { SUPERVISOR_EXIT_GATEWAY } from '../../../wash-exit/domain/supervisor-exit';
 @Injectable()
 export class HttpReassignmentAdapter implements ReassignmentGateway {
   private readonly http = inject(HttpClient);
+  private readonly exact = inject(SUPERVISOR_EXIT_GATEWAY);
   private readonly base = environment.apiBaseUrl;
   list() {
     return this.http
@@ -86,12 +83,7 @@ export class HttpReassignmentAdapter implements ReassignmentGateway {
         map((value) => validateOperation(value, id)),
       );
   }
-  lookup(enrollment: string) {
-    return this.http
-      .post<SupervisorEntryLookup>(`${this.base}/wash/supervision/lookup`, {
-        lookupType: 'STUDENT_ENROLLMENT',
-        studentEnrollment: enrollment,
-      })
-      .pipe(timeout(15000), map(validateSupervisorLookup));
+  detail(id: string) {
+    return this.exact.detail(id);
   }
 }

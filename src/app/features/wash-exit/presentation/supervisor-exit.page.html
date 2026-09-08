@@ -92,13 +92,13 @@
           }}
         </p>
       </aside>
-      @if (student.washExecution?.status === 'IN_PROGRESS') {
+      @if (student.washExecution?.status === 'IN_PROGRESS' && !ready()) {
         <article class="state card waiting">
           <span class="state-icon" aria-hidden="true">◷</span>
-          <h2>Falta el formulario del alumno</h2>
+          <h2>Registro de materiales no disponible</h2>
           <p>
-            Pídele que registre los materiales desde su cuenta. Podrás revisar y autorizar la salida
-            cuando termine de enviarlos.
+            Esta atención todavía no permite captura directa. Puedes actualizar o revisar el
+            formulario cuando el alumno lo envíe.
           </p>
           <span class="live">Esta pantalla se actualiza automáticamente.</span
           ><button class="back" [disabled]="refreshing()" (click)="refresh()">
@@ -108,8 +108,18 @@
       } @else if (ready()) {
         <form (ngSubmit)="submit()" novalidate>
           <div class="section-title">
-            <h2>Materiales a confirmar</h2>
-            <span>Puedes corregir cantidades</span>
+            <h2>
+              {{
+                student.washExecution?.status === 'IN_PROGRESS'
+                  ? 'Registrar materiales'
+                  : 'Materiales a confirmar'
+              }}
+            </h2>
+            <span>{{
+              student.washExecution?.status === 'IN_PROGRESS'
+                ? 'El alumno aún no envía su formulario'
+                : 'Puedes corregir cantidades'
+            }}</span>
           </div>
           <div class="card materials">
             @for (field of fields; track field.key) {
@@ -120,7 +130,11 @@
                 <div class="material-copy">
                   <label [for]="field.key">{{ field.label }}</label
                   ><small class="original"
-                    >Alumno: {{ original(field.key) }}
+                    >{{
+                      original(field.key) === undefined
+                        ? 'Captura del supervisor'
+                        : 'Alumno: ' + original(field.key)
+                    }}
                     @if (changed(field.key)) {
                       · Modificado
                     }

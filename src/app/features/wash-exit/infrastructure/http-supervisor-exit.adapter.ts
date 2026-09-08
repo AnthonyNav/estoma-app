@@ -60,6 +60,7 @@ export class HttpSupervisorExitAdapter implements SupervisorExitGateway {
           const execution = value?.washExecution;
           if (
             !value?.student?.displayName ||
+            (value.canComplete !== undefined && typeof value.canComplete !== 'boolean') ||
             !value.appointment?.appointmentId ||
             execution?.washExecutionId !== id ||
             !Number.isInteger(execution.executionVersion) ||

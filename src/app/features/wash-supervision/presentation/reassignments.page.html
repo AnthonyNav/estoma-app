@@ -19,7 +19,7 @@
       <p>
         {{
           result.appointment.appointmentStatus === 'CANCELLED'
-            ? 'Se registró la cancelación por falta de espacio.'
+            ? 'La cita está cancelada.'
             : 'El alumno puede continuar su lavado en el espacio indicado.'
         }}
       </p>
@@ -28,17 +28,25 @@
         <p>
           {{ result.student.studentEnrollment }} · {{ result.student.currentSemester }}° semestre
         </p>
-        <div class="tags">
-          <span>{{ type(result.appointment.appointmentType) }}</span
-          ><span>{{ result.appointment.instrumentCount }} instrumentos</span>
-        </div>
+        @if (
+          result.appointment.appointmentType &&
+          result.appointment.instrumentCount !== null &&
+          result.appointment.instrumentCount !== undefined
+        ) {
+          <div class="tags">
+            <span>{{ type(result.appointment.appointmentType) }}</span>
+            <span>{{ result.appointment.instrumentCount }} instrumentos</span>
+          </div>
+        }
         @if (result.appointment.appointmentStatus !== 'CANCELLED') {
           <div class="assigned">
             <div>
               <span class="eyebrow">Cabina asignada</span
-              ><strong>{{ result.activeResourceAssignment?.cabin?.name }}</strong>
+              ><strong>{{ result.washExecution.activeResourceAssignment?.cabin?.name }}</strong>
             </div>
-            <span class="tank">{{ result.activeResourceAssignment?.tank?.name }}</span>
+            <span class="tank">{{
+              result.washExecution.activeResourceAssignment?.tank?.name
+            }}</span>
           </div>
         }
       </article>

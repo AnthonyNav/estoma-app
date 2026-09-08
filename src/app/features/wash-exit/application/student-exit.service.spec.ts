@@ -1,3 +1,4 @@
+import { ApplicationError } from '../../../core/api/application-error';
 import { TestBed, fakeAsync, flushMicrotasks } from '@angular/core/testing';
 import { of, Subject, throwError } from 'rxjs';
 import { StudentExitService } from './student-exit.service';
@@ -112,6 +113,7 @@ describe('Student exit', () => {
     expect(restored.pending()?.command).toEqual(original);
   }));
   it('keeps inconclusive operations and blocks resubmission', fakeAsync(() => {
+    spyOn(TestBed.inject(STUDENT_WASH_HOME_GATEWAY), 'loadHome').and.returnValue(of(home));
     flow.start(home, materials);
     flushMicrotasks();
     operations.next({ operationId: 'op', status: 'EXPIRED' });
@@ -120,5 +122,30 @@ describe('Student exit', () => {
     expect(api.submit).toHaveBeenCalledTimes(1);
     expect(flow.pending()?.operationId).toBe('op');
     expect(flow.settled()).toBeNull();
+  }));
+  for (const status of [400, 403, 422]) {
+    it(`retains an earlier uncertain intent when a retry returns ${status} (HTTP ${status})`, fakeAsync(() => {
+      api.submit.and.returnValue(throwError(() => new Error('response lost')));
+      flow.start(home, materials);
+      flushMicrotasks();
+      const original = api.submit.calls.mostRecent().args[0];
+      api.submit.and.returnValue(
+        throwError(() => new ApplicationError('forbidden', 'Access changed', status)),
+      );
+      const restored = TestBed.runInInjectionContext(() => new StudentExitService());
+      void restored.resume();
+      flushMicrotasks();
+      expect(api.submit.calls.mostRecent().args[0]).toEqual(original);
+      expect(restored.pending()?.command).toEqual(original);
+    }));
+  }
+  it('reconciles expired tracking when the same student submission is visible', fakeAsync(() => {
+    flow.start(home, materials);
+    flushMicrotasks();
+    operations.next({ operationId: 'op', status: 'EXPIRED' });
+    flushMicrotasks();
+    expect(flow.pending()).toBeNull();
+    expect(flow.settled()?.appointment?.washExecution?.status).toBe('EXIT_SUBMITTED');
+    expect(api.submit).toHaveBeenCalledTimes(1);
   }));
 });

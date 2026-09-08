@@ -1,10 +1,7 @@
+import { SupervisorExecutionDetail } from '../../../wash-exit/domain/supervisor-exit';
 import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
-import {
-  AcceptedOperation,
-  DurableOperation,
-  SupervisorEntryLookup,
-} from '../models/supervisor-entry';
+import { AcceptedOperation, DurableOperation } from '../models/supervisor-entry';
 import {
   PendingReassignment,
   ReassignmentCandidates,
@@ -15,6 +12,6 @@ export interface ReassignmentGateway {
   candidates(id: string): Observable<ReassignmentCandidates>;
   submit(command: ReassignmentCommand): Observable<AcceptedOperation>;
   operation(id: string): Observable<DurableOperation>;
-  lookup(enrollment: string): Observable<SupervisorEntryLookup>;
+  detail(id: string): Observable<SupervisorExecutionDetail>;
 }
 export const REASSIGNMENT_GATEWAY = new InjectionToken<ReassignmentGateway>('REASSIGNMENT_GATEWAY');

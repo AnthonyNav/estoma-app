@@ -18,6 +18,7 @@ import { WashEntrySupervisionUseCase } from './wash-entry-supervision.use-case';
 export type PendingEntryAction = {
   request: EntryLookupRequest;
   appointmentId: string;
+  attempted?: boolean;
   operationId?: string;
   pollPath?: string;
   snapshot?: SupervisorEntryLookup;
@@ -38,6 +39,7 @@ const errors: Record<string, string> = {
   ARRIVAL_TOLERANCE_EXCEEDED: 'El tiempo de tolerancia para registrar la llegada terminó.',
   APPOINTMENT_NOT_SCHEDULED: 'La cita ya no permite registrar una llegada.',
   WASH_EXECUTION_ALREADY_EXISTS: 'La llegada ya fue registrada. Estamos consultando su estado.',
+  INVALID_ENTRY_STATE: 'La decisión de ingreso ya cambió. Consulta la atención actualizada.',
   VERSION_CONFLICT: 'La atención cambió. Revisa los datos actualizados antes de decidir.',
   FORBIDDEN: 'No tienes permiso para realizar esta acción.',
   INVALID_ENTRY_DECISION:
@@ -254,6 +256,10 @@ export class SupervisorEntryWorkflowService {
       this.poll(pending);
       return;
     }
+    if (!this.save({ ...pending, attempted: true })) {
+      this.busy.set(false);
+      return;
+    }
     const submit =
       pending.kind === 'ARRIVAL'
         ? this.api.registerArrival(pending.command)
@@ -267,6 +273,7 @@ export class SupervisorEntryWorkflowService {
       error: (error: unknown) => {
         this.busy.set(false);
         if (
+          !pending.attempted &&
           error instanceof ApplicationError &&
           ([400, 403, 422].includes(error.status ?? 0) ||
             error.code === 'BFF.WASH_UNCLASSIFIED_ENTRY_REJECTION_UNAVAILABLE')
@@ -319,6 +326,7 @@ export class SupervisorEntryWorkflowService {
               this.error.set(
                 'El resultado no es concluyente. Conserva la referencia y solicita apoyo antes de intentar otra acción.',
               );
+              this.read(pending.request, 19);
             }
           }
         },
@@ -327,6 +335,7 @@ export class SupervisorEntryWorkflowService {
           this.error.set(
             'La comprobación no pudo terminar. Puedes volver a consultar la misma solicitud.',
           );
+          this.read(pending.request, 19);
         },
       });
   }
@@ -381,11 +390,11 @@ export class SupervisorEntryWorkflowService {
           this.request = request;
           const pending = this.pending();
           if (
+            (!!pending && pending.kind === 'DECISION') ||
             pending?.result?.status === 'SUCCEEDED' ||
             pending?.result?.errorCode === 'WASH_EXECUTION_ALREADY_EXISTS'
           ) {
             const execution = lookup.washExecution;
-            const expectedStatus = pending.result.data?.status;
             const converged =
               lookup.appointment.appointmentId === pending.appointmentId &&
               !!execution &&
@@ -395,11 +404,17 @@ export class SupervisorEntryWorkflowService {
                 (pending.kind === 'DECISION' &&
                   execution.washExecutionId === pending.command.washExecutionId &&
                   execution.executionVersion > pending.command.expectedVersion &&
-                  (expectedStatus
-                    ? execution.status === expectedStatus
-                    : pending.command.decision === 'REJECTED'
-                      ? execution.status === 'ENTRY_REJECTED'
-                      : ['IN_PROGRESS', 'PENDING_REASSIGNMENT'].includes(execution.status))));
+                  (pending.command.decision === 'REJECTED'
+                    ? execution.status === 'ENTRY_REJECTED' &&
+                      lookup.appointment.appointmentStatus === 'ENTRY_REJECTED' &&
+                      execution.rejectionReason === pending.command.rejectionReason &&
+                      lookup.activeResourceAssignment === null
+                    : execution.status === 'PENDING_REASSIGNMENT' ||
+                      (execution.status === 'IN_PROGRESS' &&
+                        lookup.appointment.appointmentStatus === 'IN_PROGRESS' &&
+                        !!lookup.activeResourceAssignment?.cabin &&
+                        !!lookup.activeResourceAssignment?.tank))));
+
             if (converged) {
               if (pending.kind === 'ARRIVAL' && pending.intent) {
                 this.startDecision(lookup, pending.intent, pending.request, pending);
@@ -409,14 +424,15 @@ export class SupervisorEntryWorkflowService {
                 pending.kind === 'DECISION' && pending.command.decision === 'AUTHORIZED',
               );
               this.clear();
-            } else if (attempt < 19) {
+              this.error.set(null);
+            } else if (attempt < 19 && pending.result?.status === 'SUCCEEDED') {
               timer(1500)
                 .pipe(takeUntil(this.lifecycle.ended$))
                 .subscribe(() => this.read(request, attempt + 1));
               return;
             } else
               this.error.set(
-                'La operación terminó, pero la consulta aún no refleja el cambio. Actualiza sin repetir la acción.',
+                'El resultado sigue pendiente de comprobar. Actualiza sin repetir la acción; solicita revisión si persiste.',
               );
           }
           this.busy.set(false);

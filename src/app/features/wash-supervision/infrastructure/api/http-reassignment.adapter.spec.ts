@@ -1,3 +1,4 @@
+import { SUPERVISOR_EXIT_GATEWAY } from '../../../wash-exit/domain/supervisor-exit';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
@@ -10,7 +11,12 @@ describe('HttpReassignmentAdapter', () => {
   const url = `${environment.apiBaseUrl}/wash/supervision/pending-reassignments`;
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting(), HttpReassignmentAdapter],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        HttpReassignmentAdapter,
+        { provide: SUPERVISOR_EXIT_GATEWAY, useValue: { detail: jasmine.createSpy('detail') } },
+      ],
     });
     api = TestBed.inject(HttpReassignmentAdapter);
     http = TestBed.inject(HttpTestingController);

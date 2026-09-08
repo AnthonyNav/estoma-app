@@ -1,3 +1,4 @@
+import { SupervisorExecutionDetail } from '../../../wash-exit/domain/supervisor-exit';
 import { Injectable } from '@angular/core';
 import { defer, delay, of, throwError } from 'rxjs';
 import { ApplicationError } from '../../../../core/api/application-error';
@@ -7,14 +8,12 @@ import {
   ReassignmentCommand,
   ReassignmentCandidates,
 } from '../../domain/models/reassignment';
-import {
-  AcceptedOperation,
-  DurableOperation,
-  SupervisorEntryLookup,
-} from '../../domain/models/supervisor-entry';
+import { AcceptedOperation, DurableOperation } from '../../domain/models/supervisor-entry';
 import { candidateExamples, pendingExample } from './reassignment.fixtures';
 interface DemoState {
-  rows: PendingReassignment[];
+  rows: (PendingReassignment & {
+    lastResourceAssignment?: PendingReassignment['activeResourceAssignment'];
+  })[];
   commands: Record<string, { command: ReassignmentCommand; receipt: AcceptedOperation }>;
 }
 @Injectable({ providedIn: 'root' })
@@ -127,6 +126,8 @@ export class MockReassignmentAdapter implements ReassignmentGateway {
             tank: { resourceId: choice.tankId, code: choice.tankCode, name: choice.tankName },
           };
         } else {
+          row.lastResourceAssignment = row.activeResourceAssignment;
+          row.activeResourceAssignment = null;
           row.washExecutionStatus = 'CANCELLED';
           row.appointment!.appointmentStatus = 'CANCELLED';
         }
@@ -143,15 +144,13 @@ export class MockReassignmentAdapter implements ReassignmentGateway {
       });
     });
   }
-  lookup(enrollment: string) {
-    const row = this.state.rows.find((r) => r.student?.enrollment === enrollment)!;
+  detail(id: string) {
+    const row = this.state.rows.find((r) => r.washExecutionId === id)!;
     return of({
-      serviceDate: new Date().toISOString().slice(0, 10),
-      nextAction: 'NONE',
       student: {
         studentAccountId: '55555555-5555-5555-5555-555555555555',
         displayName: row.student!.displayName!,
-        studentEnrollment: enrollment,
+        studentEnrollment: row.student!.enrollment!,
         currentSemester: row.student!.currentSemester!,
       },
       appointment: row.appointment!,
@@ -160,8 +159,12 @@ export class MockReassignmentAdapter implements ReassignmentGateway {
         status: row.washExecutionStatus,
         executionVersion: row.executionVersion,
         arrivedAt: row.authorizedAt!,
+        completedAt: null,
+        submittedExitMaterials: null,
+        finalExitMaterials: null,
+        activeResourceAssignment: row.activeResourceAssignment,
+        lastResourceAssignment: row.lastResourceAssignment ?? null,
       },
-      activeResourceAssignment: row.activeResourceAssignment,
-    } as SupervisorEntryLookup).pipe(delay(300));
+    } satisfies SupervisorExecutionDetail).pipe(delay(300));
   }
 }

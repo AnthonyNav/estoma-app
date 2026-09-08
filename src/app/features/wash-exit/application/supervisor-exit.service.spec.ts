@@ -1,3 +1,4 @@
+import { ApplicationError } from '../../../core/api/application-error';
 import { TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
 import { of, Subject, throwError } from 'rxjs';
 import { SessionStore } from '../../authentication/application/session-store.service';
@@ -46,6 +47,24 @@ describe('Supervisor exit completion', () => {
   let api: jasmine.SpyObj<SupervisorExitGateway>,
     operations: Subject<DurableOperation>,
     flow: SupervisorExitService;
+  it('requires explicit capacity for direct completion and honors a disabled capability', () => {
+    const direct = {
+      ...lookup,
+      canComplete: true,
+      washExecution: {
+        ...lookup.washExecution!,
+        status: 'IN_PROGRESS' as const,
+        exitSubmittedAt: null,
+        submittedExitMaterials: null,
+      },
+    };
+    expect(canCompleteExit(direct)).toBeTrue();
+    expect(canCompleteExit({ ...direct, canComplete: undefined })).toBeFalse();
+    expect(canCompleteExit({ ...direct, canComplete: false })).toBeFalse();
+    expect(canCompleteExit({ ...direct, activeResourceAssignment: null })).toBeFalse();
+    expect(canCompleteExit({ ...lookup, canComplete: false })).toBeFalse();
+    expect(canCompleteExit(lookup)).toBeTrue();
+  });
   beforeEach(() => {
     sessionStorage.removeItem('estoma.supervisor-exit.receipts.v1');
     api = jasmine.createSpyObj('exit', ['complete', 'operation', 'detail']);
@@ -150,6 +169,9 @@ describe('Supervisor exit completion', () => {
     expect(sessionStorage.getItem('estoma.supervisor-exit.receipts.v1')).not.toContain('secret');
   }));
   it('blocks new commands after an inconclusive operation', fakeAsync(() => {
+    api.detail.and.returnValue(
+      of({ ...detail, washExecution: { ...detail.washExecution, status: 'EXIT_SUBMITTED' } }),
+    );
     flow.start(lookup, materials);
     flushMicrotasks();
     operations.next({ operationId: 'op', status: 'EXPIRED' });
@@ -157,5 +179,50 @@ describe('Supervisor exit completion', () => {
     flow.start(lookup, materials);
     expect(api.complete).toHaveBeenCalledTimes(1);
     expect(flow.settled()).toBeNull();
+  }));
+  for (const status of [400, 403, 422]) {
+    it(`retains an earlier uncertain intent when a retry returns ${status} (HTTP ${status})`, fakeAsync(() => {
+      api.complete.and.returnValue(throwError(() => new Error('response lost')));
+      flow.start(lookup, materials);
+      flushMicrotasks();
+      const original = api.complete.calls.mostRecent().args[0];
+      api.complete.and.returnValue(
+        throwError(() => new ApplicationError('forbidden', 'Access changed', status)),
+      );
+      const restored = TestBed.runInInjectionContext(() => new SupervisorExitService());
+      void restored.resume();
+      flushMicrotasks();
+      expect(api.complete.calls.mostRecent().args[0]).toEqual(original);
+      expect(restored.pending()?.command).toEqual(original);
+    }));
+  }
+  for (const status of ['FAILED', 'EXPIRED'] as const) {
+    it(`reconciles ${status} against the exact completed execution without another command`, fakeAsync(() => {
+      flow.start(lookup, materials);
+      flushMicrotasks();
+      operations.next({ operationId: 'op', status });
+      flushMicrotasks();
+      expect(api.detail).toHaveBeenCalledWith('execution');
+      expect(flow.settled()).toEqual(detail);
+      expect(flow.pending()).toBeNull();
+      expect(api.complete).toHaveBeenCalledTimes(1);
+    }));
+  }
+  it('reconciles a missing operation but retains the intent when the exact read is also unavailable', fakeAsync(() => {
+    api.detail.and.returnValue(
+      throwError(() => new ApplicationError('temporary', 'Projection unavailable', 503)),
+    );
+    flow.start(lookup, materials);
+    flushMicrotasks();
+    operations.error(new ApplicationError('not-found', '', 404));
+    flushMicrotasks();
+    expect(api.detail).toHaveBeenCalledWith('execution');
+    expect(flow.pending()?.operationId).toBe('op');
+    expect(flow.settled()).toBeNull();
+    api.detail.and.returnValue(of(detail));
+    void flow.resume();
+    flushMicrotasks();
+    expect(flow.settled()).toEqual(detail);
+    expect(api.complete).toHaveBeenCalledTimes(1);
   }));
 });

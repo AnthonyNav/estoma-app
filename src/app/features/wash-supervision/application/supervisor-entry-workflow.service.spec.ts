@@ -1,3 +1,4 @@
+import { ApplicationError } from '../../../core/api/application-error';
 import { SUPERVISOR_EXIT_GATEWAY } from '../../wash-exit/domain/supervisor-exit';
 import { TestBed } from '@angular/core/testing';
 import { map, of, Subject, throwError } from 'rxjs';
@@ -148,7 +149,7 @@ describe('SupervisorEntryWorkflowService', () => {
         decision,
         true,
         decision === 'AUTHORIZED',
-        decision === 'REJECTED' ? 'Requisitos incompletos' : '',
+        decision === 'REJECTED' ? 'Requisitos no satisfechos' : '',
       );
       expect(api.decideEntry.calls.mostRecent().args[0].expectedVersion).toBe(4);
       const result = structuredClone(examples[resultName]) as SupervisorEntryLookup;
@@ -192,4 +193,59 @@ describe('SupervisorEntryWorkflowService', () => {
     session.session.set(original);
     expect(flow.pending()?.operationId).toBe('op');
   });
+  it('reconciles a decision when its operation cannot be read', () => {
+    api.lookup.and.returnValue(of(arrived));
+    flow.search(request);
+    flow.decide('AUTHORIZED', true, true, '');
+    const result = structuredClone(examples.lookupAfterAuthorized) as SupervisorEntryLookup;
+    result.washExecution!.executionVersion = 5;
+    api.lookup.and.returnValue(of(result));
+    operations.error(new Error('operation not found'));
+    expect(flow.pending()).toBeNull();
+    expect(flow.authorizedHere()).toBeTrue();
+    expect(flow.error()).toBeNull();
+    expect(api.decideEntry).toHaveBeenCalledTimes(1);
+  });
+  it('does not mistake a different decision for successful approval after tracking expires', () => {
+    api.lookup.and.returnValue(of(arrived));
+    flow.search(request);
+    flow.decide('AUTHORIZED', true, true, '');
+    const result = structuredClone(examples.lookupAfterRejected) as SupervisorEntryLookup;
+    result.washExecution!.executionVersion = 5;
+    api.lookup.and.returnValue(of(result));
+    operations.next({ operationId: 'op', status: 'EXPIRED' });
+    expect(flow.pending()?.operationId).toBe('op');
+    expect(flow.authorizedHere()).toBeFalse();
+    expect(flow.error()).toContain('pendiente');
+  });
+  for (const status of [400, 403, 422]) {
+    it(`does not discard an uncertain arrival when its retry returns forbidden (HTTP ${status})`, () => {
+      api.registerArrival.and.returnValue(throwError(() => new Error('lost response')));
+      flow.search(request);
+      flow.arrive();
+      const original = api.registerArrival.calls.mostRecent().args[0];
+      api.registerArrival.and.returnValue(
+        throwError(() => new ApplicationError('forbidden', 'Forbidden', status)),
+      );
+      flow.resume();
+      expect(flow.pending()?.command).toEqual(original);
+      expect(api.registerArrival.calls.mostRecent().args[0]).toEqual(original);
+    });
+  }
+  for (const status of [400, 403, 422]) {
+    it(`preserves an uncertain decision across recreation and HTTP ${status}`, () => {
+      api.lookup.and.returnValue(of(arrived));
+      api.decideEntry.and.returnValue(throwError(() => new Error('response lost')));
+      flow.search(request);
+      flow.decide('AUTHORIZED', true, true, '');
+      const original = api.decideEntry.calls.mostRecent().args[0];
+      api.decideEntry.and.returnValue(
+        throwError(() => new ApplicationError('validation', 'Rejected retry', status)),
+      );
+      const restored = TestBed.runInInjectionContext(() => new SupervisorEntryWorkflowService());
+      restored.resume();
+      expect(restored.pending()?.command).toEqual(original);
+      expect(api.decideEntry.calls.mostRecent().args[0]).toEqual(original);
+    });
+  }
 });

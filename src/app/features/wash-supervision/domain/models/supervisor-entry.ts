@@ -13,6 +13,7 @@ export type EntryLookupRequest =
   | { lookupType: 'QR'; qrRepresentation: string }
   | { lookupType: 'STUDENT_ENROLLMENT'; studentEnrollment: string };
 export interface SupervisorEntryLookup {
+  canComplete?: boolean;
   serviceDate: string;
   nextAction: 'ENTRY' | 'ENTRY_DECISION' | 'REASSIGNMENT' | 'EXIT_REVIEW' | 'NONE';
   student: {

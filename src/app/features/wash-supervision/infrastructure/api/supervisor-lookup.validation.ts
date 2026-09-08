@@ -10,6 +10,7 @@ export function validateSupervisorLookup(value: SupervisorEntryLookup): Supervis
   const course = appointment?.courseSectionReference;
   if (
     !value ||
+    (value.canComplete !== undefined && typeof value.canComplete !== 'boolean') ||
     !/^\d{4}-\d{2}-\d{2}$/.test(value.serviceDate) ||
     !['ENTRY', 'ENTRY_DECISION', 'REASSIGNMENT', 'EXIT_REVIEW', 'NONE'].includes(
       value.nextAction,

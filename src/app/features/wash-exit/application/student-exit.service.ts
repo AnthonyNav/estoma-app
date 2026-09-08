@@ -17,6 +17,7 @@ import { ApplicationError } from '../../../core/api/application-error';
 interface Receipt {
   command: StudentExitCommand;
   appointmentId: string;
+  attempted?: boolean;
   operationId?: string;
   pollPath?: string;
   result?: DurableOperation;
@@ -104,11 +105,14 @@ export class StudentExitService {
   async resume(): Promise<void> {
     let receipt = this.pending();
     if (!receipt || this.busy()) return;
+    const previouslyAttempted = receipt.attempted === true;
     const epoch = this.epoch;
     this.busy.set(true);
     this.error.set(null);
     try {
       if (!receipt.operationId) {
+        receipt = { ...receipt, attempted: true };
+        if (!this.save(receipt)) return;
         const accepted = await this.read(this.api.submit(receipt.command));
         if (epoch !== this.epoch) return;
         receipt = { ...receipt, operationId: accepted.operationId, pollPath: accepted.pollPath };
@@ -128,12 +132,12 @@ export class StudentExitService {
               { intervalMs: 1500, maxPendingPolls: 35 },
             )
             .pipe(filter((r) => r.status !== 'PENDING')),
-        );
+        ).catch(() => undefined);
         if (epoch !== this.epoch) return;
         receipt = { ...receipt, result };
         this.save(receipt);
       }
-      if (receipt.result!.status === 'REJECTED') {
+      if (receipt.result?.status === 'REJECTED') {
         const code = receipt.result!.errorCode;
         this.save(null);
         this.error.set(
@@ -143,13 +147,8 @@ export class StudentExitService {
         );
         return;
       }
-      if (receipt.result!.status !== 'SUCCEEDED') {
-        this.error.set(
-          'El resultado no es concluyente. Conservamos tu solicitud; pide apoyo al supervisor antes de realizar otro envío.',
-        );
-        return;
-      }
-      for (let attempt = 0; attempt < 15; attempt++) {
+      const confirmed = receipt.result?.status === 'SUCCEEDED';
+      for (let attempt = 0; attempt < (confirmed ? 15 : 1); attempt++) {
         const home = await this.read(this.homes.loadHome());
         if (epoch !== this.epoch) return;
         const appointment = home.appointment,
@@ -169,14 +168,17 @@ export class StudentExitService {
           if (this.save(null)) this.settled.set(home);
           return;
         }
-        await this.read(timer(2000));
+        if (confirmed) await this.read(timer(2000));
       }
       this.error.set(
-        'Tu envío se aplicó y los datos siguen actualizándose. Consulta el resultado sin repetir el envío.',
+        !confirmed
+          ? 'El resultado sigue pendiente de comprobar. Conservamos la referencia; solicita revisión si persiste.'
+          : 'Tu envío se aplicó y los datos siguen actualizándose. Consulta el resultado sin repetir el envío.',
       );
     } catch (error: unknown) {
       if (epoch !== this.epoch) return;
       if (
+        !previouslyAttempted &&
         !receipt.operationId &&
         error instanceof ApplicationError &&
         [400, 403, 422].includes(error.status ?? 0)

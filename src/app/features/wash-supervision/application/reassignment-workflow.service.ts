@@ -12,11 +12,12 @@ import {
   ReassignmentCandidate,
   ReassignmentCommand,
 } from '../domain/models/reassignment';
-import { DurableOperation, SupervisorEntryLookup } from '../domain/models/supervisor-entry';
+import { SupervisorExecutionDetail } from '../../wash-exit/domain/supervisor-exit';
+import { DurableOperation } from '../domain/models/supervisor-entry';
 interface PendingAction {
   command: ReassignmentCommand;
   appointmentId: string;
-  enrollment: string;
+  attempted?: boolean;
   operationId?: string;
   pollPath?: string;
   result?: DurableOperation;
@@ -45,7 +46,7 @@ export class ReassignmentWorkflowService {
   private epoch = 0;
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
-  readonly completed = signal<SupervisorEntryLookup | null>(null);
+  readonly completed = signal<SupervisorExecutionDetail | null>(null);
   readonly pending = computed(
     () => this.receipts()[this.session.session()?.accountId ?? ''] ?? null,
   );
@@ -108,7 +109,6 @@ export class ReassignmentWorkflowService {
           body,
         },
         appointmentId: row.appointment!.appointmentId,
-        enrollment: row.student!.enrollment!,
       })
     )
       void this.resume();
@@ -125,11 +125,14 @@ export class ReassignmentWorkflowService {
   async resume(): Promise<void> {
     let pending = this.pending();
     if (!pending || this.busy()) return;
+    const previouslyAttempted = pending.attempted === true;
     const epoch = this.epoch;
     this.busy.set(true);
     this.error.set(null);
     try {
       if (!pending.operationId) {
+        pending = { ...pending, attempted: true };
+        if (!this.save(pending)) return;
         const receipt = await this.read(this.api.submit(pending.command));
         if (epoch !== this.epoch) return;
         pending = { ...pending, operationId: receipt.operationId, pollPath: receipt.pollPath };
@@ -142,12 +145,12 @@ export class ReassignmentWorkflowService {
           this.tracker
             .trackWith(() => this.api.operation(operationId), { maxPendingPolls: 45 })
             .pipe(filter((operation) => operation.status !== 'PENDING')),
-        );
+        ).catch(() => undefined);
         if (epoch !== this.epoch) return;
         pending = { ...pending, result };
         this.save(pending);
       }
-      if (pending.result!.status === 'REJECTED') {
+      if (pending.result?.status === 'REJECTED') {
         const message =
           rejectionMessages[pending.result!.errorCode ?? ''] ??
           'No se pudo realizar la acción. Consulta el estado actualizado antes de continuar.';
@@ -155,14 +158,9 @@ export class ReassignmentWorkflowService {
         this.error.set(message);
         return;
       }
-      if (pending.result!.status !== 'SUCCEEDED') {
-        this.error.set(
-          'El resultado aún no es concluyente. Conservamos la referencia; solicita apoyo antes de realizar otra acción.',
-        );
-        return;
-      }
-      for (let attempt = 0; attempt < 20; attempt++) {
-        const lookup = await this.read(this.api.lookup(pending.enrollment));
+      const confirmed = pending.result?.status === 'SUCCEEDED';
+      for (let attempt = 0; attempt < (confirmed ? 20 : 1); attempt++) {
+        const lookup = await this.read(this.api.detail(pending.command.washExecutionId));
         if (epoch !== this.epoch) return;
         const execution = lookup.washExecution;
         const body = pending.command.body;
@@ -173,23 +171,28 @@ export class ReassignmentWorkflowService {
         const correctResult =
           'cabinId' in body
             ? execution?.status === 'IN_PROGRESS' &&
-              lookup.activeResourceAssignment?.cabin.resourceId === body.cabinId &&
-              lookup.activeResourceAssignment?.tank.resourceId === body.tankId
+              lookup.appointment.appointmentStatus === 'IN_PROGRESS' &&
+              execution.activeResourceAssignment?.cabin.resourceId === body.cabinId &&
+              execution.activeResourceAssignment?.tank.resourceId === body.tankId
             : lookup.appointment.appointmentStatus === 'CANCELLED' &&
-              execution?.status === 'CANCELLED';
+              execution?.status === 'CANCELLED' &&
+              execution.activeResourceAssignment === null;
         if (correctIdentity && correctResult) {
           this.save(null);
           this.completed.set(lookup);
           return;
         }
-        await this.read(timer(1500));
+        if (confirmed) await this.read(timer(1500));
       }
       this.error.set(
-        'La acción terminó, pero los datos todavía se están actualizando. Consulta el resultado sin repetir la solicitud.',
+        !confirmed
+          ? 'El resultado sigue pendiente de comprobar. Conservamos la referencia; solicita revisión si persiste.'
+          : 'La acción terminó, pero los datos todavía se están actualizando. Consulta el resultado sin repetir la solicitud.',
       );
     } catch (error: unknown) {
       if (epoch !== this.epoch) return;
       if (
+        !previouslyAttempted &&
         !pending.operationId &&
         error instanceof ApplicationError &&
         [400, 403, 422].includes(error.status ?? 0)
