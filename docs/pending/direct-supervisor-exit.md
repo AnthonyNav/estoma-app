@@ -1,6 +1,10 @@
 # Cierre por supervisor sin envío previo del alumno
 
-Decisión de producto confirmada por el usuario el 7 de septiembre de 2026 UTC. **Ampliación en implementación, no disponible ni certificada en el despliegue actual `9c6f418`.** Hasta desplegar y habilitar los cambios, el owner mantiene la exigencia de `EXIT_SUBMITTED`.
+Decisión de producto confirmada por el usuario el 7 de septiembre de 2026 UTC. **Código desplegado en BFF `a44b8b5` y owner `e970420`; activación y prueba autenticada todavía pendientes.** Con el flag owner apagado, se mantiene la exigencia de `EXIT_SUBMITTED`.
+
+BFF implementado en [PR164](https://github.com/AnthonyNav/estoma-services/pull/164), integrado como `a44b8b5a`: `canComplete`, cantidades estrictas y fecha original de envío atrasado; 291 pruebas aprobadas. Review favorable y CI verde; réplicas disponibles verificadas y OpenAPI comparado; habilitación pendiente, con flag apagado por defecto.
+
+OpenAPI vigente: [snapshot descargado del despliegue](../contracts/bff-a44b8b5.openapi.json), idéntico al candidato de PR164; no prueba activación.
 
 ## 1. Transición y solicitud
 
@@ -22,7 +26,7 @@ Conservaremos `POST /api/v1/wash/executions/{washExecutionId}/complete`, sesión
 }
 ```
 
-Los cuatro valores deben enviarse completos como enteros JSON no negativos, con al menos uno positivo. El límite de representación actual es entero de 32 bits (máximo 2147483647 por campo); no hay un máximo funcional menor confirmado. No inventar límites nuevos ni completar campos ausentes silenciosamente. El endurecimiento de validación HTTP para exigir los cuatro valores explícitos queda incluido en el trabajo BFF pendiente.
+Los cuatro valores deben enviarse completos como enteros JSON no negativos, con al menos uno positivo. El límite de representación actual es entero de 32 bits (máximo 2147483647 por campo); no hay un máximo funcional menor confirmado. No inventar límites nuevos ni completar campos ausentes silenciosamente. La validación HTTP estricta de los cuatro valores ya está desplegada.
 
 ## 2. Materiales y auditoría
 
@@ -44,7 +48,7 @@ Cada intención conserva su clave y cuerpo para reintentos. Una nueva confirmaci
 
 ## 4. Lecturas y capacidad de cierre
 
-Se añadirá `canComplete` a las lecturas del supervisor por lookup y por ejecución exacta. **El campo todavía no existe en el contrato desplegado.** Se calculará tras validar el contexto:
+Las lecturas del supervisor por lookup y ejecución exacta ya incluyen `canComplete` en el contrato desplegado. Se calcula tras validar el contexto:
 
 - `EXIT_SUBMITTED` con asignación activa: true para el camino existente.
 - `IN_PROGRESS` con asignación activa: true sólo con la nueva capacidad habilitada.
@@ -64,6 +68,8 @@ El directorio por nombre/matrícula y selección inicial exacta por `appointment
 
 ## 6. Implementación y despliegue pendientes
 
+Avance backend: owner implementado en [PR163](https://github.com/AnthonyNav/estoma-services/pull/163), commit de merge `4e7ce110`, integrado con flag apagado y despliegue aún por comprobar. Suite local: 105 pruebas aprobadas y una prueba opt-in preexistente omitida, incluidas carreras forzadas en ambos órdenes y reentrega tras rollback. La capacidad BFF y su OpenAPI siguen en implementación; el snapshot vigente no cambia ni queda habilitado el nuevo camino por publicar este PR.
+
 - Owner: dominio, migración de restricciones SQL, flag `ESTOMA_DIRECT_SUPERVISOR_COMPLETION_ENABLED` apagado por defecto, conservación de auditoría, atomicidad y concurrencia.
 - BFF: capacidad inequívoca de lectura, validación de materiales, OpenAPI y pruebas de proyecciones con originales null en cierre directo. Flag de presentación/compatibilidad apagado hasta verificar owner.
 - Desplegar versiones compatibles, habilitar owner de forma homogénea y después la capacidad BFF/front. Un resultado rechazado con una clave no se reejecuta por activar un flag más tarde.
@@ -78,3 +84,7 @@ El directorio por nombre/matrícula y selección inicial exacta por `appointment
 ## Trazabilidad
 
 Responde a la [solicitud original](../archive/frontend/supervisor-direct-exit-contract-request.md). /complete y futuro canComplete quedan definidos; todavía no disponibles en el snapshot vigente.
+
+## Preparación frontend
+
+La interfaz y fixture supervisor-direct-exit permiten captura directa. Se habilita desde IN_PROGRESS sólo con canComplete=true y contexto válido; si el campo no viene, se conserva el camino desplegado desde EXIT_SUBMITTED. La captura local no acredita despliegue ni activación backend. Los materiales originales permanecen null cuando no hubo envío.

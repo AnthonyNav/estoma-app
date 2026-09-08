@@ -28,7 +28,7 @@ Usar /wash/student?fixture=VALOR&preview=student-exit. Para registrar con QR sim
 
 Home: /wash/supervision. Escáner inicialmente apagado: /wash/supervision/scan. Manual: /wash/supervision/manual?washFixture=supervisor-entry; seleccionar Ana para aprobar o rechazar en demos independientes. Reasignaciones: /wash/supervision/reassignments.
 
-Salida: /wash/supervision/manual?washFixture=supervisor-exit. Ana tiene formulario; Carlos/María esperan envío según el contrato desplegado. El cierre directo aún no está implementado.
+Salida: /wash/supervision/manual?washFixture=supervisor-exit. Ana tiene formulario; Carlos/María esperan envío según el contrato desplegado. El cierre directo se explora en /wash/supervision/manual?washFixture=supervisor-direct-exit: Ana está en proceso y puede registrar materiales sin envío previo. En HTTP requiere canComplete=true.
 
 | Escenario                 | Resultado                                                                 |
 | ------------------------- | ------------------------------------------------------------------------- |
@@ -59,6 +59,6 @@ Abrir /authentication/sign-in?washFixture=ESCENARIO; Lavado, 202257019 y contras
 
 ## Reinicio controlado
 
-Sólo demos locales sin operaciones pendientes: eliminar sessionStorage estoma.entry.demo.v2, estoma.entry.receipts.v2, estoma.student-exit.demo.v1, estoma.student-exit.receipts.v1, estoma.supervisor-exit.demo.v1, estoma.supervisor-exit.receipts.v1 y borradores estoma.exit.draft._ / estoma.exit.review._. Preferir pestaña nueva. No borrar referencias de solicitudes reales. Reserva/cancelación en memoria se reinician al recargar.
+Sólo demos locales sin operaciones pendientes: eliminar sessionStorage estoma.entry.demo.v2, estoma.entry.receipts.v2, estoma.student-exit.demo.v1, estoma.student-exit.receipts.v1, estoma.supervisor-exit.demo.v1, estoma.supervisor-exit.receipts.v1 y borradores estoma.exit.draft._ / estoma.exit.review._. Preferir pestaña nueva. No borrar referencias de solicitudes reales. Reserva/cancelación conservan recibos al recargar. Para reiniciar demos terminadas también eliminar estoma.booking.demo.v1, estoma.booking.receipts.v1 y estoma.cancellation.receipts.v1.
 
 [Autenticación](authentication.md) · [Validación](validation.md)

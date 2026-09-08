@@ -1,0 +1,432 @@
+{
+  "description": "Independent synthetic adapter examples. Not an executable live sequence, runtime capture, provisioned identity or valid current QR. Repeated IDs identify the same synthetic attention within each scenario; incompatible scenarios require separate fixture resets. Exact supervisor reads include canComplete from deployed OpenAPI a44b8b5. Synthetic direct completion scenarios still require owner activation; this file does not certify runtime flags.",
+  "wireBaseline": "bff-a44b8b5.openapi.json",
+  "scenarios": [
+    {
+      "scenario": "complete-accepted",
+      "method": "POST",
+      "path": "/api/v1/wash/executions/00000000-0000-4000-8000-000000000102/complete",
+      "response": {
+        "status": 202,
+        "body": {
+          "operationId": "00000000-0000-4000-8000-000000000103",
+          "status": "PENDING",
+          "pollPath": "/api/v1/operations/00000000-0000-4000-8000-000000000103",
+          "submittedAt": "2026-09-07T14:35:00Z"
+        }
+      },
+      "request": {
+        "headers": {
+          "Idempotency-Key": "synthetic-complete-intention-01"
+        },
+        "body": {
+          "finalMaterials": {
+            "packageCount": 2,
+            "greenPaperCassette8Count": 1,
+            "greenPaperCassette10Count": 1,
+            "witnessTapePortionCount": 2
+          },
+          "expectedVersion": 2
+        }
+      }
+    },
+    {
+      "scenario": "complete-version-conflict",
+      "method": "GET",
+      "path": "/api/v1/operations/00000000-0000-4000-8000-000000000103",
+      "response": {
+        "status": 200,
+        "body": {
+          "operationId": "00000000-0000-4000-8000-000000000103",
+          "status": "REJECTED",
+          "publicOperation": "wash-complete-execution",
+          "errorCode": "VERSION_CONFLICT",
+          "data": null,
+          "createdAt": "2026-09-07T14:35:00Z",
+          "updatedAt": "2026-09-07T14:35:01Z",
+          "completedAt": "2026-09-07T14:35:01Z"
+        }
+      }
+    },
+    {
+      "scenario": "student-won-exact",
+      "method": "GET",
+      "path": "/api/v1/wash/supervision/executions/00000000-0000-4000-8000-000000000102",
+      "response": {
+        "status": 200,
+        "body": {
+          "serviceDate": "2026-09-07",
+          "student": {
+            "studentAccountId": "00000000-0000-4000-8000-000000000108",
+            "displayName": "Ana Ejemplo",
+            "studentEnrollment": "000000101",
+            "currentSemester": 4
+          },
+          "appointment": {
+            "appointmentId": "00000000-0000-4000-8000-000000000101",
+            "appointmentVersion": 2,
+            "appointmentStatus": "IN_PROGRESS",
+            "appointmentType": "NORMAL",
+            "instrumentCount": 10,
+            "pieceType": "HIGH_SPEED",
+            "courseSectionReference": null,
+            "appointmentTimeSlot": {
+              "appointmentTimeSlotId": "00000000-0000-4000-8000-000000000107",
+              "startsAt": "2026-09-07T14:00:00Z",
+              "endsAt": "2026-09-07T15:00:00Z",
+              "timezone": "America/Mexico_City"
+            }
+          },
+          "washExecution": {
+            "washExecutionId": "00000000-0000-4000-8000-000000000102",
+            "status": "EXIT_SUBMITTED",
+            "version": 3,
+            "executionVersion": 3,
+            "arrivedAt": "2026-09-07T13:55:00Z",
+            "rejectionReason": null,
+            "exitSubmittedAt": "2026-09-07T14:34:00Z",
+            "submittedExitMaterials": {
+              "packageCount": 2,
+              "greenPaperCassette8Count": 1,
+              "greenPaperCassette10Count": 0,
+              "witnessTapePortionCount": 2
+            },
+            "completedAt": null,
+            "finalExitMaterials": null,
+            "activeResourceAssignment": {
+              "resourceAssignmentId": "00000000-0000-4000-8000-000000000104",
+              "assignmentType": "INITIAL",
+              "cabin": {
+                "resourceId": "00000000-0000-4000-8000-000000000105",
+                "code": "C-SYN-01",
+                "name": "Cabina sintética"
+              },
+              "tank": {
+                "resourceId": "00000000-0000-4000-8000-000000000106",
+                "code": "T-SYN-01",
+                "name": "Tina sintética"
+              }
+            },
+            "lastResourceAssignment": null
+          },
+          "canComplete": true
+        }
+      }
+    },
+    {
+      "scenario": "direct-complete-succeeded",
+      "method": "GET",
+      "path": "/api/v1/operations/00000000-0000-4000-8000-000000000103",
+      "response": {
+        "status": 200,
+        "body": {
+          "operationId": "00000000-0000-4000-8000-000000000103",
+          "status": "SUCCEEDED",
+          "publicOperation": "wash-complete-execution",
+          "errorCode": null,
+          "data": {
+            "status": "COMPLETED"
+          },
+          "createdAt": "2026-09-07T14:35:00Z",
+          "updatedAt": "2026-09-07T14:35:01Z",
+          "completedAt": "2026-09-07T14:35:01Z"
+        }
+      },
+      "requires": "Owner PR163 deployed and direct completion enabled"
+    },
+    {
+      "scenario": "direct-complete-exact",
+      "method": "GET",
+      "path": "/api/v1/wash/supervision/executions/00000000-0000-4000-8000-000000000102",
+      "response": {
+        "status": 200,
+        "body": {
+          "serviceDate": "2026-09-07",
+          "student": {
+            "studentAccountId": "00000000-0000-4000-8000-000000000108",
+            "displayName": "Ana Ejemplo",
+            "studentEnrollment": "000000101",
+            "currentSemester": 4
+          },
+          "appointment": {
+            "appointmentId": "00000000-0000-4000-8000-000000000101",
+            "appointmentVersion": 3,
+            "appointmentStatus": "COMPLETED",
+            "appointmentType": "NORMAL",
+            "instrumentCount": 10,
+            "pieceType": "HIGH_SPEED",
+            "courseSectionReference": null,
+            "appointmentTimeSlot": {
+              "appointmentTimeSlotId": "00000000-0000-4000-8000-000000000107",
+              "startsAt": "2026-09-07T14:00:00Z",
+              "endsAt": "2026-09-07T15:00:00Z",
+              "timezone": "America/Mexico_City"
+            }
+          },
+          "washExecution": {
+            "washExecutionId": "00000000-0000-4000-8000-000000000102",
+            "status": "COMPLETED",
+            "version": 3,
+            "executionVersion": 3,
+            "arrivedAt": "2026-09-07T13:55:00Z",
+            "rejectionReason": null,
+            "exitSubmittedAt": null,
+            "submittedExitMaterials": null,
+            "completedAt": "2026-09-07T14:35:00Z",
+            "finalExitMaterials": {
+              "packageCount": 2,
+              "greenPaperCassette8Count": 1,
+              "greenPaperCassette10Count": 1,
+              "witnessTapePortionCount": 2
+            },
+            "activeResourceAssignment": null,
+            "lastResourceAssignment": {
+              "resourceAssignmentId": "00000000-0000-4000-8000-000000000104",
+              "assignmentType": "INITIAL",
+              "cabin": {
+                "resourceId": "00000000-0000-4000-8000-000000000105",
+                "code": "C-SYN-01",
+                "name": "Cabina sintética"
+              },
+              "tank": {
+                "resourceId": "00000000-0000-4000-8000-000000000106",
+                "code": "T-SYN-01",
+                "name": "Tina sintética"
+              }
+            }
+          },
+          "canComplete": false
+        }
+      },
+      "requires": "Owner PR163 deployed and direct completion enabled"
+    },
+    {
+      "scenario": "direct-complete-student-home",
+      "method": "GET",
+      "path": "/api/v1/wash/student/home",
+      "response": {
+        "status": 200,
+        "body": {
+          "student": {
+            "firstName": "Ana",
+            "fullName": "Ana Ejemplo",
+            "studentEnrollment": "000000101",
+            "currentSemester": 4
+          },
+          "serviceDate": "2026-09-07",
+          "appointment": {
+            "appointmentId": "00000000-0000-4000-8000-000000000101",
+            "appointmentStatus": "COMPLETED",
+            "appointmentVersion": 3,
+            "usesExceptionalAuthorization": false,
+            "studentCancellationAction": "NOT_APPLICABLE",
+            "appointmentType": "NORMAL",
+            "instrumentCount": 10,
+            "pieceType": "HIGH_SPEED",
+            "courseSection": null,
+            "timeSlot": {
+              "appointmentTimeSlotId": "00000000-0000-4000-8000-000000000107",
+              "startsAt": "2026-09-07T14:00:00Z",
+              "endsAt": "2026-09-07T15:00:00Z",
+              "cancellationDeadlineAt": "2026-09-07T13:45:00Z"
+            },
+            "washExecution": {
+              "washExecutionId": "00000000-0000-4000-8000-000000000102",
+              "status": "COMPLETED",
+              "version": 3,
+              "executionVersion": 3,
+              "arrivedAt": "2026-09-07T13:55:00Z",
+              "rejectionReason": null,
+              "exitSubmittedAt": null,
+              "submittedExitMaterials": null,
+              "completedAt": "2026-09-07T14:35:00Z",
+              "finalExitMaterials": {
+                "packageCount": 2,
+                "greenPaperCassette8Count": 1,
+                "greenPaperCassette10Count": 1,
+                "witnessTapePortionCount": 2
+              },
+              "activeResourceAssignment": null,
+              "lastResourceAssignment": {
+                "resourceAssignmentId": "00000000-0000-4000-8000-000000000104",
+                "cabinId": "00000000-0000-4000-8000-000000000105",
+                "cabinCode": "C-SYN-01",
+                "cabinName": "Cabina sintética",
+                "tankId": "00000000-0000-4000-8000-000000000106",
+                "tankCode": "T-SYN-01",
+                "tankName": "Tina sintética"
+              }
+            },
+            "qrUsageContext": "NONE",
+            "qrRepresentation": null
+          }
+        }
+      },
+      "requires": "Owner PR163 deployed and direct completion enabled; Home still selects the same appointment"
+    },
+    {
+      "scenario": "reviewed-complete-exact",
+      "method": "GET",
+      "path": "/api/v1/wash/supervision/executions/00000000-0000-4000-8000-000000000102",
+      "response": {
+        "status": 200,
+        "body": {
+          "serviceDate": "2026-09-07",
+          "student": {
+            "studentAccountId": "00000000-0000-4000-8000-000000000108",
+            "displayName": "Ana Ejemplo",
+            "studentEnrollment": "000000101",
+            "currentSemester": 4
+          },
+          "appointment": {
+            "appointmentId": "00000000-0000-4000-8000-000000000101",
+            "appointmentVersion": 3,
+            "appointmentStatus": "COMPLETED",
+            "appointmentType": "NORMAL",
+            "instrumentCount": 10,
+            "pieceType": "HIGH_SPEED",
+            "courseSectionReference": null,
+            "appointmentTimeSlot": {
+              "appointmentTimeSlotId": "00000000-0000-4000-8000-000000000107",
+              "startsAt": "2026-09-07T14:00:00Z",
+              "endsAt": "2026-09-07T15:00:00Z",
+              "timezone": "America/Mexico_City"
+            }
+          },
+          "washExecution": {
+            "washExecutionId": "00000000-0000-4000-8000-000000000102",
+            "status": "COMPLETED",
+            "version": 4,
+            "executionVersion": 4,
+            "arrivedAt": "2026-09-07T13:55:00Z",
+            "rejectionReason": null,
+            "exitSubmittedAt": "2026-09-07T14:34:00Z",
+            "submittedExitMaterials": {
+              "packageCount": 2,
+              "greenPaperCassette8Count": 1,
+              "greenPaperCassette10Count": 0,
+              "witnessTapePortionCount": 2
+            },
+            "completedAt": "2026-09-07T14:35:00Z",
+            "finalExitMaterials": {
+              "packageCount": 2,
+              "greenPaperCassette8Count": 1,
+              "greenPaperCassette10Count": 1,
+              "witnessTapePortionCount": 2
+            },
+            "activeResourceAssignment": null,
+            "lastResourceAssignment": {
+              "resourceAssignmentId": "00000000-0000-4000-8000-000000000104",
+              "assignmentType": "INITIAL",
+              "cabin": {
+                "resourceId": "00000000-0000-4000-8000-000000000105",
+                "code": "C-SYN-01",
+                "name": "Cabina sintética"
+              },
+              "tank": {
+                "resourceId": "00000000-0000-4000-8000-000000000106",
+                "code": "T-SYN-01",
+                "name": "Tina sintética"
+              }
+            }
+          },
+          "canComplete": false
+        }
+      }
+    },
+    {
+      "scenario": "late-student-version-conflict",
+      "method": "GET",
+      "path": "/api/v1/operations/00000000-0000-4000-8000-000000000103",
+      "response": {
+        "status": 200,
+        "body": {
+          "operationId": "00000000-0000-4000-8000-000000000103",
+          "status": "REJECTED",
+          "publicOperation": "wash-submit-exit",
+          "errorCode": "VERSION_CONFLICT",
+          "data": null,
+          "createdAt": "2026-09-07T14:35:00Z",
+          "updatedAt": "2026-09-07T14:35:01Z",
+          "completedAt": "2026-09-07T14:35:01Z"
+        }
+      }
+    },
+    {
+      "scenario": "reassignment-capacity-lost",
+      "method": "GET",
+      "path": "/api/v1/operations/00000000-0000-4000-8000-000000000103",
+      "response": {
+        "status": 200,
+        "body": {
+          "operationId": "00000000-0000-4000-8000-000000000103",
+          "status": "REJECTED",
+          "publicOperation": "wash-resolve-reassignment",
+          "errorCode": "TANK_CAPACITY_EXHAUSTED",
+          "data": null,
+          "createdAt": "2026-09-07T14:35:00Z",
+          "updatedAt": "2026-09-07T14:35:01Z",
+          "completedAt": "2026-09-07T14:35:01Z"
+        }
+      }
+    },
+    {
+      "scenario": "candidates-empty-confirmed",
+      "method": "GET",
+      "path": "/api/v1/wash/supervision/pending-reassignments/00000000-0000-4000-8000-000000000102/candidates",
+      "response": {
+        "status": 200,
+        "body": {
+          "washExecutionId": "00000000-0000-4000-8000-000000000102",
+          "executionVersion": 3,
+          "snapshotGeneratedAt": "2026-09-07T14:35:00Z",
+          "recommendedCandidate": null,
+          "candidates": []
+        }
+      },
+      "requires": "Candidates flag enabled and fresh owner snapshot; this is not the COMPLETED fixture above"
+    },
+    {
+      "scenario": "projection-unavailable",
+      "method": "GET",
+      "path": "/api/v1/wash/supervision/executions/00000000-0000-4000-8000-000000000102",
+      "response": {
+        "status": 503,
+        "body": {
+          "type": "urn:estoma:error:BFF.PROJECTION_UNAVAILABLE",
+          "title": "Service Unavailable",
+          "status": 503,
+          "code": "BFF.PROJECTION_UNAVAILABLE",
+          "detail": "The required local projection is temporarily unavailable.",
+          "traceId": "00000000-0000-4000-8000-000000000109"
+        }
+      }
+    },
+    {
+      "scenario": "operation-not-visible",
+      "method": "GET",
+      "path": "/api/v1/operations/00000000-0000-4000-8000-000000000103",
+      "response": {
+        "status": 404,
+        "body": null
+      },
+      "notes": "Empty HTTP body, not JSON null and not a guaranteed Problem DTO"
+    },
+    {
+      "scenario": "invalid-complete-body",
+      "method": "POST",
+      "path": "/api/v1/wash/executions/00000000-0000-4000-8000-000000000102/complete",
+      "response": {
+        "status": 400,
+        "body": {
+          "type": "urn:estoma:error:BFF.INVALID_REQUEST",
+          "title": "Bad Request",
+          "status": 400,
+          "code": "BFF.INVALID_REQUEST",
+          "detail": "The request is invalid.",
+          "traceId": "00000000-0000-4000-8000-000000000109"
+        }
+      }
+    }
+  ]
+}

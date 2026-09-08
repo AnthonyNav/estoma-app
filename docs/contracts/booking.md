@@ -27,6 +27,6 @@ POST /wash/appointments/{appointmentId}/cancel con expectedVersion de cita e Ide
 
 Ofrecer sólo con SCHEDULED, versión válida y studentCancellationAction=AVAILABLE. Confirmar en diálogo, esperar operación y reconciliar Home. DEADLINE_PASSED y NOT_APPLICABLE no habilitan solicitud.
 
-Reserva y cancelación tienen la limitación de recarga del contrato común. El despliegue de una corrección de cancelación no acredita reparación de históricos.
+Reserva y cancelación recuperan sus referencias tras recargar en la misma pestaña, conforme al contrato común. El despliegue de una corrección de cancelación no acredita reparación de históricos.
 
 Pruebas: adapters HTTP, draft, disponibilidad y appointment-cancellation.service.spec.ts.

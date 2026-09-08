@@ -1,6 +1,6 @@
 # Registro y revisión de salida
 
-Fuente: [confirmación backend](../archive/backend/contrato-front-salida-lavado.md). Aplican las [reglas comunes](common.md) y la [lectura exacta](execution-read.md). Contrato desplegado exige EXIT_SUBMITTED. El [cierre directo](../pending/direct-supervisor-exit.md) está aprobado como producto, pero aún en implementación backend.
+Fuente: [confirmación backend](../archive/backend/contrato-front-salida-lavado.md). Aplican las [reglas comunes](common.md) y la [lectura exacta](execution-read.md). El camino existente usa EXIT_SUBMITTED. El código de [cierre directo](../pending/direct-supervisor-exit.md) ya está desplegado en BFF a44b8b5/owner e970420, pero requiere habilitación coordinada y prueba autenticada; no inferirla del despliegue.
 
 ## Flujo y permisos
 
@@ -54,7 +54,7 @@ En lookup, los datos relevantes son:
 - `washExecution.exitSubmittedAt` y `washExecution.submittedExitMaterials`;
 - `activeResourceAssignment`, con cabina y tina actuales.
 
-`nextAction=EXIT_REVIEW` también puede aparecer mientras la ejecución todavía está `IN_PROGRESS`. Por sí solo no habilita completar: exigir `washExecution.status=EXIT_SUBMITTED` y materiales enviados presentes. Si no se han enviado, indicar que falta el formulario del alumno. Si falta contexto obligatorio para un estado que debería tenerlo, backend devuelve `503 BFF.PROJECTION_UNAVAILABLE`; no precargar ceros para ocultarlo.
+`nextAction=EXIT_REVIEW` también puede aparecer mientras la ejecución todavía está `IN_PROGRESS`. Por sí solo no habilita completar: respetar `canComplete=false`. Desde `EXIT_SUBMITTED`, exigir fecha y materiales enviados válidos y asignación activa. Desde `IN_PROGRESS`, exigir `canComplete=true`, asignación activa y originales/fecha de envío null; el supervisor captura los materiales finales sin inventar un envío del alumno. Si esa capacidad no está habilitada, indicar que falta el formulario del alumno. Si falta contexto obligatorio para un estado que debería tenerlo, backend devuelve `503 BFF.PROJECTION_UNAVAILABLE`; no precargar ceros para ocultarlo.
 
 Precargar la edición desde `submittedExitMaterials`. El supervisor puede conservar, aumentar o disminuir cada cantidad, respetando las mismas validaciones. Enviar el objeto completo, no un PATCH ni diferencias:
 
