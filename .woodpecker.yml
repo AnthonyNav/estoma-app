@@ -23,7 +23,6 @@ steps:
       event: push
       branch:
         - dev
-        - deploy/frontend-argo
     settings:
       registry: ghcr.io
       repo: anthonynav/estoma-app
