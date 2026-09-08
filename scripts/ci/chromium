@@ -1,0 +1,4 @@
+#!/bin/sh
+# Woodpecker runs this test browser as root inside its disposable CI container.
+# Keep these flags scoped to CI; local browser launches retain their sandbox.
+exec /usr/bin/chromium --no-sandbox "$@"

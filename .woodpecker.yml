@@ -6,8 +6,6 @@ when:
 steps:
   validate:
     image: node:22-bookworm
-    environment:
-      CHROME_BIN: /usr/bin/chromium
     commands:
       - apt-get update
       - apt-get install --yes --no-install-recommends chromium
@@ -15,6 +13,7 @@ steps:
       - pnpm install --frozen-lockfile
       - pnpm format:check
       - pnpm lint
+      - export CHROME_BIN="$PWD/scripts/ci/chromium"
       - pnpm test:ci
       - pnpm build
 
