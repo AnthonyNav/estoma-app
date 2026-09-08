@@ -1,3 +1,4 @@
+import { SupervisorHome } from '../domain/models/supervisor-home';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
@@ -14,6 +15,13 @@ import { WASH_SUPERVISION_GATEWAY } from '../domain/ports/wash-supervision.gatew
 @Injectable({ providedIn: 'root' })
 export class WashEntrySupervisionUseCase {
   private readonly gateway = inject(WASH_SUPERVISION_GATEWAY);
+
+  getDirectory(): Observable<SupervisorEntryLookup[]> {
+    return this.gateway.getDirectory();
+  }
+  getHome(): Observable<SupervisorHome> {
+    return this.gateway.getHome();
+  }
 
   lookup(request: EntryLookupRequest): Observable<SupervisorEntryLookup> {
     return this.gateway.lookup(request);

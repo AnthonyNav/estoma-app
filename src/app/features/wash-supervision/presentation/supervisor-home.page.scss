@@ -1,0 +1,378 @@
+:host {
+  display: block;
+  color: #16333b;
+}
+.supervisor-home {
+  max-width: 1040px;
+  margin: auto;
+  padding: 36px 24px 40px;
+}
+.heading,
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.eyebrow {
+  color: #256474;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  margin: 0 0 8px;
+}
+h1 {
+  color: #064957;
+  font-size: clamp(25px, 4vw, 32px);
+  letter-spacing: -0.04em;
+  margin: 0;
+}
+.date {
+  color: #657982;
+  font-size: 14px;
+  margin: 8px 0 0;
+}
+svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+  margin: 26px 0 30px;
+}
+.metric {
+  background: white;
+  border: 1px solid #e0e9eb;
+  border-radius: 22px;
+  padding: 20px 18px;
+  box-shadow: 0 5px 16px #17455004;
+}
+.metric-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.metric strong {
+  font-size: 26px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.metric-label {
+  color: #63747c;
+  font-size: 14px;
+}
+.icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  background: #eaf2f4;
+  color: #206778;
+}
+.progress .icon {
+  background: #fcf3e1;
+  color: #9a6816;
+}
+.completed .icon {
+  background: #e7f5ef;
+  color: #18836e;
+}
+.denied .icon {
+  background: #fff0ef;
+  color: #bd5353;
+}
+.cancelled .icon {
+  background: #f0f2f4;
+  color: #76858d;
+}
+.attention {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 36px;
+  align-items: center;
+  padding: 30px;
+  border: 1px solid #dce7e9;
+  background: #eaf2f3;
+  border-radius: 26px;
+}
+.attention h2 {
+  color: #064957;
+  font-size: 23px;
+  letter-spacing: -0.035em;
+  margin: 0 0 10px;
+}
+.attention-copy > p:last-child {
+  margin: 0;
+  color: #5c747c;
+  font-size: 14px;
+  line-height: 1.7;
+  max-width: 310px;
+}
+a {
+  text-decoration: none;
+}
+.scan {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: #064b59;
+  color: white;
+  border-radius: 20px;
+  min-height: 90px;
+  padding: 16px 24px;
+  font-size: 20px;
+  font-weight: 800;
+  box-shadow: 0 6px 12px #07495812;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+.scan > svg:first-child {
+  width: 36px;
+  height: 36px;
+}
+.scan .arrow {
+  margin-left: auto;
+  width: 20px;
+}
+.scan:hover {
+  background: #106173;
+  transform: translateY(-2px);
+}
+.scan-help {
+  color: #627780;
+  font-size: 12px;
+  text-align: center;
+  margin: 10px 0 3px;
+}
+.enrollment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 44px;
+  color: #105b6c;
+  font-size: 14px;
+  font-weight: 800;
+}
+.management {
+  margin-top: 34px;
+}
+.section-heading h2 {
+  color: #125566;
+  font-size: 17px;
+  margin: 0;
+}
+.section-heading > span {
+  color: #667e86;
+  font-size: 12px;
+}
+ul {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  margin: 16px 0 0;
+}
+li {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #ffffffc9;
+  padding: 18px 20px;
+  border: 1px solid #e0e9eb;
+  border-radius: 20px;
+}
+li .icon {
+  width: 46px;
+  height: 46px;
+}
+.icon.resources {
+  background: #e7f0f7;
+  color: #52829b;
+}
+h3 {
+  font-size: 15px;
+  margin: 0 0 5px;
+  font-weight: 800;
+}
+li p {
+  color: #6c7e87;
+  font-size: 13px;
+  margin: 0;
+}
+.unavailable {
+  margin-left: auto;
+  color: #667980;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.demo {
+  text-align: center;
+  color: #677e87;
+  font-size: 12px;
+  margin: 24px 0 0;
+}
+.notice,
+.error {
+  padding: 16px 20px;
+  background: #fff7e7;
+  border: 1px solid #eadbb8;
+  border-radius: 16px;
+  color: #78561b;
+  margin: 0 0 20px;
+  font-size: 14px;
+}
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.error {
+  margin-top: 20px;
+}
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid #33899c;
+  outline-offset: 4px;
+}
+@media (max-width: 850px) {
+  .metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .attention {
+    gap: 20px;
+    padding: 24px;
+  }
+}
+@media (max-width: 560px) {
+  .supervisor-home {
+    padding: 24px 18px 32px;
+  }
+
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin: 22px 0 24px;
+  }
+  .metric {
+    padding: 16px 18px;
+    border-radius: 22px;
+  }
+  .metric-top {
+    margin-bottom: 10px;
+  }
+  .metric strong {
+    font-size: 23px;
+  }
+  .metric:last-child {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .metric:last-child .metric-top {
+    margin: 0;
+  }
+  .metric:last-child .metric-label {
+    margin-left: auto;
+  }
+  .attention {
+    display: block;
+    padding: 0;
+    background: transparent;
+    border: 0;
+  }
+  .attention-copy {
+    display: none;
+  }
+  .scan {
+    min-height: 104px;
+  }
+  .management {
+    margin-top: 26px;
+  }
+  li {
+    gap: 12px;
+    padding: 16px;
+    flex-wrap: wrap;
+  }
+  li > div {
+    flex: 1;
+  }
+  .unavailable {
+    display: none;
+  }
+  li p {
+    font-size: 12px;
+    line-height: 1.6;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scan {
+    transition: none;
+  }
+  .scan:hover {
+    transform: none;
+  }
+}
+
+.reassignments {
+  margin-top: 28px;
+}
+.section-heading .pending-count {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: #e4eef0;
+  color: #105b6c;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.reassignment-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 20px;
+  background: white;
+  border: 1px solid #e0e9eb;
+  border-radius: 20px;
+}
+.reassignment-card > div {
+  min-width: 0;
+}
+.reassignment-card h3 {
+  line-height: 1.5;
+}
+.reassignment-card p {
+  font-size: 13px;
+  color: #6c7e87;
+  line-height: 1.6;
+  margin: 0;
+}
+.reassignment-card a {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  color: #105b6c;
+  font-size: 13px;
+  font-weight: 800;
+}

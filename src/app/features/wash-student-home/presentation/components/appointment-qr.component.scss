@@ -4,13 +4,13 @@
 
 .appointment-qr {
   align-items: center;
-  background: var(--surface-container-low);
-  border: 1px solid var(--outline-variant);
+  background: #fff;
+  border: 0;
   border-radius: var(--radius-lg);
   display: flex;
   justify-content: center;
   min-height: 11rem;
-  padding: var(--space-md);
+  padding: 0.25rem;
 }
 
 .appointment-qr--large {
@@ -22,7 +22,7 @@ img,
 .appointment-qr__fallback {
   aspect-ratio: 1;
   display: block;
-  max-width: 11rem;
+  max-width: 15rem;
   width: 100%;
 }
 

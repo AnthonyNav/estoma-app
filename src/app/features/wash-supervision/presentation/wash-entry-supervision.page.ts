@@ -1,388 +1,138 @@
+import { SupervisorExitPage } from '../../wash-exit/presentation/supervisor-exit.page';
+import { EntryApprovedComponent } from './entry-approved.component';
+import { Router, RouterLink } from '@angular/router';
 import {
   ChangeDetectionStrategy,
   Component,
-  DestroyRef,
   ElementRef,
   ViewChild,
   computed,
   inject,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-
-import { ApplicationError } from '../../../core/api/application-error';
-import { OperationTrackerService } from '../../../core/api/operation-tracker.service';
-import { WashEntrySupervisionUseCase } from '../application/wash-entry-supervision.use-case';
-import {
-  DecideWashEntryCommand,
-  EntryLookupRequest,
-  RegisterWashArrivalCommand,
-  SupervisorEntryLookup,
-} from '../domain/models/supervisor-entry';
-
-type SupervisorAction = 'IDLE' | 'ARRIVAL' | 'DECISION' | 'FAILED';
-
-type PendingSupervisorAction =
-  | {
-      kind: 'ARRIVAL';
-      command: RegisterWashArrivalCommand;
-      operationId: string | null;
-    }
-  | {
-      kind: 'DECISION';
-      command: DecideWashEntryCommand;
-      operationId: string | null;
-    };
-
-const timeFormatter = new Intl.DateTimeFormat('es-MX', {
-  hour: '2-digit',
-  hour12: false,
-  minute: '2-digit',
-  timeZone: 'America/Mexico_City',
-});
+import { SupervisorEntryWorkflowService } from '../application/supervisor-entry-workflow.service';
 
 @Component({
   selector: 'app-wash-entry-supervision-page',
-  imports: [ReactiveFormsModule],
+  imports: [RouterLink, EntryApprovedComponent, SupervisorExitPage],
   templateUrl: './wash-entry-supervision.page.html',
   styleUrl: './wash-entry-supervision.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class WashEntrySupervisionPage {
-  private readonly destroyRef = inject(DestroyRef);
-  private readonly formBuilder = inject(FormBuilder);
-  private readonly supervision = inject(WashEntrySupervisionUseCase);
-  private readonly operationTracker = inject(OperationTrackerService);
-  private lastRequest: EntryLookupRequest | null = null;
-
-  @ViewChild('rejectionDialog') private rejectionDialog?: ElementRef<HTMLDialogElement>;
-  private rejectionTrigger: HTMLElement | null = null;
-
-  readonly lookupForm = this.formBuilder.nonNullable.group({
-    lookupType: ['STUDENT_ENROLLMENT' as EntryLookupRequest['lookupType']],
-    query: ['201945678', Validators.required],
-  });
-  readonly lookup = signal<SupervisorEntryLookup | null>(null);
-  readonly loadingLookup = signal(false);
-  readonly lookupError = signal<string | null>(null);
-  readonly action = signal<SupervisorAction>('IDLE');
-  readonly actionError = signal<string | null>(null);
-  readonly pendingAction = signal<PendingSupervisorAction | null>(null);
-  readonly identityConfirmed = signal(false);
-  readonly requirementsSatisfied = signal(false);
-  readonly rejectionOpen = signal(false);
+  private readonly router = inject(Router);
+  readonly flow = inject(SupervisorEntryWorkflowService);
+  readonly exitReview = computed(
+    () => this.flow.lookup()?.nextAction === 'EXIT_REVIEW' && !this.flow.authorizedHere?.(),
+  );
+  readonly backRoute =
+    inject(Router).getCurrentNavigation()?.extras.state?.['from'] === 'scan'
+      ? '/wash/supervision/scan'
+      : '/wash/supervision/manual';
+  readonly verifying = computed(
+    () =>
+      ['ENTRY', 'ENTRY_DECISION'].includes(this.flow.lookup()?.nextAction ?? '') &&
+      ['SCHEDULED', 'PENDING_ENTRY'].includes(this.status()),
+  );
   readonly rejectionReason = signal('');
   readonly rejectionTouched = signal(false);
-  readonly executionStatus = computed(() => this.lookup()?.washExecution?.status ?? 'NOT_ARRIVED');
-  readonly mayAuthorize = computed(
+  readonly status = computed(
     () =>
-      this.executionStatus() === 'PENDING_ENTRY' &&
-      this.identityConfirmed() &&
-      this.requirementsSatisfied() &&
-      (this.action() === 'IDLE' ||
-        (this.action() === 'FAILED' && this.pendingAction()?.kind === 'DECISION')),
+      this.flow.lookup()?.washExecution?.status ??
+      this.flow.lookup()?.appointment.appointmentStatus ??
+      'NONE',
   );
-  readonly mayRegisterArrival = computed(
+  readonly heading = computed(
     () =>
-      this.action() === 'IDLE' ||
-      (this.action() === 'FAILED' && this.pendingAction()?.kind === 'ARRIVAL'),
+      ({
+        PENDING_ENTRY: 'Verifica antes de aprobar',
+        IN_PROGRESS: 'Ingreso autorizado',
+        ENTRY_REJECTED: 'Ingreso rechazado',
+        PENDING_REASSIGNMENT: 'Ingreso autorizado · sin espacio disponible',
+        CANCELLED: 'Atención cancelada',
+        COMPLETED: 'Atención finalizada',
+        EXIT_SUBMITTED: 'Salida pendiente de revisión',
+        SCHEDULED: 'El alumno aún no registra su llegada',
+        MISSED: 'Cita marcada como inasistencia',
+        NONE: 'Consulta el estado de la cita',
+      })[this.status()],
   );
-  readonly mayOpenRejection = computed(() => {
-    const pending = this.pendingAction();
-    return (
-      this.executionStatus() === 'PENDING_ENTRY' &&
-      (this.action() === 'IDLE' ||
-        (this.action() === 'FAILED' &&
-          pending?.kind === 'DECISION' &&
-          pending.command.decision === 'REJECTED'))
-    );
-  });
-
-  search(): void {
-    if (this.lookupForm.invalid) {
-      this.lookupForm.markAllAsTouched();
-      return;
-    }
-
-    const request = this.createRequest();
-    this.lastRequest = request;
-    this.loadingLookup.set(true);
-    this.lookupError.set(null);
-    this.lookup.set(null);
-    this.action.set('IDLE');
-    this.pendingAction.set(null);
-    this.resetDecisionControls();
-
-    this.supervision
-      .lookup(request)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (lookup) => {
-          this.lookup.set(lookup);
-          this.loadingLookup.set(false);
-        },
-        error: (error: unknown) => {
-          this.lookupError.set(
-            error instanceof ApplicationError
-              ? error.message
-              : 'No fue posible consultar la cita de hoy.',
-          );
-          this.loadingLookup.set(false);
-        },
-      });
+  constructor() {
+    if (this.flow.pending?.()) this.flow.resume();
   }
-
-  registerArrival(): void {
-    const appointmentId = this.lookup()?.appointment.appointmentId;
-    if (!appointmentId || !this.mayRegisterArrival()) {
-      return;
-    }
-
-    let pending = this.pendingAction();
-    if (!pending) {
-      pending = {
-        kind: 'ARRIVAL',
-        command: { appointmentId, idempotencyKey: this.createIdempotencyKey() },
-        operationId: null,
-      };
-      this.pendingAction.set(pending);
-    }
-    if (pending.kind !== 'ARRIVAL') {
-      return;
-    }
-
-    this.action.set('ARRIVAL');
-    this.actionError.set(null);
-    if (pending.operationId) {
-      this.trackPendingAction(pending.operationId);
-      return;
-    }
-
-    this.supervision
-      .registerArrival(pending.command)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: ({ operationId }) => {
-          this.setPendingOperation(operationId);
-          this.trackPendingAction(operationId);
-        },
-        error: (error: unknown) => this.failAction(error),
-      });
+  @ViewChild('decisionDialog') private dialog?: ElementRef<HTMLDialogElement>;
+  private trigger: HTMLElement | null = null;
+  finishAttention(destination: 'scan' | 'home'): void {
+    if (this.flow.busy() || this.flow.pending() || this.status() !== 'IN_PROGRESS') return;
+    this.flow.reset();
+    void this.router.navigate([
+      destination === 'scan' ? '/wash/supervision/scan' : '/wash/supervision',
+    ]);
   }
-
-  openRejection(event: MouseEvent): void {
-    if (this.mayOpenRejection()) {
-      this.rejectionTrigger = event.currentTarget as HTMLElement;
-      this.rejectionOpen.set(true);
-      if (!this.pendingAction()) {
-        this.rejectionReason.set('');
-        this.rejectionTouched.set(false);
-      }
-      setTimeout(() => {
-        const dialog = this.rejectionDialog?.nativeElement;
-        if (dialog && !dialog.open) {
-          dialog.showModal();
-        }
-      });
-    }
-  }
-
-  closeRejection(): void {
-    if (this.action() !== 'DECISION') {
-      const dialog = this.rejectionDialog?.nativeElement;
-      if (dialog?.open) {
-        dialog.close();
-      } else {
-        this.handleRejectionClosed();
-      }
-    }
-  }
-
-  handleRejectionClosed(): void {
-    this.rejectionOpen.set(false);
-    this.rejectionTrigger?.focus();
-    this.rejectionTrigger = null;
-  }
-
-  preventRejectionDismissal(event: Event): void {
-    if (this.action() === 'DECISION') {
-      event.preventDefault();
-    }
-  }
-
-  updateIdentityConfirmed(event: Event): void {
-    this.identityConfirmed.set((event.target as HTMLInputElement).checked);
-  }
-
-  updateRequirementsSatisfied(event: Event): void {
-    this.requirementsSatisfied.set((event.target as HTMLInputElement).checked);
-  }
-
-  updateRejectionReason(event: Event): void {
+  setReason(event: Event): void {
     this.rejectionReason.set((event.target as HTMLTextAreaElement).value);
-    this.rejectionTouched.set(true);
   }
-
-  authorize(): void {
-    this.sendDecision('AUTHORIZED', null);
+  openDecision(decision: 'AUTHORIZED' | 'REJECTED', event: MouseEvent): void {
+    if (!this.flow.canStartDecision()) return;
+    if (decision === 'AUTHORIZED') {
+      this.flow.decide('AUTHORIZED', true, true, '');
+      return;
+    }
+    this.rejectionReason.set('');
+    this.rejectionTouched.set(false);
+    this.trigger = event.currentTarget as HTMLElement;
+    this.dialog?.nativeElement.showModal();
   }
-
-  confirmRejection(): void {
+  closeDialog(): void {
+    this.dialog?.nativeElement.close();
+  }
+  restoreFocus(): void {
+    this.trigger?.focus();
+    this.trigger = null;
+  }
+  confirmDecision(): void {
     const reason = this.rejectionReason().trim();
-    if (!reason) {
+    if (!reason || reason.length > 500) {
       this.rejectionTouched.set(true);
       return;
     }
-
-    this.sendDecision('REJECTED', reason);
+    if (!this.flow.canStartDecision()) return;
+    this.closeDialog();
+    // The workflow omits both checks for an unclassified rejection.
+    this.flow.decide('REJECTED', false, false, reason);
   }
-
-  formatTimeSlot(lookup: SupervisorEntryLookup): string {
-    const { startsAt, endsAt } = lookup.appointment.timeSlot;
-    return `${timeFormatter.format(new Date(startsAt))}–${timeFormatter.format(new Date(endsAt))}`;
-  }
-
-  private sendDecision(decision: 'AUTHORIZED' | 'REJECTED', rejectionReason: string | null): void {
-    const execution = this.lookup()?.washExecution;
-    if (!execution || execution.status !== 'PENDING_ENTRY') {
-      return;
-    }
-
-    if (decision === 'AUTHORIZED' && !this.mayAuthorize()) {
-      return;
-    }
-
-    let pending = this.pendingAction();
-    if (!pending) {
-      pending = {
-        kind: 'DECISION',
-        command: {
-          washExecutionId: execution.washExecutionId,
-          expectedVersion: execution.version ?? 1,
-          decision,
-          identityConfirmed: this.identityConfirmed(),
-          requirementsSatisfied: this.requirementsSatisfied(),
-          rejectionReason,
-          idempotencyKey: this.createIdempotencyKey(),
-        },
-        operationId: null,
-      };
-      this.pendingAction.set(pending);
-    }
-    if (pending.kind !== 'DECISION' || pending.command.decision !== decision) {
-      return;
-    }
-
-    this.action.set('DECISION');
-    this.actionError.set(null);
-    if (pending.operationId) {
-      this.trackPendingAction(pending.operationId);
-      return;
-    }
-
-    this.supervision
-      .decideEntry(pending.command)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: ({ operationId }) => {
-          this.setPendingOperation(operationId);
-          this.trackPendingAction(operationId);
-        },
-        error: (error: unknown) => this.failAction(error),
+  formatSlot(): string {
+    const slot = this.flow.lookup()?.appointment.appointmentTimeSlot;
+    if (!slot) return '';
+    try {
+      const time = new Intl.DateTimeFormat('es-MX', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: slot.timezone,
       });
-  }
-
-  private completeOperation(succeeded: boolean): void {
-    this.pendingAction.set(null);
-    if (!succeeded) {
-      this.action.set('IDLE');
-      this.actionError.set(
-        'La operación no se pudo completar. Actualiza la consulta e inténtalo otra vez.',
-      );
-      return;
-    }
-
-    this.action.set('IDLE');
-    this.closeRejection();
-    this.refreshLookup();
-  }
-
-  private refreshLookup(): void {
-    if (!this.lastRequest) {
-      return;
-    }
-
-    this.loadingLookup.set(true);
-    this.supervision
-      .lookup(this.lastRequest)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (lookup) => {
-          this.lookup.set(lookup);
-          this.loadingLookup.set(false);
-          this.resetDecisionControls();
-        },
-        error: (error: unknown) => {
-          this.lookupError.set(
-            error instanceof ApplicationError
-              ? error.message
-              : 'La operación se completó, pero no pudimos actualizar la consulta.',
-          );
-          this.loadingLookup.set(false);
-        },
+      const day = new Intl.DateTimeFormat('es-MX', {
+        day: 'numeric',
+        month: 'short',
+        timeZone: slot.timezone,
       });
+      return `${day.format(new Date(slot.startsAt))} · ${time.format(new Date(slot.startsAt))}–${time.format(new Date(slot.endsAt))}`;
+    } catch {
+      return 'Horario no disponible';
+    }
   }
-
-  private createRequest(): EntryLookupRequest {
-    const { lookupType, query } = this.lookupForm.getRawValue();
-    const value = query.trim();
-    return lookupType === 'QR'
-      ? { lookupType: 'QR', qrRepresentation: value }
-      : { lookupType: 'STUDENT_ENROLLMENT', studentEnrollment: value };
+  typeLabel(): string {
+    return {
+      NORMAL: 'Normal',
+      JOURNEY: 'Jornada clínica',
+      IMMUNOCOMPROMISED: 'Inmunocomprometido',
+    }[this.flow.lookup()!.appointment.appointmentType];
   }
-
-  private setPendingOperation(operationId: string): void {
-    this.pendingAction.update((pending) => (pending ? { ...pending, operationId } : pending));
-  }
-
-  private trackPendingAction(operationId: string): void {
-    this.operationTracker
-      .trackWith(() => this.supervision.getOperation(operationId), {
-        intervalMs: 600,
-        maxPendingPolls: 100,
-      })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (operation) => this.completeOperation(operation.status === 'SUCCEEDED'),
-        error: (error: unknown) => this.failAction(error),
-      });
-  }
-
-  private failAction(error: unknown): void {
-    this.action.set('FAILED');
-    this.actionError.set(
-      this.pendingAction()?.operationId
-        ? 'No pudimos comprobar la operación. Reintenta para consultar la misma operación.'
-        : error instanceof ApplicationError
-          ? error.message
-          : 'No fue posible guardar la decisión. Inténtalo nuevamente.',
-    );
-  }
-
-  private resetDecisionControls(): void {
-    this.identityConfirmed.set(false);
-    this.requirementsSatisfied.set(false);
-    this.rejectionOpen.set(false);
-    this.rejectionReason.set('');
-    this.rejectionTouched.set(false);
-    this.actionError.set(null);
-  }
-
-  private createIdempotencyKey(): string {
-    return (
-      globalThis.crypto?.randomUUID?.() ??
-      `entry-${Date.now()}-${Math.random().toString(16).slice(2)}`
-    );
+  pieceLabel(): string {
+    return {
+      HIGH_SPEED: 'Alta velocidad',
+      LOW_SPEED: 'Baja velocidad',
+      CONTRA_ANGLE: 'Contra-ángulo',
+    }[this.flow.lookup()!.appointment.pieceType];
   }
 }

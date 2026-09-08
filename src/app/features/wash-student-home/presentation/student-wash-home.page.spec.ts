@@ -1,3 +1,5 @@
+import { signal } from '@angular/core';
+import { AppointmentCancellationService } from '../../wash-appointments/application/appointment-cancellation.service';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
@@ -47,14 +49,27 @@ const homeWith = (data: StudentWashHome['appointment']): StudentWashHome => ({
 
 describe('StudentWashHomePage', () => {
   let gateway: jasmine.SpyObj<StudentWashHomeGateway>;
+  const pendingCancellation = signal<ReturnType<AppointmentCancellationService['pending']>>(null);
 
   beforeEach(async () => {
+    pendingCancellation.set(null);
     gateway = jasmine.createSpyObj<StudentWashHomeGateway>('StudentWashHomeGateway', ['loadHome']);
 
     await TestBed.configureTestingModule({
       imports: [StudentWashHomePage],
       providers: [
         provideRouter([]),
+        {
+          provide: AppointmentCancellationService,
+          useValue: {
+            pending: pendingCancellation,
+            busy: signal(false),
+            message: signal(null),
+            settled: signal(0),
+            start: jasmine.createSpy('start'),
+            clear: jasmine.createSpy('clear'),
+          },
+        },
         {
           provide: STUDENT_WASH_HOME_GATEWAY,
           useValue: gateway,
@@ -161,4 +176,105 @@ describe('StudentWashHomePage', () => {
     expect(fixture.nativeElement.textContent).toContain('Ingreso rechazado');
     expect(fixture.nativeElement.textContent).toContain('No cumple con los requisitos de ingreso.');
   });
+  it('renders a provided QR even before its usage window', () => {
+    gateway.loadHome.and.returnValue(
+      of(homeWith({ ...appointment, qrUsageContext: 'NONE', qrRepresentation: 'opaque-token' })),
+    );
+    const fixture = TestBed.createComponent(StudentWashHomePage);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-appointment-qr')).not.toBeNull();
+  });
+  it('hides the QR during washing and restores it only after the exit form is registered', () => {
+    const inProgress: StudentWashHome['appointment'] = {
+      ...appointment,
+      appointmentStatus: 'IN_PROGRESS',
+      qrRepresentation: 'opaque-token',
+      qrUsageContext: 'STUDENT_EXIT',
+      washExecution: {
+        washExecutionId: '44444444-4444-4444-4444-444444444444',
+        status: 'IN_PROGRESS',
+      },
+    };
+    gateway.loadHome.and.returnValue(of(homeWith(inProgress)));
+    const fixture = TestBed.createComponent(StudentWashHomePage);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-appointment-qr')).toBeNull();
+    expect(fixture.nativeElement.querySelector('dialog.qr-dialog')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Registrar salida');
+    gateway.loadHome.and.returnValue(
+      of(
+        homeWith({
+          ...inProgress,
+          qrUsageContext: 'SUPERVISOR_EXIT_REVIEW',
+          washExecution: { ...inProgress.washExecution!, status: 'EXIT_SUBMITTED' },
+        }),
+      ),
+    );
+    fixture.componentInstance.retry();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-appointment-qr')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Consultar mi envío');
+  });
+  it('only offers cancellation when the owner allows it and sends its current version after confirmation', () => {
+    gateway.loadHome.and.returnValue(
+      of(
+        homeWith({ ...appointment, appointmentVersion: 4, studentCancellationAction: 'AVAILABLE' }),
+      ),
+    );
+    const fixture = TestBed.createComponent(StudentWashHomePage);
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('.button--cancel').click();
+    expect(TestBed.inject(AppointmentCancellationService).start).not.toHaveBeenCalled();
+    fixture.nativeElement.querySelector('.button--cancel-confirm').click();
+    expect(TestBed.inject(AppointmentCancellationService).start).toHaveBeenCalledWith(
+      appointment.appointmentId,
+      4,
+    );
+  });
+  it('does not offer cancellation after the owner deadline', () => {
+    gateway.loadHome.and.returnValue(
+      of(
+        homeWith({
+          ...appointment,
+          appointmentVersion: 4,
+          studentCancellationAction: 'DEADLINE_PASSED',
+        }),
+      ),
+    );
+    const fixture = TestBed.createComponent(StudentWashHomePage);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.button--cancel')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('El plazo para cancelar');
+  });
+  for (const scenario of ['missing', 'different', 'same'] as const) {
+    it(`only reconciles an expired cancellation with the same newer cancelled appointment: ${scenario}`, () => {
+      pendingCancellation.set({
+        command: {
+          appointmentId: appointment.appointmentId,
+          expectedVersion: 1,
+          idempotencyKey: 'key',
+        },
+        operationId: 'op',
+        result: { operationId: 'op', status: 'EXPIRED' },
+      });
+      gateway.loadHome.and.returnValue(
+        of(
+          homeWith(
+            scenario === 'missing'
+              ? null
+              : {
+                  ...appointment,
+                  appointmentId: scenario === 'different' ? 'another' : appointment.appointmentId,
+                  appointmentStatus: 'CANCELLED',
+                  appointmentVersion: 2,
+                },
+          ),
+        ),
+      );
+      const fixture = TestBed.createComponent(StudentWashHomePage);
+      fixture.detectChanges();
+      const cancellation = TestBed.inject(AppointmentCancellationService);
+      expect(cancellation.clear).toHaveBeenCalledTimes(scenario === 'same' ? 1 : 0);
+    });
+  }
 });

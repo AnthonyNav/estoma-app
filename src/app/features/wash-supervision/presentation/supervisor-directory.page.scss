@@ -1,0 +1,286 @@
+:host {
+  display: block;
+  color: #19353e;
+}
+.directory {
+  max-width: 960px;
+  margin: auto;
+  padding: 12px 24px 32px;
+}
+a {
+  color: #105b6c;
+  text-decoration: none;
+  font-weight: 700;
+}
+.back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 13px;
+}
+header {
+  margin: 12px 0 24px;
+}
+.eyebrow {
+  margin: 0 0 6px;
+  color: #4c7681;
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+h1 {
+  margin: 0 0 8px;
+  color: #064b59;
+  font-size: clamp(25px, 5vw, 32px);
+  letter-spacing: -0.035em;
+}
+header > p:last-child {
+  color: #687d85;
+  font-size: 13px;
+  margin: 0;
+  line-height: 1.7;
+}
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #d4e1e5;
+  border-radius: 16px;
+  background: white;
+  padding: 0 16px;
+}
+.search-box:focus-within {
+  outline: 2px solid #35899a;
+  outline-offset: 2px;
+}
+svg {
+  width: 22px;
+  height: 22px;
+  stroke: #5c818c;
+  fill: none;
+  stroke-width: 1.7;
+  flex-shrink: 0;
+}
+input {
+  min-width: 0;
+  width: 100%;
+  height: 54px;
+  border: 0;
+  outline: 0;
+  font: inherit;
+  color: #19353e;
+  background: transparent;
+  font-size: 14px;
+}
+input::placeholder {
+  color: #6a7e86;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+}
+.filters button {
+  border: 1px solid #dce6e9;
+  border-radius: 24px;
+  background: transparent;
+  min-height: 44px;
+  padding: 8px 16px;
+  color: #627983;
+  font-size: 13px;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+.filters button[aria-pressed='true'] {
+  background: #105b6c;
+  border-color: #105b6c;
+  color: white;
+}
+.result-count {
+  font-size: 12px;
+  color: #6b8088;
+  margin: 16px 0 12px;
+}
+.appointments {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.appointment {
+  width: 100%;
+  height: 100%;
+  text-align: left;
+  background: white;
+  border: 1px solid #e0e9ec;
+  border-radius: 24px;
+  padding: 22px;
+  color: inherit;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.appointment:hover:not(:disabled) {
+  border-color: #86b5c0;
+  box-shadow: 0 5px 18px #105b6c0a;
+}
+.appointment:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+.card-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+}
+.card-top > div {
+  flex: 1 1 170px;
+}
+h2 {
+  font-size: 18px;
+  color: #155665;
+  margin: 0;
+  line-height: 1.45;
+}
+.enrollment {
+  margin: 7px 0 0;
+  font-size: 12px;
+  color: #6b7f86;
+}
+.status {
+  border-radius: 20px;
+  background: #edf1f3;
+  color: #60747c;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.in-progress {
+  background: #fcf2dd;
+  color: #856219;
+}
+.card-bottom {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  border-top: 1px solid #e4ebed;
+  padding-top: 16px;
+  margin-top: 18px;
+}
+.card-bottom > div {
+  display: grid;
+  gap: 5px;
+}
+.label {
+  color: #75878e;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.arrow {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #d5e2e6;
+  border-radius: 50%;
+  color: #226b7b;
+  font-size: 19px;
+}
+.empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 28px 20px;
+  border-radius: 20px;
+  background: white;
+  color: #677e87;
+  font-size: 14px;
+}
+.empty p {
+  line-height: 1.7;
+}
+.empty button {
+  border: 0;
+  background: #105b6c;
+  color: white;
+  border-radius: 12px;
+  min-height: 44px;
+  padding: 10px 16px;
+}
+.notice {
+  font-size: 13px;
+  line-height: 1.7;
+  padding: 14px;
+  background: #fff5e7;
+  border-radius: 12px;
+}
+.demo {
+  text-align: center;
+  font-size: 11px;
+  color: #72868e;
+  margin-top: 24px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid #35899a;
+  outline-offset: 3px;
+}
+@media (max-width: 650px) {
+  .directory {
+    padding: 8px 18px 28px;
+  }
+  .appointments {
+    grid-template-columns: 1fr;
+  }
+  .appointment {
+    padding: 20px;
+  }
+}
+@media (max-width: 360px) {
+  .filters button {
+    padding-inline: 12px;
+  }
+  .card-bottom {
+    gap: 10px;
+  }
+  .appointment {
+    padding: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  button {
+    transition: none !important;
+  }
+}
+
+.exact-enrollment {
+  box-sizing: border-box;
+  border: 1px solid #d4e1e5;
+  border-radius: 12px;
+  padding: 0 14px;
+  margin: 0 0 16px;
+}

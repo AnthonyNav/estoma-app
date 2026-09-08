@@ -1,0 +1,197 @@
+{
+  "notice": "EJEMPLOS SINTÉTICOS DE CONTRATO. No son capturas de runtime ni credenciales ni IDs utilizables. Fechas ilustrativas; no prueban una ventana vigente.",
+  "lookupBeforeArrival": {
+    "serviceDate": "2026-09-06",
+    "nextAction": "ENTRY",
+    "student": {
+      "studentAccountId": "00000000-0000-4000-8000-000000000001",
+      "displayName": "Alumno Sintético",
+      "studentEnrollment": "E2E-ALUMNO-01",
+      "currentSemester": 6
+    },
+    "appointment": {
+      "appointmentId": "00000000-0000-4000-8000-000000000002",
+      "appointmentStatus": "SCHEDULED",
+      "appointmentType": "NORMAL",
+      "instrumentCount": 15,
+      "pieceType": "HIGH_SPEED",
+      "courseSectionReference": {
+        "courseSectionId": "00000000-0000-4000-8000-000000000003",
+        "nrc": "E2E-NRC",
+        "name": "Sección sintética"
+      },
+      "appointmentTimeSlot": {
+        "appointmentTimeSlotId": "00000000-0000-4000-8000-000000000004",
+        "startsAt": "2026-09-06T20:00:00Z",
+        "endsAt": "2026-09-06T21:00:00Z",
+        "timezone": "America/Mexico_City"
+      }
+    },
+    "washExecution": null,
+    "activeResourceAssignment": null
+  },
+  "authorizedOperation": {
+    "operationId": "00000000-0000-4000-8000-000000000009",
+    "publicOperation": "wash-decide-entry",
+    "status": "SUCCEEDED",
+    "data": {
+      "status": "IN_PROGRESS",
+      "tankId": "00000000-0000-4000-8000-000000000008"
+    },
+    "errorCode": null,
+    "createdAt": "2026-09-06T19:56:00Z",
+    "updatedAt": "2026-09-06T19:56:01Z",
+    "completedAt": "2026-09-06T19:56:01Z"
+  },
+  "lookupAfterAuthorized": {
+    "serviceDate": "2026-09-06",
+    "nextAction": "EXIT_REVIEW",
+    "student": {
+      "studentAccountId": "00000000-0000-4000-8000-000000000001",
+      "displayName": "Alumno Sintético",
+      "studentEnrollment": "E2E-ALUMNO-01",
+      "currentSemester": 6
+    },
+    "appointment": {
+      "appointmentId": "00000000-0000-4000-8000-000000000002",
+      "appointmentStatus": "IN_PROGRESS",
+      "appointmentType": "NORMAL",
+      "instrumentCount": 15,
+      "pieceType": "HIGH_SPEED",
+      "courseSectionReference": {
+        "courseSectionId": "00000000-0000-4000-8000-000000000003",
+        "nrc": "E2E-NRC",
+        "name": "Sección sintética"
+      },
+      "appointmentTimeSlot": {
+        "appointmentTimeSlotId": "00000000-0000-4000-8000-000000000004",
+        "startsAt": "2026-09-06T20:00:00Z",
+        "endsAt": "2026-09-06T21:00:00Z",
+        "timezone": "America/Mexico_City"
+      }
+    },
+    "washExecution": {
+      "washExecutionId": "00000000-0000-4000-8000-000000000005",
+      "status": "IN_PROGRESS",
+      "executionVersion": 2,
+      "arrivedAt": "2026-09-06T19:55:00Z",
+      "rejectionReason": null,
+      "exitSubmittedAt": null,
+      "submittedExitMaterials": null
+    },
+    "activeResourceAssignment": {
+      "resourceAssignmentId": "00000000-0000-4000-8000-000000000006",
+      "assignmentType": "INITIAL",
+      "cabin": {
+        "resourceId": "00000000-0000-4000-8000-000000000007",
+        "code": "E2E-CAB",
+        "name": "Cabina sintética"
+      },
+      "tank": {
+        "resourceId": "00000000-0000-4000-8000-000000000008",
+        "code": "E2E-TINA",
+        "name": "Tina sintética"
+      }
+    }
+  },
+  "rejectedDecisionOperation": {
+    "operationId": "00000000-0000-4000-8000-000000000009",
+    "publicOperation": "wash-decide-entry",
+    "status": "SUCCEEDED",
+    "data": {
+      "status": "ENTRY_REJECTED"
+    },
+    "errorCode": null,
+    "createdAt": "2026-09-06T19:56:00Z",
+    "updatedAt": "2026-09-06T19:56:01Z",
+    "completedAt": "2026-09-06T19:56:01Z"
+  },
+  "lookupAfterRejected": {
+    "serviceDate": "2026-09-06",
+    "nextAction": "NONE",
+    "student": {
+      "studentAccountId": "00000000-0000-4000-8000-000000000001",
+      "displayName": "Alumno Sintético",
+      "studentEnrollment": "E2E-ALUMNO-01",
+      "currentSemester": 6
+    },
+    "appointment": {
+      "appointmentId": "00000000-0000-4000-8000-000000000002",
+      "appointmentStatus": "ENTRY_REJECTED",
+      "appointmentType": "NORMAL",
+      "instrumentCount": 15,
+      "pieceType": "HIGH_SPEED",
+      "courseSectionReference": {
+        "courseSectionId": "00000000-0000-4000-8000-000000000003",
+        "nrc": "E2E-NRC",
+        "name": "Sección sintética"
+      },
+      "appointmentTimeSlot": {
+        "appointmentTimeSlotId": "00000000-0000-4000-8000-000000000004",
+        "startsAt": "2026-09-06T20:00:00Z",
+        "endsAt": "2026-09-06T21:00:00Z",
+        "timezone": "America/Mexico_City"
+      }
+    },
+    "washExecution": {
+      "washExecutionId": "00000000-0000-4000-8000-000000000005",
+      "status": "ENTRY_REJECTED",
+      "executionVersion": 2,
+      "arrivedAt": "2026-09-06T19:55:00Z",
+      "rejectionReason": "Requisitos no satisfechos",
+      "exitSubmittedAt": null,
+      "submittedExitMaterials": null
+    },
+    "activeResourceAssignment": null
+  },
+  "authorizedWithoutResourcesOperation": {
+    "operationId": "00000000-0000-4000-8000-000000000009",
+    "publicOperation": "wash-decide-entry",
+    "status": "SUCCEEDED",
+    "data": {
+      "status": "PENDING_REASSIGNMENT"
+    },
+    "errorCode": null,
+    "createdAt": "2026-09-06T19:56:00Z",
+    "updatedAt": "2026-09-06T19:56:01Z",
+    "completedAt": "2026-09-06T19:56:01Z"
+  },
+  "lookupWithoutResources": {
+    "serviceDate": "2026-09-06",
+    "nextAction": "REASSIGNMENT",
+    "student": {
+      "studentAccountId": "00000000-0000-4000-8000-000000000001",
+      "displayName": "Alumno Sintético",
+      "studentEnrollment": "E2E-ALUMNO-01",
+      "currentSemester": 6
+    },
+    "appointment": {
+      "appointmentId": "00000000-0000-4000-8000-000000000002",
+      "appointmentStatus": "SCHEDULED",
+      "appointmentType": "NORMAL",
+      "instrumentCount": 15,
+      "pieceType": "HIGH_SPEED",
+      "courseSectionReference": {
+        "courseSectionId": "00000000-0000-4000-8000-000000000003",
+        "nrc": "E2E-NRC",
+        "name": "Sección sintética"
+      },
+      "appointmentTimeSlot": {
+        "appointmentTimeSlotId": "00000000-0000-4000-8000-000000000004",
+        "startsAt": "2026-09-06T20:00:00Z",
+        "endsAt": "2026-09-06T21:00:00Z",
+        "timezone": "America/Mexico_City"
+      }
+    },
+    "washExecution": {
+      "washExecutionId": "00000000-0000-4000-8000-000000000005",
+      "status": "PENDING_REASSIGNMENT",
+      "executionVersion": 2,
+      "arrivedAt": "2026-09-06T19:55:00Z",
+      "rejectionReason": null,
+      "exitSubmittedAt": null,
+      "submittedExitMaterials": null
+    },
+    "activeResourceAssignment": null
+  }
+}

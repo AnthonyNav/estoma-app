@@ -1,52 +1,7 @@
 :host {
   display: block;
   min-height: 100dvh;
-}
-
-.app-header {
-  align-items: center;
-  border-bottom: 1px solid var(--outline-variant);
-  display: flex;
-  justify-content: space-between;
-  margin: 0 auto;
-  max-width: 84rem;
-  padding: 1rem max(1rem, calc((100vw - 78rem) / 2));
-}
-
-.brand {
-  color: var(--color-ink);
-  font-size: 1.125rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  text-decoration: none;
-}
-
-.app-header__sign-out {
-  align-items: center;
-  border-radius: var(--radius-default);
-  color: var(--on-surface-variant);
-  display: inline-flex;
-  font-size: 0.875rem;
-  font-weight: 700;
-  gap: 0.5rem;
-  min-height: 2.75rem;
-  padding: 0.5rem 0.75rem;
-  text-decoration: none;
-}
-
-.app-header__sign-out:hover {
-  background: var(--surface-container-low);
-  color: var(--primary);
-}
-
-.app-header__sign-out svg {
-  fill: none;
-  height: 1.25rem;
-  stroke: currentcolor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.75;
-  width: 1.25rem;
+  background: #f2f5f6;
 }
 
 .app-content {
@@ -55,12 +10,140 @@
   padding: clamp(1.5rem, 4vw, 3rem) max(1rem, calc((100vw - 78rem) / 2));
 }
 
-@media (max-width: 31.25rem) {
-  .app-header {
-    padding: 0.75rem 1rem;
-  }
+.app-content--authentication {
+  max-width: none;
+  padding: 0;
+}
 
-  .app-header__sign-out {
-    padding: 0.5rem;
+.app-content--student {
+  max-width: none;
+  padding: 0;
+  min-height: calc(100dvh - 5.5rem);
+  background: #f2f5f6;
+}
+
+.wash-header {
+  background: #fff;
+  border-bottom: 1px solid #e3ebed;
+  padding: max(1rem, env(safe-area-inset-top)) max(1.25rem, env(safe-area-inset-right)) 1rem
+    max(1.25rem, env(safe-area-inset-left));
+}
+.wash-header__inner {
+  max-width: 64rem;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.wash-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+.wash-header__symbol {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  border-radius: 0.875rem;
+  background: #eaf2f3;
+  color: #0f5c6e;
+}
+.wash-header svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.wash-header__symbol svg {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+.wash-header__title {
+  margin: 0;
+  color: #004352;
+  font-size: 1.0625rem;
+  font-weight: 750;
+  line-height: 1.4;
+  letter-spacing: -0.025em;
+}
+.wash-header__subtitle {
+  margin: 0.125rem 0 0;
+  color: #53636a;
+  font-size: 0.6875rem;
+  line-height: 1.5;
+}
+.wash-header__logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  min-width: 3rem;
+  padding: 0.5rem;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: #0f5c6e;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.wash-header__logout svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.wash-header__logout:hover {
+  background: #edf3f4;
+}
+.wash-header__logout:focus-visible {
+  outline: 3px solid #00696c;
+  outline-offset: 3px;
+}
+@media (max-width: 359px) {
+  .wash-header {
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
+  .wash-header__brand {
+    gap: 0.5rem;
+  }
+  .wash-header__title {
+    font-size: 0.9375rem;
+  }
+  .wash-header__logout span {
+    display: none;
+  }
+}
+
+:host:has(
+  app-wash-regulation-page,
+  app-wash-appointment-form-page,
+  app-wash-appointment-availability-page,
+  app-wash-entry-supervision-page,
+  app-supervisor-home-page,
+  app-supervisor-scanner-page,
+  app-supervisor-directory-page,
+  app-reassignments-page,
+  app-student-exit-page,
+  app-supervisor-exit-page
+) {
+  background: #f2f5f6;
+}
+
+.app-content:has(
+  app-supervisor-scanner-page,
+  app-supervisor-directory-page,
+  app-wash-entry-supervision-page,
+  app-reassignments-page,
+  app-student-exit-page,
+  app-supervisor-exit-page
+) {
+  max-width: none;
+  padding: 0;
 }

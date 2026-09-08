@@ -1,0 +1,35 @@
+@use './student-exit.page.scss';
+.waiting {
+  margin: 0;
+  max-width: none;
+}
+.waiting .back {
+  display: block;
+  margin: 12px auto 0;
+}
+.material-copy .original {
+  display: block;
+  font-size: 10px;
+}
+.corrected .original {
+  color: #167b6c;
+  font-weight: 700;
+}
+.corrected .counter {
+  background: #e7f4ef;
+  border-color: #9ccabf;
+}
+h3 {
+  font-size: 13px;
+  color: #536f79;
+  margin: 16px 0 0;
+}
+details {
+  margin-top: 24px;
+  font-size: 11px;
+  color: #687f89;
+  overflow-wrap: anywhere;
+}
+.result > .back {
+  margin-top: 12px;
+}

@@ -6,8 +6,6 @@ when:
 steps:
   validate:
     image: node:22-bookworm
-    environment:
-      CHROME_BIN: /usr/bin/chromium
     commands:
       - apt-get update
       - apt-get install --yes --no-install-recommends chromium
@@ -15,5 +13,27 @@ steps:
       - pnpm install --frozen-lockfile
       - pnpm format:check
       - pnpm lint
+      - export CHROME_BIN="$PWD/scripts/ci/chromium"
       - pnpm test:ci
       - pnpm build
+
+  publish:
+    image: woodpeckerci/plugin-kaniko:2.3.2
+    when:
+      event: push
+      branch:
+        - dev
+        - deploy/frontend-argo
+    settings:
+      registry: ghcr.io
+      repo: anthonynav/estoma-app
+      context: .
+      dockerfile: Dockerfile
+      username:
+        from_secret: GHCR_USERNAME
+      password:
+        from_secret: GHCR_TOKEN
+      tags:
+        - develop-${CI_COMMIT_SHA:0:7}
+      build_args:
+        - VCS_REF=${CI_COMMIT_SHA}

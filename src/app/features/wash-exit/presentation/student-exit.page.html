@@ -1,0 +1,180 @@
+<section class="page" aria-labelledby="title">
+  <a class="back" routerLink="/wash/student">← Volver a mi cita</a>
+  @if (flow.pending()) {
+    <article class="state card" aria-live="polite">
+      <span class="state-icon" aria-hidden="true">↻</span>
+      <h1 id="title">
+        {{ flow.busy() ? 'Registrando tu salida' : 'Tu envío está en seguimiento' }}
+      </h1>
+      <p>
+        Estamos comprobando que tus materiales se hayan registrado. No necesitas enviarlos otra vez.
+      </p>
+      @if (flow.error()) {
+        <p class="error" role="alert">{{ flow.error() }}</p>
+        <button class="primary" [disabled]="flow.busy()" (click)="flow.resume()">
+          Consultar resultado
+        </button>
+      }
+      <small>Tu solicitud se conserva si recargas esta página.</small>
+    </article>
+  } @else if (failed()) {
+    <article class="state card">
+      <h1 id="title">No pudimos consultar tu cita</h1>
+      <p>Revisa tu conexión y vuelve a intentarlo. Conservaremos tu borrador.</p>
+      <button class="primary" (click)="load()">Reintentar</button>
+    </article>
+  } @else if (home(); as data) {
+    @if (data.appointment?.washExecution; as execution) {
+      @if (execution.status === 'IN_PROGRESS') {
+        <header>
+          <p class="eyebrow">Último paso de tu lavado</p>
+          <h1 id="title">Registrar salida</h1>
+          <p>
+            Indica los materiales que utilizaste. El supervisor los revisará contigo antes de
+            finalizar.
+          </p>
+        </header>
+        <div class="layout">
+          <aside class="card summary">
+            <span class="status">Lavado en proceso</span>
+            <h2>{{ data.student.fullName }}</h2>
+            <p>{{ data.student.studentEnrollment }}</p>
+            <div class="assignment">
+              <strong>{{ execution.activeResourceAssignment?.cabinName }}</strong
+              ><span>{{ execution.activeResourceAssignment?.tankName }}</span>
+            </div>
+            <p class="note">Enviar este formulario todavía no autoriza tu salida.</p>
+          </aside>
+          <form (ngSubmit)="submit()" novalidate>
+            <div class="section-title">
+              <h2>Materiales utilizados</h2>
+              <span>Cantidades enteras</span>
+            </div>
+            <div class="card materials">
+              @for (field of fields; track field.key) {
+                <div class="material">
+                  <span class="material-icon" aria-hidden="true"
+                    ><svg viewBox="0 0 24 24"><path [attr.d]="field.icon" /></svg
+                  ></span>
+                  <div class="material-copy">
+                    <label [for]="field.key">{{ field.label }}</label
+                    ><small>{{ field.description }}</small>
+                  </div>
+                  <div class="counter">
+                    <button
+                      type="button"
+                      (click)="step(field.key, -1)"
+                      [disabled]="materials()[field.key] <= 0"
+                      [attr.aria-label]="'Reducir ' + field.label"
+                    >
+                      −</button
+                    ><input
+                      [id]="field.key"
+                      [name]="field.key"
+                      type="number"
+                      inputmode="numeric"
+                      min="0"
+                      max="2147483647"
+                      step="1"
+                      [ngModel]="materials()[field.key]"
+                      (ngModelChange)="change(field.key, $event)"
+                      [attr.aria-invalid]="touched() && invalid(field.key)"
+                    /><button
+                      type="button"
+                      (click)="step(field.key, 1)"
+                      [disabled]="materials()[field.key] >= 2147483647"
+                      [attr.aria-label]="'Aumentar ' + field.label"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+            @if (touched() && !valid()) {
+              <p class="error" role="alert">
+                Registra al menos un material. Usa cantidades enteras, sin números negativos.
+              </p>
+            }
+            @if (flow.error()) {
+              <p class="error" role="alert">{{ flow.error() }}</p>
+              <button type="button" class="back" (click)="load()">Actualizar mi cita</button>
+            }
+            <p class="help">Puedes dejar en cero los materiales que no utilizaste.</p>
+            <button class="primary" type="submit" [disabled]="loading() || !canEdit()">
+              Enviar para revisión <span aria-hidden="true">→</span>
+            </button>
+          </form>
+        </div>
+      } @else if (execution.status === 'EXIT_SUBMITTED' || execution.status === 'COMPLETED') {
+        <div class="result">
+          <span class="state-icon" aria-hidden="true">{{
+            execution.status === 'COMPLETED' ? '✓' : '◷'
+          }}</span>
+          <h1 id="title">
+            {{
+              execution.status === 'COMPLETED'
+                ? 'Tu lavado ha finalizado'
+                : 'Todo listo para la revisión'
+            }}
+          </h1>
+          <p>
+            {{
+              execution.status === 'COMPLETED'
+                ? 'El supervisor autorizó tu salida. Estos son los materiales finales registrados.'
+                : 'Tus materiales ya están registrados. Acércate al supervisor para que revise y autorice tu salida.'
+            }}
+          </p>
+          <article class="card">
+            <span class="status">{{
+              execution.status === 'COMPLETED' ? 'Salida autorizada' : 'Pendiente de autorización'
+            }}</span>
+            <h2>
+              {{
+                execution.status === 'COMPLETED' ? 'Materiales confirmados' : 'Lo que registraste'
+              }}
+            </h2>
+            @if (
+              execution.status === 'COMPLETED'
+                ? execution.finalExitMaterials
+                : execution.submittedExitMaterials;
+              as values
+            ) {
+              <dl>
+                @for (field of fields; track field.key) {
+                  <div>
+                    <dt>{{ field.label }}</dt>
+                    <dd>{{ values[field.key] }}</dd>
+                  </div>
+                }
+              </dl>
+            } @else {
+              <p>No pudimos recuperar el detalle de materiales.</p>
+              <button class="back" (click)="load()">Consultar materiales</button>
+            }
+          </article>
+          @if (execution.status === 'EXIT_SUBMITTED') {
+            <p class="help">El supervisor puede corregir las cantidades durante la revisión.</p>
+            <button class="primary" (click)="showQr()">Volver a mi cita</button>
+            <p class="live">Tu estado se actualiza automáticamente.</p>
+          } @else {
+            <a class="primary" routerLink="/wash/student">Volver al inicio</a>
+          }
+        </div>
+      } @else {
+        <article class="state card">
+          <h1 id="title">Consulta el estado de tu cita</h1>
+          <p>El registro de salida está disponible cuando tu lavado está en proceso.</p>
+          <a class="primary" routerLink="/wash/student">Volver a mi cita</a>
+        </article>
+      }
+    } @else {
+      <article class="state card">
+        <h1 id="title">Todavía no hay un lavado en proceso</h1>
+        <a class="primary" routerLink="/wash/student">Volver a mi cita</a>
+      </article>
+    }
+  } @else {
+    <p class="state" role="status">Consultando tu cita…</p>
+  }
+</section>

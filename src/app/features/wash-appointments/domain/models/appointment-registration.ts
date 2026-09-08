@@ -52,7 +52,7 @@ export interface ScheduleAppointmentCommand extends AppointmentDraft {
 
 export interface AcceptedOperation {
   operationId: string;
-  status: 'PENDING';
+  status: DurableOperationStatus;
   pollPath: string;
   submittedAt: string;
 }
@@ -62,5 +62,19 @@ export type DurableOperationStatus = 'PENDING' | 'SUCCEEDED' | 'REJECTED' | 'FAI
 export interface DurableOperation {
   operationId: string;
   status: DurableOperationStatus;
-  rejectionCode?: string;
+  errorCode?: string | null;
+  data?: {
+    status?: string;
+    tankId?: string;
+    aggregateId?: string;
+    aggregateVersion?: number;
+    message?: string;
+  } | null;
+}
+
+export interface CancelAppointmentCommand {
+  appointmentId: string;
+  expectedVersion: number;
+  idempotencyKey: string;
+  reason?: string | null;
 }

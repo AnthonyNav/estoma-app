@@ -1,0 +1,429 @@
+{
+  "responses": {
+    "login_normal": {
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "status": 200,
+      "body": {
+        "accountId": "11111111-1111-4111-8111-111111111111",
+        "sessionId": "22222222-2222-4222-8222-222222222222",
+        "accessToken": "{{accessToken}}",
+        "refreshToken": "{{refreshToken}}",
+        "authState": "NORMAL"
+      }
+    },
+    "login_restricted": {
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "status": 200,
+      "body": {
+        "accountId": "11111111-1111-4111-8111-111111111111",
+        "sessionId": "22222222-2222-4222-8222-222222222222",
+        "accessToken": "{{accessToken}}",
+        "refreshToken": null,
+        "authState": "PASSWORD_CHANGE_REQUIRED"
+      }
+    },
+    "login_incomplete": {
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "status": 200,
+      "body": {
+        "authState": "NORMAL",
+        "accessToken": null
+      }
+    },
+    "profile_both": {
+      "method": "GET",
+      "path": "/api/v1/me",
+      "status": 200,
+      "body": {
+        "accountId": "11111111-1111-4111-8111-111111111111",
+        "personId": "33333333-3333-4333-8333-333333333333",
+        "displayName": "Alumno de prueba",
+        "loginType": "MATRICULA",
+        "loginIdentifier": "202257019",
+        "institutionalEmail": "alumno@example.invalid",
+        "roleCode": "ALUMNO",
+        "availableSystemCodes": ["LAVADO_ULTRASONICO", "PRACTICAS_PROFESIONALES"]
+      }
+    },
+    "profile_wash": {
+      "method": "GET",
+      "path": "/api/v1/me",
+      "status": 200,
+      "body": {
+        "accountId": "11111111-1111-4111-8111-111111111111",
+        "personId": "33333333-3333-4333-8333-333333333333",
+        "displayName": "Alumno de prueba",
+        "loginType": "MATRICULA",
+        "loginIdentifier": "202257019",
+        "institutionalEmail": "alumno@example.invalid",
+        "roleCode": "ALUMNO",
+        "availableSystemCodes": ["LAVADO_ULTRASONICO"]
+      }
+    },
+    "profile_practices": {
+      "method": "GET",
+      "path": "/api/v1/me",
+      "status": 200,
+      "body": {
+        "accountId": "11111111-1111-4111-8111-111111111111",
+        "personId": "33333333-3333-4333-8333-333333333333",
+        "displayName": "Alumno de prueba",
+        "loginType": "MATRICULA",
+        "loginIdentifier": "202257019",
+        "institutionalEmail": "alumno@example.invalid",
+        "roleCode": "ALUMNO",
+        "availableSystemCodes": ["PRACTICAS_PROFESIONALES"]
+      }
+    },
+    "profile_none": {
+      "method": "GET",
+      "path": "/api/v1/me",
+      "status": 200,
+      "body": {
+        "accountId": "11111111-1111-4111-8111-111111111111",
+        "personId": "33333333-3333-4333-8333-333333333333",
+        "displayName": "Alumno de prueba",
+        "loginType": "MATRICULA",
+        "loginIdentifier": "202257019",
+        "institutionalEmail": "alumno@example.invalid",
+        "roleCode": "ALUMNO",
+        "availableSystemCodes": []
+      }
+    },
+    "profile_supervisor": {
+      "method": "GET",
+      "path": "/api/v1/me",
+      "status": 200,
+      "body": {
+        "accountId": "11111111-1111-4111-8111-111111111111",
+        "personId": "33333333-3333-4333-8333-333333333333",
+        "displayName": "Supervisor de prueba",
+        "loginType": "USERNAME",
+        "loginIdentifier": "supervisor",
+        "institutionalEmail": "alumno@example.invalid",
+        "roleCode": "SUPERVISOR_LAVADO",
+        "availableSystemCodes": ["LAVADO_ULTRASONICO"]
+      }
+    },
+    "profile_admin": {
+      "method": "GET",
+      "path": "/api/v1/me",
+      "status": 200,
+      "body": {
+        "accountId": "11111111-1111-4111-8111-111111111111",
+        "personId": "33333333-3333-4333-8333-333333333333",
+        "displayName": "Administrador de prueba",
+        "loginType": "USERNAME",
+        "loginIdentifier": "administrador",
+        "institutionalEmail": "alumno@example.invalid",
+        "roleCode": "ADMINISTRADOR_LAVADO",
+        "availableSystemCodes": ["LAVADO_ULTRASONICO"]
+      }
+    },
+    "password_success": {
+      "method": "POST",
+      "path": "/api/v1/me/password",
+      "status": 200,
+      "body": {
+        "accountId": "11111111-1111-4111-8111-111111111111",
+        "sessionId": "22222222-2222-4222-8222-222222222222",
+        "accessToken": "{{accessToken}}",
+        "refreshToken": "{{refreshToken}}",
+        "authState": "NORMAL"
+      }
+    },
+    "refresh_success": {
+      "method": "POST",
+      "path": "/api/v1/auth/refresh",
+      "status": 200,
+      "body": {
+        "accessToken": "{{accessToken}}",
+        "refreshToken": "{{refreshToken}}",
+        "expiresAt": "{{sessionExpiresAt}}"
+      }
+    },
+    "logout_success": {
+      "method": "POST",
+      "path": "/api/v1/auth/logout",
+      "status": 200,
+      "body": {
+        "revoked": true
+      }
+    },
+    "invalid": {
+      "status": 401,
+      "body": {
+        "type": "about:blank",
+        "title": "Solicitud no completada",
+        "status": 401,
+        "code": "BFF.AUTHENTICATION_INVALID",
+        "detail": "No fue posible completar la solicitud.",
+        "traceId": "fixture-trace-invalid"
+      }
+    },
+    "expired": {
+      "status": 401,
+      "body": {
+        "type": "about:blank",
+        "title": "Solicitud no completada",
+        "status": 401,
+        "code": "BFF.AUTHENTICATION_REQUIRED",
+        "detail": "No fue posible completar la solicitud.",
+        "traceId": "fixture-trace-expired"
+      }
+    },
+    "forbidden": {
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Solicitud no completada",
+        "status": 403,
+        "code": "BFF.ACCESS_DENIED",
+        "detail": "No fue posible completar la solicitud.",
+        "traceId": "fixture-trace-forbidden"
+      }
+    },
+    "request": {
+      "status": 400,
+      "body": {
+        "type": "about:blank",
+        "title": "Solicitud no completada",
+        "status": 400,
+        "code": "BFF.INVALID_REQUEST",
+        "detail": "No fue posible completar la solicitud.",
+        "traceId": "fixture-trace-request"
+      }
+    },
+    "security_unavailable": {
+      "status": 503,
+      "body": {
+        "type": "about:blank",
+        "title": "Solicitud no completada",
+        "status": 503,
+        "code": "BFF.SECURITY_RPC_UNAVAILABLE",
+        "detail": "No fue posible completar la solicitud.",
+        "traceId": "fixture-trace-security_unavailable"
+      }
+    },
+    "projection_unavailable": {
+      "status": 503,
+      "body": {
+        "type": "about:blank",
+        "title": "Solicitud no completada",
+        "status": 503,
+        "code": "BFF.PROJECTION_UNAVAILABLE",
+        "detail": "No fue posible completar la solicitud.",
+        "traceId": "fixture-trace-projection_unavailable"
+      }
+    },
+    "offline": {
+      "status": 0,
+      "body": {
+        "type": "about:blank",
+        "title": "Solicitud no completada",
+        "status": 0,
+        "code": "FIXTURE.OFFLINE",
+        "detail": "No fue posible completar la solicitud.",
+        "traceId": "fixture-trace-offline"
+      }
+    }
+  },
+  "scenarios": {
+    "normal": {
+      "login": ["login_normal"],
+      "profile": ["profile_both"],
+      "password": ["password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"]
+    },
+    "wash-only": {
+      "login": ["login_normal"],
+      "profile": ["profile_wash"],
+      "password": ["password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"]
+    },
+    "practices-only": {
+      "login": ["login_normal"],
+      "profile": ["profile_practices"],
+      "password": ["password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"]
+    },
+    "no-systems": {
+      "login": ["login_normal"],
+      "profile": ["profile_none"],
+      "password": ["password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"]
+    },
+    "supervisor": {
+      "login": ["login_normal"],
+      "profile": ["profile_supervisor"],
+      "password": ["password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"]
+    },
+    "admin": {
+      "login": ["login_normal"],
+      "profile": ["profile_admin"],
+      "password": ["password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"]
+    },
+    "required-password": {
+      "login": ["login_restricted"],
+      "profile": ["profile_both"],
+      "password": ["password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"]
+    },
+    "password-rejected": {
+      "login": ["login_restricted"],
+      "profile": ["profile_both"],
+      "password": ["request", "password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"]
+    },
+    "password-offline": {
+      "login": ["login_restricted"],
+      "profile": ["profile_both"],
+      "password": ["offline", "password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"]
+    },
+    "password-unavailable": {
+      "login": ["login_restricted"],
+      "profile": ["profile_both"],
+      "password": ["security_unavailable", "password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"]
+    },
+    "password-expired": {
+      "login": ["login_restricted"],
+      "profile": ["profile_both"],
+      "password": ["expired"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"]
+    },
+    "invalid-unknown": {
+      "login": ["invalid"],
+      "profile": ["profile_both"],
+      "password": ["password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"]
+    },
+    "invalid-password": {
+      "login": ["invalid"],
+      "profile": ["profile_both"],
+      "password": ["password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"]
+    },
+    "invalid-locked": {
+      "login": ["invalid"],
+      "profile": ["profile_both"],
+      "password": ["password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"]
+    },
+    "login-unavailable": {
+      "login": ["security_unavailable", "login_normal"],
+      "profile": ["profile_both"],
+      "password": ["password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"]
+    },
+    "login-offline": {
+      "login": ["offline", "login_normal"],
+      "profile": ["profile_both"],
+      "password": ["password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"]
+    },
+    "incomplete": {
+      "login": ["login_incomplete"],
+      "profile": ["profile_both"],
+      "password": ["password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"]
+    },
+    "profile-unavailable": {
+      "login": ["login_normal"],
+      "profile": ["projection_unavailable", "profile_both"],
+      "password": ["password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"]
+    },
+    "profile-offline": {
+      "login": ["login_normal"],
+      "profile": ["offline", "profile_both"],
+      "password": ["password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"]
+    },
+    "profile-forbidden": {
+      "login": ["login_normal"],
+      "profile": ["forbidden"],
+      "password": ["password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"]
+    },
+    "profile-expired": {
+      "login": ["login_normal"],
+      "profile": ["expired"],
+      "password": ["password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"]
+    },
+    "refresh-rejected": {
+      "login": ["login_normal"],
+      "profile": ["profile_both"],
+      "password": ["password_success"],
+      "refresh": ["invalid"],
+      "logout": ["logout_success"],
+      "accessLifetimeSeconds": 35
+    },
+    "refresh-unavailable": {
+      "login": ["login_normal"],
+      "profile": ["profile_both"],
+      "password": ["password_success"],
+      "refresh": ["security_unavailable", "refresh_success"],
+      "logout": ["logout_success"],
+      "accessLifetimeSeconds": 35
+    },
+    "logout-unavailable": {
+      "login": ["login_normal"],
+      "profile": ["profile_both"],
+      "password": ["password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["security_unavailable"]
+    },
+    "logout-expired": {
+      "login": ["login_normal"],
+      "profile": ["profile_both"],
+      "password": ["password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["expired"]
+    },
+    "refresh-soon": {
+      "login": ["login_normal"],
+      "profile": ["profile_both"],
+      "password": ["password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"],
+      "accessLifetimeSeconds": 35
+    },
+    "restricted-expiry": {
+      "login": ["login_restricted"],
+      "profile": ["profile_both"],
+      "password": ["password_success"],
+      "refresh": ["refresh_success"],
+      "logout": ["logout_success"],
+      "accessLifetimeSeconds": 12
+    }
+  }
+}

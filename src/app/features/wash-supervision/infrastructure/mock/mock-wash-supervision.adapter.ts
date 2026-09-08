@@ -1,5 +1,7 @@
+import { SupervisorHome } from '../../domain/models/supervisor-home';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
+import { MockReassignmentAdapter } from './mock-reassignment.adapter';
 
 import {
   AcceptedOperation,
@@ -14,7 +16,20 @@ import { MockWashJourneyStore } from '../../../wash-student-home/infrastructure/
 
 @Injectable()
 export class MockWashSupervisionAdapter implements WashSupervisionGateway {
+  private readonly reassignments = inject(MockReassignmentAdapter);
   private readonly journey = inject(MockWashJourneyStore);
+
+  getDirectory(): Observable<SupervisorEntryLookup[]> {
+    return this.journey.supervisorDirectory();
+  }
+  getHome(): Observable<SupervisorHome> {
+    return this.journey.supervisorHome().pipe(
+      map((home) => ({
+        ...home,
+        pendingReassignmentsCount: home.pendingReassignmentsCount + this.reassignments.pendingCount,
+      })),
+    );
+  }
 
   lookup(request: EntryLookupRequest): Observable<SupervisorEntryLookup> {
     return this.journey.lookup(request);

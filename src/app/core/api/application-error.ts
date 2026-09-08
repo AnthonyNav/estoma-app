@@ -13,6 +13,9 @@ export class ApplicationError extends Error {
     readonly kind: ApplicationErrorKind,
     message: string,
     readonly status?: number,
+    readonly code?: string,
+    readonly traceId?: string,
+    readonly retryAfterMs?: number,
   ) {
     super(message);
   }

@@ -16,7 +16,7 @@
 }
 
 .eyebrow {
-  color: var(--primary);
+  color: #0f5c6e;
   font-size: var(--type-label-md-size);
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -32,17 +32,11 @@ p {
 }
 
 h1 {
-  color: var(--text-main);
+  color: #192d33;
   font-size: clamp(1.5rem, 4vw, 2rem);
   letter-spacing: -0.01em;
   line-height: 1.25;
   margin-bottom: var(--space-xs);
-}
-
-.student-identity {
-  color: var(--on-surface-variant);
-  font-size: var(--type-body-sm-size);
-  margin-bottom: 0;
 }
 
 .wash-home__support svg {
@@ -57,19 +51,20 @@ h1 {
 
 .status-card,
 .feedback-card {
-  background: var(--surface);
+  background: #ffffff;
   border-radius: var(--radius-xl);
 }
 
 .status-card {
-  border: 1px solid var(--outline-variant);
-  box-shadow: var(--shadow-card);
+  border: 1px solid #dde7ea;
   overflow: hidden;
 }
 
+/* Barra superior de estado ("Cita programada") */
 .status-card__topline {
   align-items: center;
-  background: var(--surface-container-low);
+  background: #edf3f4;
+  border-bottom: 1px solid #dde7ea;
   display: flex;
   gap: var(--space-sm);
   min-height: 4.25rem;
@@ -78,9 +73,9 @@ h1 {
 
 .status-card__icon {
   align-items: center;
-  background: var(--primary-fixed);
+  background: #0f5c6e;
   border-radius: 50%;
-  color: var(--on-primary-fixed);
+  color: #ffffff;
   display: inline-flex;
   height: 1.5rem;
   justify-content: center;
@@ -102,7 +97,7 @@ h1 {
 }
 
 .status-chip {
-  color: var(--on-surface);
+  color: #192d33;
   font-size: var(--type-label-lg-size);
   font-weight: 700;
 }
@@ -119,7 +114,7 @@ h1 {
 
 .status-card__summary h2,
 .feedback-card h1 {
-  color: var(--text-main);
+  color: #192d33;
   font-size: clamp(1.5rem, 4vw, 2rem);
   line-height: 1.25;
   margin-bottom: var(--space-sm);
@@ -129,49 +124,45 @@ h1 {
 .feedback-card p,
 .qr-panel p,
 .wash-home__support p {
-  color: var(--on-surface-variant);
   font-size: var(--type-body-md-size);
   line-height: 1.5;
 }
 
+/* ==========================================
+   BOTONES
+   ========================================== */
 .button {
-  align-items: center;
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  display: inline-flex;
-  font-size: var(--type-label-lg-size);
-  font-weight: 700;
-  justify-content: center;
-  line-height: 1.25;
   margin-top: var(--space-md);
-  min-height: 2.75rem;
-  padding: 0.6875rem var(--space-md);
-  text-decoration: none;
+  line-height: 1.25;
 }
 
 .button--primary {
-  background: var(--primary);
-  color: var(--on-primary);
+  background: #0f5c6e !important;
+  color: #ffffff !important;
 }
 
 .button--primary:hover {
-  background: var(--primary-container);
+  background: #004352 !important;
 }
 
 .button--secondary {
   background: transparent;
-  border-color: var(--secondary);
-  color: var(--secondary);
+  border-color: #dde7ea;
+  color: #475569;
 }
 
 .button--secondary:hover {
-  background: color-mix(in srgb, var(--secondary-fixed) 45%, transparent);
+  background: #edf3f4;
+  color: #0f5c6e;
+  border-color: #0f5c6e;
 }
 
+/* ==========================================
+   LISTA DE DETALLES DE CITA
+   ========================================== */
 .appointment-details dl {
   display: grid;
-  border-top: 1px solid var(--outline-variant);
+  border-top: 1px solid #dde7ea;
   column-gap: var(--space-lg);
   row-gap: 0;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -179,7 +170,7 @@ h1 {
 }
 
 .appointment-details dl div {
-  border-bottom: 1px solid var(--outline-variant);
+  border-bottom: 1px solid #dde7ea;
   min-width: 0;
   padding: 0.875rem 0;
 }
@@ -195,7 +186,7 @@ h1 {
 dt,
 .resource-assignment__label,
 .rejection-reason span {
-  color: var(--on-surface-variant);
+  color: #0f5c6e;
   font-size: var(--type-label-md-size);
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -203,7 +194,7 @@ dt,
 }
 
 dd {
-  color: var(--on-surface);
+  color: #192d33;
   font-size: var(--type-label-lg-size);
   font-weight: 700;
   line-height: 1.45;
@@ -220,85 +211,90 @@ dd {
 }
 
 .resource-assignment {
-  background: color-mix(in srgb, var(--secondary-fixed) 38%, var(--surface));
+  margin-top: 0;
+  background: #edf3f4;
+  border: 1px solid #dde7ea;
 }
 
 .resource-assignment strong {
-  color: var(--on-secondary-fixed);
+  color: #192d33;
   font-size: var(--type-headline-sm-size);
 }
 
 .resource-assignment span:last-child {
-  color: var(--on-secondary-fixed);
+  color: #475569;
 }
 
 .rejection-reason {
-  background: var(--error-container);
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
 }
 
 .rejection-reason span,
 .rejection-reason p {
-  color: var(--on-error-container);
+  color: #b91c1c;
 }
 
 .rejection-reason p {
   margin: 0;
 }
 
+/* ==========================================
+   PANEL Y MARCO DEL CÓDIGO QR (SOLUCIÓN)
+   ========================================== */
 .qr-panel {
   align-items: center;
-  background: var(--surface-container-low);
+  background: #f8f9fb;
+  border: 1px solid #dde7ea;
   border-radius: var(--radius-lg);
   display: grid;
   gap: var(--space-lg);
   grid-template-columns: minmax(9rem, 12rem) minmax(0, 1fr);
   padding: var(--space-lg);
+  margin-top: 1.5rem;
 }
 
 .qr-panel h3 {
-  color: var(--text-main);
+  color: #192d33;
   font-size: var(--type-headline-sm-size);
+  font-weight: 800;
   margin-bottom: var(--space-sm);
 }
 
 .qr-panel p {
-  margin-bottom: 0;
+  font-size: 0.925rem;
+  line-height: 1.5;
+  margin-bottom: var(--space-md, 1rem);
 }
 
-.status-card--success .status-card__topline {
-  background: color-mix(in srgb, var(--success) 12%, var(--surface));
-}
-
-.status-card--success .status-card__icon {
-  background: color-mix(in srgb, var(--success) 20%, var(--surface));
-  color: #075b4b;
-}
+/* ==========================================
+   VARIACIONES DE ESTADO (TOPLINE)
+   ========================================== */
 
 .status-card--warning .status-card__topline {
-  background: color-mix(in srgb, var(--warning) 18%, var(--surface));
+  background: #fef3c7;
+  border-bottom-color: #fde68a;
 }
 
 .status-card--warning .status-card__icon {
-  background: color-mix(in srgb, var(--warning) 35%, var(--surface));
-  color: #6b4b00;
+  background: #d97706;
+  color: #ffffff;
 }
 
 .status-card--danger .status-card__topline {
-  background: var(--error-container);
+  background: #fee2e2;
+  border-bottom-color: #fca5a5;
 }
 
 .status-card--danger .status-card__icon {
-  background: color-mix(in srgb, var(--error) 18%, var(--surface));
-  color: var(--on-error-container);
-}
-
-.status-card--neutral .status-card__topline {
-  background: var(--surface-container);
+  background: #dc2626;
+  color: #ffffff;
 }
 
 .wash-home__support {
   align-items: flex-start;
-  background: color-mix(in srgb, var(--tertiary-fixed) 45%, var(--surface));
+  background: #edf3f4;
+  border: 1px solid #dde7ea;
   border-radius: var(--radius-lg);
   display: flex;
   gap: var(--space-md);
@@ -307,99 +303,28 @@ dd {
 }
 
 .wash-home__support svg {
-  color: var(--tertiary);
+  color: #0f5c6e;
   flex: 0 0 auto;
   margin-top: 0.125rem;
 }
 
 .wash-home__support h2 {
-  color: var(--on-tertiary-fixed);
+  color: #192d33;
   font-size: var(--type-label-lg-size);
   margin-bottom: var(--space-xs);
 }
 
 .wash-home__support p {
-  color: var(--on-tertiary-fixed);
   font-size: var(--type-body-sm-size);
   margin-bottom: 0;
 }
 
-.feedback-card {
-  align-items: flex-start;
-  display: grid;
-  gap: var(--space-lg);
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  margin: 8vh auto;
-  max-width: 48rem;
-  padding: var(--space-xl);
-}
-
-.feedback-card__icon {
-  align-items: center;
-  background: var(--primary-fixed);
-  border-radius: 50%;
-  color: var(--on-primary-fixed);
-  display: inline-flex;
-  height: 2.75rem;
-  justify-content: center;
-  padding: 0.625rem;
-  width: 2.75rem;
-}
-
-.feedback-card .button {
-  margin-top: 0;
-}
-
-.wash-home__skeleton {
-  display: grid;
-  gap: var(--space-md);
-}
-
-.skeleton {
-  animation: shimmer 1.4s ease-in-out infinite;
-  background: linear-gradient(
-    110deg,
-    var(--surface-container) 8%,
-    var(--surface-container-highest) 18%,
-    var(--surface-container) 33%
-  );
-  background-size: 200% 100%;
-  border-radius: var(--radius-md);
-}
-
-.skeleton--eyebrow {
-  height: 0.75rem;
-  width: 9rem;
-}
-
-.skeleton--heading {
-  height: 2.5rem;
-  width: min(22rem, 75%);
-}
-
-.skeleton--identity {
-  height: 1.25rem;
-  margin-bottom: var(--space-lg);
-  width: min(18rem, 62%);
-}
-
-.skeleton--card {
-  height: 29rem;
-}
-
-.skeleton--support {
-  height: 5.5rem;
-}
-
-@keyframes shimmer {
-  to {
-    background-position: -200% 0;
-  }
-}
-
+/* ==========================================
+   MEDIA QUERIES
+   ========================================== */
 @media (min-width: 48rem) {
   .status-card__content {
-    grid-template-columns: minmax(0, 1.15fr) minmax(20rem, 0.85fr);
+    grid-template-columns: 1fr;
   }
 
   .qr-panel {
@@ -409,7 +334,7 @@ dd {
 
 @media (min-width: 64rem) {
   .wash-home {
-    max-width: 60rem;
+    max-width: 42rem;
   }
 
   .wash-home__header {
@@ -465,4 +390,176 @@ dd {
   .skeleton {
     animation: none;
   }
+}
+
+.wash-home {
+  padding: 2rem 1.25rem;
+}
+.wash-home--empty {
+  max-width: 33rem;
+  padding-top: clamp(1.5rem, 4vh, 2.5rem);
+  padding-bottom: max(2rem, env(safe-area-inset-bottom));
+}
+@media (max-width: 359px) {
+  .wash-home {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+.student-welcome {
+  margin-bottom: 1.5rem;
+}
+.student-welcome__greeting {
+  margin: 0;
+  color: #192d33;
+  font-size: 1.375rem;
+  line-height: 1.4;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+}
+.student-welcome__details {
+  margin: 0.25rem 0 0;
+  color: #53636a;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.booking-result {
+  padding: 2rem;
+}
+.operation-reference {
+  overflow-wrap: anywhere;
+  font-size: 0.8125rem;
+}
+.qr-unavailable {
+  margin: 0;
+  padding: 1rem;
+  background: #edf3f4;
+  color: #53636a;
+  border-radius: 1rem;
+  line-height: 1.6;
+}
+
+.status-card--scheduled {
+  .status-card__topline {
+    justify-content: center;
+    min-height: auto;
+    padding: 1rem;
+    border: 0;
+    background: #fff;
+  }
+  .status-chip {
+    color: #0f5c6e;
+  }
+  .status-card__content {
+    gap: 1.25rem;
+    padding: 0 1.5rem 1.5rem;
+  }
+  .appointment-details {
+    order: 0;
+  }
+  .status-card__summary {
+    order: 1;
+    text-align: center;
+    border-top: 1px solid #dde7ea;
+    padding-top: 1rem;
+  }
+  .status-card__summary p {
+    margin: 0;
+    font-size: 0.875rem;
+  }
+  .qr-panel,
+  .qr-unavailable {
+    order: 2;
+  }
+  .qr-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.75rem;
+    padding: 0;
+    background: white;
+    border: 0;
+  }
+  .qr-panel h3 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+  }
+  .qr-panel p {
+    font-size: 0.8125rem;
+    margin: 0;
+    max-width: 22rem;
+  }
+  .appointment-details dl {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .appointment-details dl > div {
+    padding: 0;
+    border: 0;
+  }
+  .appointment-details dd {
+    font-size: 0.9375rem;
+  }
+  .appointment-details dl > div:last-child {
+    grid-column: 1 / -1;
+  }
+}
+.qr-unavailable {
+  text-align: center;
+}
+.qr-unavailable h3 {
+  font-size: 1rem;
+  color: #004352;
+  margin: 0.75rem 0 0.5rem;
+}
+.qr-unavailable p {
+  font-size: 0.875rem;
+  margin: 0;
+}
+.qr-pending-icon {
+  width: 2rem;
+  height: 2rem;
+  fill: none;
+  stroke: #53636a;
+  stroke-width: 1.5;
+}
+.wash-home__support a {
+  color: #0f5c6e;
+  text-underline-offset: 0.2em;
+}
+
+.cancellation-action {
+  order: 3;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: #53636a;
+}
+.button--cancel {
+  color: #a52c35;
+  background: transparent;
+}
+.button--cancel-confirm {
+  background: #a52c35;
+  color: white;
+}
+.cancellation-message {
+  background: #fff6f4;
+  border: 1px solid #ebceca;
+  border-radius: 1rem;
+  padding: 1rem;
+  color: #8d3035;
+}
+.cancellation-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+.cancellation-dialog {
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
 }

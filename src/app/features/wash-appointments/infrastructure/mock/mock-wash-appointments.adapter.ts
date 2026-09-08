@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import {
+  CancelAppointmentCommand,
   AcceptedOperation,
   AppointmentAvailability,
   AppointmentFormContext,
@@ -26,6 +27,10 @@ export class MockWashAppointmentsAdapter implements WashAppointmentsGateway {
 
   schedule(command: ScheduleAppointmentCommand): Observable<AcceptedOperation> {
     return this.journey.schedule(command);
+  }
+
+  cancel(command: CancelAppointmentCommand): Observable<AcceptedOperation> {
+    return this.journey.cancel(command);
   }
 
   getOperation(operationId: string): Observable<DurableOperation> {

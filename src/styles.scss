@@ -6,58 +6,81 @@
 @import '@fontsource/manrope/800.css';
 
 :root {
+  /* ==========================================
+     PALETA CLÍNICA ESTOMATOLOGÍA
+     ========================================== */
   --surface: #ffffff;
-  --surface-dim: #d7dadc;
-  --surface-bright: #f7fafc;
+  --surface-dim: #e1ecf7;
+  --surface-bright: #ffffff;
   --surface-container-lowest: #ffffff;
-  --surface-container-low: #f1f4f6;
-  --surface-container: #ebeef0;
-  --surface-container-high: #e5e9eb;
-  --surface-container-highest: #e0e3e5;
-  --on-surface: #181c1e;
-  --on-surface-variant: #40484b;
-  --inverse-surface: #2d3133;
-  --inverse-on-surface: #eef1f3;
-  --outline: #70787c;
-  --outline-variant: #bfc8cc;
-  --surface-tint: #206679;
-  --primary: #004352;
-  --on-primary: #ffffff;
-  --primary-container: #0f5c6e;
-  --on-primary-container: #93d2e7;
-  --inverse-primary: #90d0e5;
-  --secondary: #00696c;
-  --on-secondary: #ffffff;
-  --secondary-container: #8bf0f3;
-  --on-secondary-container: #006e71;
-  --tertiary: #29404c;
-  --on-tertiary: #ffffff;
-  --tertiary-container: #405764;
-  --on-tertiary-container: #b4ccdb;
-  --error: #ba1a1a;
-  --on-error: #ffffff;
-  --error-container: #ffdad6;
-  --on-error-container: #93000a;
-  --primary-fixed: #b2ebff;
-  --primary-fixed-dim: #90d0e5;
-  --on-primary-fixed: #001f27;
-  --on-primary-fixed-variant: #004e5e;
-  --secondary-fixed: #8ef3f6;
-  --secondary-fixed-dim: #70d6d9;
-  --on-secondary-fixed: #002021;
-  --on-secondary-fixed-variant: #004f51;
-  --tertiary-fixed: #cde6f6;
-  --tertiary-fixed-dim: #b2cad9;
-  --on-tertiary-fixed: #041e2a;
-  --on-tertiary-fixed-variant: #334a56;
-  --background: #f7fafc;
-  --on-background: #181c1e;
-  --surface-variant: #e0e3e5;
-  --text-main: #17252e;
-  --success: #16a085;
-  --warning: #f2b94b;
-  --danger: #d9534f;
+  --surface-container-low: #f8f9fb;
+  --surface-container: #e1ecf7;
+  --surface-container-high: #aecbeb;
+  --surface-container-highest: #83b0e1;
 
+  /* Textos y Contraste */
+  --on-surface: #0f172a;
+  --on-surface-variant: #475569;
+  --inverse-surface: #0f172a;
+  --inverse-on-surface: #f8f9fb;
+  --text-main: #0f172a;
+  --color-ink: #0f172a;
+  --color-muted: #475569;
+
+  /* Bordes y Delineado */
+  --outline: #83b0e1;
+  --outline-variant: #aecbeb;
+  --color-border: #aecbeb;
+
+  /* Colores Primarios (#71A5DE) */
+  --primary: #71a5de;
+  --on-primary: #ffffff;
+  --primary-container: #5b93d3;
+  --on-primary-container: #ffffff;
+  --inverse-primary: #83b0e1;
+  --primary-fixed: #e1ecf7;
+  --primary-fixed-dim: #aecbeb;
+  --on-primary-fixed: #0f172a;
+  --on-primary-fixed-variant: #475569;
+  --surface-tint: #71a5de;
+
+  /* Colores Secundarios (#AECBEB / #E1ECF7) */
+  --secondary: #83b0e1;
+  --on-secondary: #ffffff;
+  --secondary-container: #e1ecf7;
+  --on-secondary-container: #0f172a;
+  --secondary-fixed: #e1ecf7;
+  --secondary-fixed-dim: #aecbeb;
+  --on-secondary-fixed: #0f172a;
+  --on-secondary-fixed-variant: #475569;
+
+  /* Colores Terciarios */
+  --tertiary: #475569;
+  --on-tertiary: #ffffff;
+  --tertiary-container: #e1ecf7;
+  --on-tertiary-container: #0f172a;
+  --tertiary-fixed: #e1ecf7;
+  --tertiary-fixed-dim: #aecbeb;
+  --on-tertiary-fixed: #0f172a;
+  --on-tertiary-fixed-variant: #475569;
+
+  /* Fondos Generales */
+  --background: #f8f9fb;
+  --on-background: #0f172a;
+  --surface-variant: #e1ecf7;
+  --color-surface: #f8f9fb;
+  --color-accent: #71a5de;
+
+  /* Estados y Alertas */
+  --error: #dc2626;
+  --on-error: #ffffff;
+  --error-container: #fee2e2;
+  --on-error-container: #991b1b;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+
+  /* Radios y Espaciado */
   --radius-sm: 0.25rem;
   --radius-default: 0.5rem;
   --radius-md: 0.75rem;
@@ -70,19 +93,15 @@
   --space-md: 1rem;
   --space-lg: 1.5rem;
   --space-xl: 2rem;
+
   --type-headline-sm-size: 1.25rem;
   --type-body-md-size: 1rem;
   --type-body-sm-size: 0.875rem;
   --type-label-lg-size: 0.875rem;
   --type-label-md-size: 0.75rem;
-  --shadow-card: 0 1.25rem 3.5rem rgb(15 92 110 / 12%);
 
-  // Compatibility aliases for the existing foundation and authentication pilot.
-  --color-accent: var(--primary);
-  --color-border: var(--outline-variant);
-  --color-ink: var(--text-main);
-  --color-muted: var(--on-surface-variant);
-  --color-surface: var(--background);
+  /* Sombras */
+  --shadow-card: 0 0.75rem 2rem rgba(113, 165, 222, 0.15);
 
   color: var(--on-background);
   font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
@@ -120,8 +139,8 @@ input,
 select,
 textarea {
   &:focus-visible {
-    outline: 3px solid var(--secondary-fixed-dim);
-    outline-offset: 3px;
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
   }
 }
 
@@ -135,11 +154,12 @@ textarea {
   width: 1px;
 }
 
+/* Modal y Diálogo del QR */
 .qr-dialog {
   background: var(--surface);
-  border: 0;
+  border: 1px solid var(--outline-variant);
   border-radius: var(--radius-xl);
-  box-shadow: 0 1.5rem 5rem rgb(0 31 39 / 32%);
+  box-shadow: 0 1.5rem 4rem rgba(15, 23, 42, 0.15);
   color: var(--on-surface);
   margin: auto;
   max-width: min(30rem, calc(100vw - 2rem));
@@ -148,7 +168,7 @@ textarea {
 }
 
 .qr-dialog::backdrop {
-  background: rgb(0 31 39 / 48%);
+  background: rgba(15, 23, 42, 0.4);
 }
 
 .qr-dialog__header {
@@ -171,12 +191,13 @@ textarea {
   margin-bottom: 0;
 }
 
+/* Botón de Icono */
 .icon-button {
   align-items: center;
   background: transparent;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-md);
-  color: var(--on-surface);
+  color: var(--on-surface-variant);
   cursor: pointer;
   display: inline-flex;
   flex: 0 0 auto;
@@ -184,10 +205,13 @@ textarea {
   justify-content: center;
   padding: 0;
   width: 2.75rem;
+  transition: all 0.2s ease-in-out;
 }
 
 .icon-button:hover {
   background: var(--surface-container-low);
+  color: var(--text-main);
+  border-color: var(--primary);
 }
 
 .icon-button svg {

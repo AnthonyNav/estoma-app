@@ -1,4 +1,6 @@
 import {
+  afterNextRender,
+  Injector,
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
@@ -9,6 +11,9 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { defer, retry, throwError, timer } from 'rxjs';
+import { bookingMessage } from '../application/booking-messages';
+import { NgTemplateOutlet } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 
 import { ApplicationError } from '../../../core/api/application-error';
@@ -39,12 +44,13 @@ const timeFormatter = new Intl.DateTimeFormat('es-MX', {
 
 @Component({
   selector: 'app-wash-appointment-availability-page',
-  imports: [RouterLink],
+  imports: [RouterLink, NgTemplateOutlet],
   templateUrl: './wash-appointment-availability.page.html',
   styleUrl: './wash-appointment-availability.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class WashAppointmentAvailabilityPage {
+  private readonly injector = inject(Injector);
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
   private readonly registration = inject(AppointmentRegistrationDraftService);
@@ -54,6 +60,27 @@ export class WashAppointmentAvailabilityPage {
   @ViewChild('confirmationDialog') private confirmationDialog?: ElementRef<HTMLDialogElement>;
   private confirmationTrigger: HTMLElement | null = null;
 
+  readonly draft = this.registration.draft;
+  readonly courseLabel = this.registration.courseLabel;
+  readonly typeLabel = computed(
+    () =>
+      ({ NORMAL: 'Normal', JOURNEY: 'Jornada clínica', IMMUNOCOMPROMISED: 'Inmunocomprometido' })[
+        this.draft().appointmentType
+      ],
+  );
+  readonly pieceLabel = computed(
+    () =>
+      ({
+        HIGH_SPEED: 'Alta velocidad',
+        LOW_SPEED: 'Baja velocidad',
+        CONTRA_ANGLE: 'Contra-ángulo',
+      })[this.draft().pieceType],
+  );
+  readonly serviceDayLabel = computed(() => {
+    const first = this.availability()?.availableTimeSlots[0];
+    return first ? dateFormatter.format(new Date(first.startsAt)) : '';
+  });
+
   readonly availability = signal<AppointmentAvailability | null>(null);
   readonly loading = signal(true);
   readonly loadError = signal<string | null>(null);
@@ -62,11 +89,29 @@ export class WashAppointmentAvailabilityPage {
   readonly submissionState = signal<SubmissionState>('IDLE');
   readonly selectedTimeSlot = this.registration.selectedTimeSlot;
   readonly pendingSchedule = this.registration.pendingSchedule;
-  readonly canSchedule = computed(
-    () => this.availability()?.canSchedule === true && this.selectedTimeSlot() !== null,
-  );
+  readonly bookingMessage = bookingMessage;
+  readonly canSchedule = computed(() => {
+    const availability = this.availability();
+    const slot = this.selectedTimeSlot();
+    return (
+      !this.loading() &&
+      !this.pendingSchedule() &&
+      availability?.canSchedule === true &&
+      !!slot &&
+      availability.availableTimeSlots.some(
+        (item) => item.appointmentTimeSlotId === slot.appointmentTimeSlotId,
+      ) &&
+      (!availability.exceptionalAuthorizationRequired ||
+        (availability.exceptionalAuthorizationAvailable &&
+          !!availability.exceptionalAuthorizationId))
+    );
+  });
 
   constructor() {
+    if (this.pendingSchedule()) {
+      this.loading.set(false);
+      return;
+    }
     const draft = this.registration.draft();
     if (!draft.regulationAccepted || !draft.courseSectionId) {
       void this.router.navigate(['/wash/appointments/regulation']);
@@ -89,12 +134,15 @@ export class WashAppointmentAvailabilityPage {
       this.confirmationTrigger = event.currentTarget as HTMLElement;
       this.submissionError.set(null);
       this.confirmationOpen.set(true);
-      setTimeout(() => {
-        const dialog = this.confirmationDialog?.nativeElement;
-        if (dialog && !dialog.open) {
-          dialog.showModal();
-        }
-      });
+      afterNextRender(
+        () => {
+          const dialog = this.confirmationDialog?.nativeElement;
+          if (dialog && !dialog.open) {
+            dialog.showModal();
+          }
+        },
+        { injector: this.injector },
+      );
     }
   }
 
@@ -126,9 +174,14 @@ export class WashAppointmentAvailabilityPage {
       return;
     }
 
+    const pending = this.pendingSchedule();
+    if (!pending && !this.canSchedule()) return;
+    if (pending?.result?.status === 'SUCCEEDED') {
+      void this.router.navigate(['/wash/student']);
+      return;
+    }
     this.submissionState.set('SUBMITTING');
     this.submissionError.set(null);
-    const pending = this.pendingSchedule();
     if (pending) {
       if (pending.operationId) {
         this.trackScheduleOperation(pending.operationId);
@@ -148,10 +201,18 @@ export class WashAppointmentAvailabilityPage {
     const command: ScheduleAppointmentCommand = {
       ...this.registration.draft(),
       appointmentTimeSlotId: timeSlot.appointmentTimeSlotId,
-      exceptionalAuthorizationId: availability.exceptionalAuthorizationId,
+      exceptionalAuthorizationId: availability.exceptionalAuthorizationRequired
+        ? availability.exceptionalAuthorizationId
+        : null,
       idempotencyKey: this.createIdempotencyKey(),
     };
-    this.registration.beginSchedule(command);
+    this.confirmationDialog?.nativeElement.close();
+    this.confirmationOpen.set(false);
+    if (this.registration.beginSchedule(command) === false) {
+      this.submissionState.set('IDLE');
+      this.submissionError.set(this.registration.storageError());
+      return;
+    }
     this.submitSchedule(command);
   }
 
@@ -160,6 +221,10 @@ export class WashAppointmentAvailabilityPage {
     return `${dateFormatter.format(start)} · ${timeFormatter.format(start)}–${timeFormatter.format(
       new Date(timeSlot.endsAt),
     )}`;
+  }
+
+  formatTime(timeSlot: AvailableTimeSlot): string {
+    return `${timeFormatter.format(new Date(timeSlot.startsAt))}–${timeFormatter.format(new Date(timeSlot.endsAt))}`;
   }
 
   formatDeadline(timeSlot: AvailableTimeSlot): string {
@@ -171,6 +236,12 @@ export class WashAppointmentAvailabilityPage {
   }
 
   private submitSchedule(command: ScheduleAppointmentCommand): void {
+    const previouslyAttempted = this.pendingSchedule()?.attempted === true;
+    if (!this.registration.markAttempted()) {
+      this.submissionState.set('FAILED');
+      this.submissionError.set(this.registration.storageError());
+      return;
+    }
     this.appointmentRegistration
       .schedule(command)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -179,19 +250,43 @@ export class WashAppointmentAvailabilityPage {
           this.registration.setScheduleOperation(operationId);
           this.trackScheduleOperation(operationId);
         },
-        error: (error: unknown) => this.failSubmission(error, false),
+        error: (error: unknown) => this.failSubmission(error, previouslyAttempted),
       });
   }
 
   private loadAvailability(): void {
+    if (this.pendingSchedule()) return;
     this.loading.set(true);
+    this.availability.set(null);
+    this.registration.selectedTimeSlot.set(null);
     this.loadError.set(null);
     const { appointmentType, instrumentCount, pieceType, courseSectionId } =
       this.registration.draft();
 
-    this.appointmentRegistration
-      .getAvailability({ appointmentType, instrumentCount, pieceType, courseSectionId })
-      .pipe(takeUntilDestroyed(this.destroyRef))
+    defer(() =>
+      this.appointmentRegistration.getAvailability({
+        appointmentType,
+        instrumentCount,
+        pieceType,
+        courseSectionId,
+      }),
+    )
+      .pipe(
+        retry({
+          count: 3,
+          delay: (error: unknown, attempt) => {
+            if (
+              !(error instanceof ApplicationError) ||
+              error.status !== 503 ||
+              error.code !== 'BFF.PROJECTION_UNAVAILABLE'
+            )
+              return throwError(() => error);
+            const wait = error.retryAfterMs ?? attempt * 1000;
+            return wait <= 10000 ? timer(Math.max(1000, wait)) : throwError(() => error);
+          },
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe({
         next: (availability) => {
           this.availability.set(availability);
@@ -210,10 +305,24 @@ export class WashAppointmentAvailabilityPage {
 
   private trackScheduleOperation(operationId: string): void {
     this.operationTracker
-      .trackWith(() => this.appointmentRegistration.getOperation(operationId), {
-        intervalMs: 600,
-        maxPendingPolls: 100,
-      })
+      .trackWith(
+        () =>
+          defer(() => this.appointmentRegistration.getOperation(operationId)).pipe(
+            retry({
+              count: 2,
+              delay: (error: unknown, attempt) => {
+                if (!(error instanceof ApplicationError) || ![429, 503].includes(error.status ?? 0))
+                  return throwError(() => error);
+                const wait = error.retryAfterMs ?? attempt * 1000;
+                return wait <= 10000 ? timer(Math.max(1000, wait)) : throwError(() => error);
+              },
+            }),
+          ),
+        {
+          intervalMs: 1000,
+          maxPendingPolls: 45,
+        },
+      )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (operation) => this.completeScheduleOperation(operation),
@@ -222,21 +331,37 @@ export class WashAppointmentAvailabilityPage {
   }
 
   private completeScheduleOperation(operation: DurableOperation): void {
+    if (operation.status === 'PENDING') return;
+    this.registration.setResult(operation);
     if (operation.status === 'SUCCEEDED') {
-      this.registration.reset();
       void this.router.navigate(['/wash/student']);
       return;
     }
-
-    this.registration.clearPendingSchedule();
     this.submissionState.set('FAILED');
-    this.submissionError.set(
-      'No fue posible confirmar la cita. Actualiza los horarios e inténtalo nuevamente.',
-    );
+    this.submissionError.set(bookingMessage(operation.errorCode));
+    if (operation.status === 'REJECTED') {
+      this.registration.clearPendingSchedule();
+      this.closeConfirmation();
+      if (
+        ['ACTIVE_APPOINTMENT_EXISTS', 'APPOINTMENT_ALREADY_EXISTS'].includes(
+          operation.errorCode ?? '',
+        )
+      ) {
+        void this.router.navigate(['/wash/student']);
+      } else this.loadAvailability();
+    }
   }
 
   private failSubmission(error: unknown, operationAccepted: boolean): void {
     this.submissionState.set('FAILED');
+    if (
+      !operationAccepted &&
+      error instanceof ApplicationError &&
+      [400, 403, 422].includes(error.status ?? 0)
+    ) {
+      this.registration.clearPendingSchedule();
+      this.closeConfirmation();
+    }
     this.submissionError.set(
       operationAccepted
         ? 'No pudimos comprobar la confirmación. Reintenta para consultar la misma operación.'
@@ -247,9 +372,6 @@ export class WashAppointmentAvailabilityPage {
   }
 
   private createIdempotencyKey(): string {
-    return (
-      globalThis.crypto?.randomUUID?.() ??
-      `wash-${Date.now()}-${Math.random().toString(16).slice(2)}`
-    );
+    return crypto.randomUUID();
   }
 }

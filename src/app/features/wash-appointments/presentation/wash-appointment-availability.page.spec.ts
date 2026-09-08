@@ -1,11 +1,15 @@
+import { SessionStore } from '../../authentication/application/session-store.service';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 
 import { ApplicationError } from '../../../core/api/application-error';
 import { OperationTrackerService } from '../../../core/api/operation-tracker.service';
 import { WashAppointmentRegistrationUseCase } from '../application/wash-appointment-registration.use-case';
-import { AppointmentAvailability } from '../domain/models/appointment-registration';
+import {
+  AppointmentAvailability,
+  DurableOperation,
+} from '../domain/models/appointment-registration';
 import { AppointmentRegistrationDraftService } from './appointment-registration-draft.service';
 import { WashAppointmentAvailabilityPage } from './wash-appointment-availability.page';
 
@@ -32,7 +36,9 @@ describe('WashAppointmentAvailabilityPage', () => {
   let registration: AppointmentRegistrationDraftService;
   let appointmentRegistration: jasmine.SpyObj<WashAppointmentRegistrationUseCase>;
 
+  afterEach(() => sessionStorage.removeItem('estoma.booking.receipts.v1'));
   beforeEach(async () => {
+    sessionStorage.removeItem('estoma.booking.receipts.v1');
     appointmentRegistration = jasmine.createSpyObj<WashAppointmentRegistrationUseCase>(
       'WashAppointmentRegistrationUseCase',
       ['getAvailability', 'schedule', 'getOperation'],
@@ -53,6 +59,14 @@ describe('WashAppointmentAvailabilityPage', () => {
       ],
     }).compileComponents();
 
+    TestBed.inject(SessionStore).session.set({
+      accountId: 'booking-test',
+      sessionId: 's',
+      accessToken: 't',
+      refreshToken: null,
+      authState: 'NORMAL',
+      accessExpiresAt: Date.now() + 60000,
+    });
     registration = TestBed.inject(AppointmentRegistrationDraftService);
     registration.acceptRegulation(true);
     registration.update({
@@ -83,4 +97,78 @@ describe('WashAppointmentAvailabilityPage', () => {
       appointmentRegistration.schedule.calls.argsFor(0)[0],
     );
   });
+  for (const status of ['FAILED', 'EXPIRED', 'SUCCEEDED'] as const) {
+    it(`preserves reconciliation data after ${status}`, () => {
+      const operations = new Subject<DurableOperation>();
+      const tracker = TestBed.inject(OperationTrackerService);
+      (tracker.trackWith as jasmine.Spy).and.returnValue(operations);
+      appointmentRegistration.schedule.and.returnValue(
+        of({
+          operationId: 'operation-1',
+          status: 'PENDING',
+          pollPath: '/api/v1/operations/operation-1',
+          submittedAt: '2026-09-06T12:00:00Z',
+        }),
+      );
+      const page = TestBed.createComponent(WashAppointmentAvailabilityPage).componentInstance;
+      page.availability.set(availability);
+      page.selectTimeSlot(availability.availableTimeSlots[0]);
+      page.confirmSchedule();
+      const original = registration.pendingSchedule()?.command;
+      operations.next({ operationId: 'operation-1', status: 'PENDING' });
+      expect(registration.pendingSchedule()?.command).toEqual(original);
+      operations.next({ operationId: 'operation-1', status });
+      expect(registration.pendingSchedule()?.result?.status).toBe(status);
+      expect(registration.pendingSchedule()?.command).toEqual(original);
+      expect(appointmentRegistration.schedule).toHaveBeenCalledTimes(1);
+    });
+  }
+
+  it('clears a rejected intention and discards the old slot before refreshing availability', () => {
+    const tracker = TestBed.inject(OperationTrackerService);
+    (tracker.trackWith as jasmine.Spy).and.returnValue(
+      of({ operationId: 'operation-1', status: 'REJECTED', errorCode: 'SLOT_CAPACITY_EXCEEDED' }),
+    );
+    appointmentRegistration.schedule.and.returnValue(
+      of({
+        operationId: 'operation-1',
+        status: 'PENDING',
+        pollPath: '/api/v1/operations/operation-1',
+        submittedAt: '2026-09-06T12:00:00Z',
+      }),
+    );
+    const page = TestBed.createComponent(WashAppointmentAvailabilityPage).componentInstance;
+    page.availability.set(availability);
+    page.selectTimeSlot(availability.availableTimeSlots[0]);
+    page.confirmSchedule();
+    expect(registration.pendingSchedule()).toBeNull();
+    expect(registration.selectedTimeSlot()).toBeNull();
+    expect(appointmentRegistration.getAvailability).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not submit a slot when the owner blocks scheduling', () => {
+    const page = TestBed.createComponent(WashAppointmentAvailabilityPage).componentInstance;
+    page.availability.set({ ...availability, canSchedule: false });
+    page.selectTimeSlot(availability.availableTimeSlots[0]);
+    page.confirmSchedule();
+    expect(appointmentRegistration.schedule).not.toHaveBeenCalled();
+  });
+  for (const status of [400, 403, 422]) {
+    it(`retains a booking whose lost response is followed by a forbidden retry (HTTP ${status})`, () => {
+      appointmentRegistration.schedule.and.returnValue(
+        throwError(() => new ApplicationError('network', 'Lost response')),
+      );
+      const page = TestBed.createComponent(WashAppointmentAvailabilityPage).componentInstance;
+      page.availability.set(availability);
+      page.selectTimeSlot(availability.availableTimeSlots[0]);
+      page.confirmSchedule();
+      const original = registration.pendingSchedule()!.command;
+      appointmentRegistration.schedule.and.returnValue(
+        throwError(() => new ApplicationError('forbidden', 'Forbidden', status)),
+      );
+      page.confirmSchedule();
+      expect(registration.pendingSchedule()?.command).toEqual(original);
+      expect(appointmentRegistration.schedule.calls.mostRecent().args[0]).toEqual(original);
+    });
+  }
 });
