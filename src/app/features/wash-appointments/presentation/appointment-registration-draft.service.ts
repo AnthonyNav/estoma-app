@@ -20,6 +20,7 @@ const initialDraft: AppointmentDraft = {
 
 export interface PendingAppointmentSchedule {
   command: ScheduleAppointmentCommand;
+  attempted?: boolean;
   operationId: string | null;
   result?: DurableOperation;
 }
@@ -27,31 +28,24 @@ export interface PendingAppointmentSchedule {
 @Injectable({ providedIn: 'root' })
 export class AppointmentRegistrationDraftService {
   private readonly session = inject(SessionStore);
-  private readonly receipts = signal(new Map<string, PendingAppointmentSchedule>());
-  private owner: string | null = null;
+  private readonly receipts = signal(this.restore());
+  readonly storageError = signal<string | null>(null);
   private readonly draftState = signal<AppointmentDraft>(initialDraft);
-  private readonly pendingScheduleState = signal<PendingAppointmentSchedule | null>(null);
   readonly courseLabel = signal<string | null>(null);
   readonly draft = this.draftState.asReadonly();
   readonly selectedTimeSlot = signal<AvailableTimeSlot | null>(null);
-  readonly pendingSchedule = computed(() => {
-    const accountId = this.session.session()?.accountId;
-    return (
-      this.pendingScheduleState() ?? (accountId ? (this.receipts().get(accountId) ?? null) : null)
-    );
-  });
+  readonly pendingSchedule = computed(
+    () => this.receipts().get(this.session.session()?.accountId ?? '') ?? null,
+  );
   readonly canContinue = computed(() => this.draftState().regulationAccepted);
 
   constructor() {
     inject(SessionLifecycleService)
       .ended$.pipe(takeUntilDestroyed())
       .subscribe(() => {
-        const pending = this.pendingScheduleState();
-        const owner = this.owner;
-        this.reset();
-        // Keep only reconciliation data in memory, scoped to its original account.
-        if (owner && pending)
-          this.receipts.update((receipts) => new Map(receipts).set(owner, pending));
+        this.draftState.set(initialDraft);
+        this.courseLabel.set(null);
+        this.selectedTimeSlot.set(null);
       });
   }
 
@@ -75,33 +69,58 @@ export class AppointmentRegistrationDraftService {
     this.selectedTimeSlot.set(timeSlot);
   }
 
-  beginSchedule(command: ScheduleAppointmentCommand): void {
-    this.owner = this.session.session()?.accountId ?? null;
-    this.pendingScheduleState.set({ command, operationId: null });
+  private restore(): Map<string, PendingAppointmentSchedule> {
+    try {
+      const data = JSON.parse(sessionStorage.getItem('estoma.booking.receipts.v1') ?? '[]');
+      return new Map(data);
+    } catch {
+      return new Map();
+    }
   }
-
+  private persist(values: Map<string, PendingAppointmentSchedule>): boolean {
+    try {
+      sessionStorage.setItem('estoma.booking.receipts.v1', JSON.stringify([...values]));
+      this.receipts.set(values);
+      this.storageError.set(null);
+      return true;
+    } catch {
+      if (this.pendingSchedule()) this.receipts.set(values);
+      this.storageError.set(
+        'No pudimos guardar el seguimiento. Habilita el almacenamiento del navegador antes de continuar.',
+      );
+      return false;
+    }
+  }
+  beginSchedule(command: ScheduleAppointmentCommand): boolean {
+    const owner = this.session.session()?.accountId;
+    if (!owner || this.pendingSchedule()) return false;
+    return this.persist(
+      new Map(this.receipts()).set(owner, { command: structuredClone(command), operationId: null }),
+    );
+  }
+  markAttempted(): boolean {
+    const pending = this.pendingSchedule(),
+      owner = this.session.session()?.accountId;
+    if (!pending || !owner) return false;
+    return this.persist(new Map(this.receipts()).set(owner, { ...pending, attempted: true }));
+  }
   setScheduleOperation(operationId: string): void {
-    const pending = this.pendingSchedule();
-    this.owner = this.session.session()?.accountId ?? this.owner;
-    this.pendingScheduleState.set(pending ? { ...pending, operationId } : null);
+    const pending = this.pendingSchedule(),
+      owner = this.session.session()?.accountId;
+    if (pending && owner)
+      this.persist(new Map(this.receipts()).set(owner, { ...pending, operationId }));
   }
-
   setResult(result: DurableOperation): void {
-    const pending = this.pendingSchedule();
-    this.owner = this.session.session()?.accountId ?? this.owner;
-    this.pendingScheduleState.set(pending ? { ...pending, result } : null);
+    const pending = this.pendingSchedule(),
+      owner = this.session.session()?.accountId;
+    if (pending && owner) this.persist(new Map(this.receipts()).set(owner, { ...pending, result }));
   }
-
   clearPendingSchedule(): void {
-    const owner = this.owner ?? this.session.session()?.accountId;
-    if (owner)
-      this.receipts.update((receipts) => {
-        const updated = new Map(receipts);
-        updated.delete(owner);
-        return updated;
-      });
-    this.owner = null;
-    this.pendingScheduleState.set(null);
+    const owner = this.session.session()?.accountId;
+    if (!owner) return;
+    const values = new Map(this.receipts());
+    values.delete(owner);
+    this.persist(values);
   }
 
   reset(): void {

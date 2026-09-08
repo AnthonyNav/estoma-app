@@ -8,16 +8,39 @@ import { SupervisorEntryLookup } from '../../../wash-supervision/domain/models/s
 import { MockWashJourneyStore } from './mock-wash-journey.store';
 
 describe('MockWashJourneyStore', () => {
+  beforeEach(() => sessionStorage.removeItem('estoma.booking.demo.v1'));
+  afterEach(() => sessionStorage.removeItem('estoma.booking.demo.v1'));
   let store: MockWashJourneyStore;
 
   afterEach(() => sessionStorage.removeItem('estoma.entry.demo.v2'));
 
   beforeEach(() => {
     sessionStorage.removeItem('estoma.entry.demo.v2');
+    spyOn(Date, 'now').and.returnValue(new Date('2026-09-06T16:00:00Z').getTime());
     TestBed.configureTestingModule({});
     store = TestBed.inject(MockWashJourneyStore);
   });
 
+  it('recovers scheduling and cancellation with the same operations after reload', fakeAsync(() => {
+    const scheduled = scheduleAppointment(store);
+    let restored = TestBed.runInInjectionContext(() => new MockWashJourneyStore());
+    resolveOperation(restored, scheduled.operationId);
+    let cancel!: AcceptedOperation;
+    restored
+      .cancel({
+        appointmentId: '11111111-1111-1111-1111-111111111111',
+        expectedVersion: 1,
+        idempotencyKey: 'cancel-reload',
+      })
+      .subscribe((value) => (cancel = value));
+    tick(250);
+    restored = TestBed.runInInjectionContext(() => new MockWashJourneyStore());
+    resolveOperation(restored, cancel.operationId);
+    restored
+      .loadStudentHome(null)
+      .subscribe((home) => expect(home.appointment?.appointmentStatus).toBe('CANCELLED'));
+    tick(250);
+  }));
   it('starts without an appointment and retains a confirmed booking on later home reads', fakeAsync(() => {
     let appointmentId: string | null | undefined;
     store

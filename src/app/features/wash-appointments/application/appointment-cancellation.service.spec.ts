@@ -1,3 +1,4 @@
+import { ApplicationError } from '../../../core/api/application-error';
 import { TestBed } from '@angular/core/testing';
 import { of, Subject, throwError } from 'rxjs';
 import { OperationTrackerService } from '../../../core/api/operation-tracker.service';
@@ -8,6 +9,8 @@ import { AppointmentCancellationService } from './appointment-cancellation.servi
 import { WashAppointmentRegistrationUseCase } from './wash-appointment-registration.use-case';
 
 describe('AppointmentCancellationService', () => {
+  beforeEach(() => sessionStorage.removeItem('estoma.cancellation.receipts.v1'));
+  afterEach(() => sessionStorage.removeItem('estoma.cancellation.receipts.v1'));
   let api: jasmine.SpyObj<WashAppointmentRegistrationUseCase>;
   let operations: Subject<DurableOperation>;
   let service: AppointmentCancellationService;
@@ -37,6 +40,20 @@ describe('AppointmentCancellationService', () => {
         pollPath: '/api/v1/operations/op',
       }),
     );
+  });
+  it('restores the accepted receipt after reload and polls without another cancellation', () => {
+    service.start('appointment', 3);
+    const command = service.pending()!.command;
+    const restored = TestBed.runInInjectionContext(() => new AppointmentCancellationService());
+    expect(restored.pending()?.command).toEqual(command);
+    restored.resume();
+    expect(api.cancel).toHaveBeenCalledTimes(1);
+  });
+  it('does not submit when the receipt cannot be persisted', () => {
+    spyOn(Storage.prototype, 'setItem').and.throwError('storage unavailable');
+    service.start('appointment', 3);
+    expect(api.cancel).not.toHaveBeenCalled();
+    expect(service.pending()).toBeNull();
   });
   it('reuses the original command after an ambiguous response and prevents double submission', () => {
     api.cancel.and.returnValue(throwError(() => new Error('network')));
@@ -80,6 +97,26 @@ describe('AppointmentCancellationService', () => {
     expect(service.pending()).toBeNull();
     expect(service.settled()).toBe(0);
     session.session.set(original);
+    expect(service.pending()?.operationId).toBe('op');
+  });
+  for (const status of [400, 403, 422]) {
+    it(`preserves the original cancellation when access changes after a lost response (HTTP ${status})`, () => {
+      api.cancel.and.returnValue(throwError(() => new Error('lost response')));
+      service.start('appointment', 3);
+      const original = service.pending()!.command;
+      api.cancel.and.returnValue(
+        throwError(() => new ApplicationError('forbidden', 'Forbidden', status)),
+      );
+      const restored = TestBed.runInInjectionContext(() => new AppointmentCancellationService());
+      restored.resume();
+      expect(restored.pending()?.command).toEqual(original);
+      expect(api.cancel.calls.mostRecent().args[0]).toEqual(original);
+    });
+  }
+  it('requests Home reconciliation when operation tracking fails', () => {
+    service.start('appointment', 3);
+    operations.error(new ApplicationError('not-found', '', 404));
+    expect(service.settled()).toBe(1);
     expect(service.pending()?.operationId).toBe('op');
   });
 });

@@ -49,8 +49,10 @@ const homeWith = (data: StudentWashHome['appointment']): StudentWashHome => ({
 
 describe('StudentWashHomePage', () => {
   let gateway: jasmine.SpyObj<StudentWashHomeGateway>;
+  const pendingCancellation = signal<ReturnType<AppointmentCancellationService['pending']>>(null);
 
   beforeEach(async () => {
+    pendingCancellation.set(null);
     gateway = jasmine.createSpyObj<StudentWashHomeGateway>('StudentWashHomeGateway', ['loadHome']);
 
     await TestBed.configureTestingModule({
@@ -60,7 +62,7 @@ describe('StudentWashHomePage', () => {
         {
           provide: AppointmentCancellationService,
           useValue: {
-            pending: signal(null),
+            pending: pendingCancellation,
             busy: signal(false),
             message: signal(null),
             settled: signal(0),
@@ -244,4 +246,35 @@ describe('StudentWashHomePage', () => {
     expect(fixture.nativeElement.querySelector('.button--cancel')).toBeNull();
     expect(fixture.nativeElement.textContent).toContain('El plazo para cancelar');
   });
+  for (const scenario of ['missing', 'different', 'same'] as const) {
+    it(`only reconciles an expired cancellation with the same newer cancelled appointment: ${scenario}`, () => {
+      pendingCancellation.set({
+        command: {
+          appointmentId: appointment.appointmentId,
+          expectedVersion: 1,
+          idempotencyKey: 'key',
+        },
+        operationId: 'op',
+        result: { operationId: 'op', status: 'EXPIRED' },
+      });
+      gateway.loadHome.and.returnValue(
+        of(
+          homeWith(
+            scenario === 'missing'
+              ? null
+              : {
+                  ...appointment,
+                  appointmentId: scenario === 'different' ? 'another' : appointment.appointmentId,
+                  appointmentStatus: 'CANCELLED',
+                  appointmentVersion: 2,
+                },
+          ),
+        ),
+      );
+      const fixture = TestBed.createComponent(StudentWashHomePage);
+      fixture.detectChanges();
+      const cancellation = TestBed.inject(AppointmentCancellationService);
+      expect(cancellation.clear).toHaveBeenCalledTimes(scenario === 'same' ? 1 : 0);
+    });
+  }
 });

@@ -208,7 +208,11 @@ export class WashAppointmentAvailabilityPage {
     };
     this.confirmationDialog?.nativeElement.close();
     this.confirmationOpen.set(false);
-    this.registration.beginSchedule(command);
+    if (this.registration.beginSchedule(command) === false) {
+      this.submissionState.set('IDLE');
+      this.submissionError.set(this.registration.storageError());
+      return;
+    }
     this.submitSchedule(command);
   }
 
@@ -232,6 +236,12 @@ export class WashAppointmentAvailabilityPage {
   }
 
   private submitSchedule(command: ScheduleAppointmentCommand): void {
+    const previouslyAttempted = this.pendingSchedule()?.attempted === true;
+    if (!this.registration.markAttempted()) {
+      this.submissionState.set('FAILED');
+      this.submissionError.set(this.registration.storageError());
+      return;
+    }
     this.appointmentRegistration
       .schedule(command)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -240,7 +250,7 @@ export class WashAppointmentAvailabilityPage {
           this.registration.setScheduleOperation(operationId);
           this.trackScheduleOperation(operationId);
         },
-        error: (error: unknown) => this.failSubmission(error, false),
+        error: (error: unknown) => this.failSubmission(error, previouslyAttempted),
       });
   }
 

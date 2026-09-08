@@ -1,3 +1,4 @@
+import { SessionStore } from '../../authentication/application/session-store.service';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
@@ -35,7 +36,9 @@ describe('WashAppointmentAvailabilityPage', () => {
   let registration: AppointmentRegistrationDraftService;
   let appointmentRegistration: jasmine.SpyObj<WashAppointmentRegistrationUseCase>;
 
+  afterEach(() => sessionStorage.removeItem('estoma.booking.receipts.v1'));
   beforeEach(async () => {
+    sessionStorage.removeItem('estoma.booking.receipts.v1');
     appointmentRegistration = jasmine.createSpyObj<WashAppointmentRegistrationUseCase>(
       'WashAppointmentRegistrationUseCase',
       ['getAvailability', 'schedule', 'getOperation'],
@@ -56,6 +59,14 @@ describe('WashAppointmentAvailabilityPage', () => {
       ],
     }).compileComponents();
 
+    TestBed.inject(SessionStore).session.set({
+      accountId: 'booking-test',
+      sessionId: 's',
+      accessToken: 't',
+      refreshToken: null,
+      authState: 'NORMAL',
+      accessExpiresAt: Date.now() + 60000,
+    });
     registration = TestBed.inject(AppointmentRegistrationDraftService);
     registration.acceptRegulation(true);
     registration.update({
@@ -142,4 +153,22 @@ describe('WashAppointmentAvailabilityPage', () => {
     page.confirmSchedule();
     expect(appointmentRegistration.schedule).not.toHaveBeenCalled();
   });
+  for (const status of [400, 403, 422]) {
+    it(`retains a booking whose lost response is followed by a forbidden retry (HTTP ${status})`, () => {
+      appointmentRegistration.schedule.and.returnValue(
+        throwError(() => new ApplicationError('network', 'Lost response')),
+      );
+      const page = TestBed.createComponent(WashAppointmentAvailabilityPage).componentInstance;
+      page.availability.set(availability);
+      page.selectTimeSlot(availability.availableTimeSlots[0]);
+      page.confirmSchedule();
+      const original = registration.pendingSchedule()!.command;
+      appointmentRegistration.schedule.and.returnValue(
+        throwError(() => new ApplicationError('forbidden', 'Forbidden', status)),
+      );
+      page.confirmSchedule();
+      expect(registration.pendingSchedule()?.command).toEqual(original);
+      expect(appointmentRegistration.schedule.calls.mostRecent().args[0]).toEqual(original);
+    });
+  }
 });

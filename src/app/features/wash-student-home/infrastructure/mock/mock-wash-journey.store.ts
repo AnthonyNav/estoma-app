@@ -226,7 +226,8 @@ export class MockWashJourneyStore {
     const execution = this.home.appointment?.washExecution;
     if (
       execution?.washExecutionId !== command.washExecutionId ||
-      execution.status !== 'EXIT_SUBMITTED' ||
+      !['IN_PROGRESS', 'EXIT_SUBMITTED'].includes(execution.status) ||
+      !execution.activeResourceAssignment ||
       !validMaterials(command.finalMaterials)
     )
       return throwError(
@@ -281,6 +282,10 @@ export class MockWashJourneyStore {
     }).pipe(delay(350));
   }
   loadStudentHome(fixture: StudentHomeFixture | null): Observable<StudentWashHome> {
+    if (this.bookingDemo && !this.entryDemo && !this.exitDemo && !this.completionDemo) {
+      this.home = structuredClone(this.bookingDemo.home);
+      return of(this.home).pipe(delay(250));
+    }
     if (this.completionDemo) {
       this.home = structuredClone(this.completionDemo.home);
       return of(this.home).pipe(delay(250));
@@ -357,7 +362,65 @@ export class MockWashJourneyStore {
     }).pipe(delay(450));
   }
 
+  private bookingDemo: {
+    kind: 'schedule' | 'cancel';
+    command: ScheduleAppointmentCommand | CancelAppointmentCommand;
+    receipt: AcceptedOperation;
+    home: StudentWashHome;
+    result?: DurableOperation;
+  } | null = this.restoreBookingDemo();
+  private restoreBookingDemo() {
+    try {
+      return JSON.parse(sessionStorage.getItem('estoma.booking.demo.v1') ?? 'null');
+    } catch {
+      return null;
+    }
+  }
+  private saveBookingDemo() {
+    if (!this.bookingDemo) return;
+    this.bookingDemo.home = structuredClone(this.home);
+    try {
+      sessionStorage.setItem('estoma.booking.demo.v1', JSON.stringify(this.bookingDemo));
+    } catch {
+      /* In-memory demo remains available. */
+    }
+  }
+  private rememberBooking(
+    kind: 'schedule' | 'cancel',
+    command: ScheduleAppointmentCommand | CancelAppointmentCommand,
+    accepted: AcceptedOperation,
+  ): AcceptedOperation {
+    const previous = this.bookingDemo;
+    if (previous?.kind === kind && previous.command.idempotencyKey === command.idempotencyKey) {
+      const operation = this.operations.get(accepted.operationId)!;
+      this.operations.delete(accepted.operationId);
+      this.operations.set(previous.receipt.operationId, operation);
+      return previous.receipt;
+    }
+    this.bookingDemo = {
+      kind,
+      command: structuredClone(command),
+      receipt: accepted,
+      home: structuredClone(this.home),
+    };
+    this.saveBookingDemo();
+    return accepted;
+  }
+  private recoverBooking(
+    command: ScheduleAppointmentCommand | CancelAppointmentCommand,
+  ): Observable<AcceptedOperation> | null {
+    const saved = this.bookingDemo;
+    if (!saved || saved.command.idempotencyKey !== command.idempotencyKey) return null;
+    if (JSON.stringify(saved.command) !== JSON.stringify(command))
+      return throwError(() => new ApplicationError('conflict', 'La intención cambió.', 409));
+    this.home = structuredClone(saved.home);
+    if (saved.result || this.operations.has(saved.receipt.operationId))
+      return of(saved.receipt).pipe(delay(250));
+    return null;
+  }
   schedule(command: ScheduleAppointmentCommand): Observable<AcceptedOperation> {
+    const recovered = this.recoverBooking(command);
+    if (recovered) return recovered;
     const existing = this.acceptedByKey.get(command.idempotencyKey);
     if (existing) {
       if (existing.payload !== JSON.stringify(command))
@@ -373,43 +436,47 @@ export class MockWashJourneyStore {
       return of(existing.response).pipe(delay(250));
     }
     this.scheduleCalls++;
-    const accepted = this.createOperation(() => {
-      const slot = this.slots.find(
-        (candidate) => candidate.appointmentTimeSlotId === command.appointmentTimeSlotId,
-      );
-      const courseSection = courseSections.find(
-        (candidate) => candidate.courseSectionId === command.courseSectionId,
-      );
+    const accepted = this.rememberBooking(
+      'schedule',
+      command,
+      this.createOperation(() => {
+        const slot = this.slots.find(
+          (candidate) => candidate.appointmentTimeSlotId === command.appointmentTimeSlotId,
+        );
+        const courseSection = courseSections.find(
+          (candidate) => candidate.courseSectionId === command.courseSectionId,
+        );
 
-      if (!slot || !courseSection) {
-        return;
-      }
+        if (!slot || !courseSection) {
+          return;
+        }
 
-      if (this.scenario === 'home-lag') this.homeLag = 3;
-      this.home = this.homeWith({
-        appointmentId: '11111111-1111-1111-1111-111111111111',
-        appointmentStatus: 'SCHEDULED',
-        appointmentType: command.appointmentType,
-        instrumentCount: command.instrumentCount,
-        pieceType: command.pieceType,
-        courseSection,
-        timeSlot: {
-          appointmentTimeSlotId: slot.appointmentTimeSlotId,
-          startsAt: slot.startsAt,
-          endsAt: slot.endsAt,
-          timezone: 'America/Mexico_City',
-        },
-        washExecution: null,
-        appointmentVersion: 1,
-        usesExceptionalAuthorization: false,
-        studentCancellationAction:
-          this.scenario === 'cancel-deadline-passed' ? 'DEADLINE_PASSED' : 'AVAILABLE',
-        qrUsageContext: this.scenario === 'qr-before-entry' ? 'NONE' : 'ENTRY',
-        qrRepresentation: ['with-qr', 'qr-before-entry'].includes(this.scenario)
-          ? opaqueQrRepresentation
-          : null,
-      });
-    });
+        if (this.scenario === 'home-lag') this.homeLag = 3;
+        this.home = this.homeWith({
+          appointmentId: '11111111-1111-1111-1111-111111111111',
+          appointmentStatus: 'SCHEDULED',
+          appointmentType: command.appointmentType,
+          instrumentCount: command.instrumentCount,
+          pieceType: command.pieceType,
+          courseSection,
+          timeSlot: {
+            appointmentTimeSlotId: slot.appointmentTimeSlotId,
+            startsAt: slot.startsAt,
+            endsAt: slot.endsAt,
+            timezone: 'America/Mexico_City',
+          },
+          washExecution: null,
+          appointmentVersion: 1,
+          usesExceptionalAuthorization: false,
+          studentCancellationAction:
+            this.scenario === 'cancel-deadline-passed' ? 'DEADLINE_PASSED' : 'AVAILABLE',
+          qrUsageContext: this.scenario === 'qr-before-entry' ? 'NONE' : 'ENTRY',
+          qrRepresentation: ['with-qr', 'qr-before-entry'].includes(this.scenario)
+            ? opaqueQrRepresentation
+            : null,
+        });
+      }),
+    );
     this.acceptedByKey.set(command.idempotencyKey, {
       payload: JSON.stringify(command),
       response: accepted,
@@ -432,13 +499,19 @@ export class MockWashJourneyStore {
       this.home = structuredClone(this.exitDemo.home);
       return;
     }
-    if (!this.supervisionFixtureApplied && this.scenario === 'supervisor-exit') {
+    if (
+      !this.supervisionFixtureApplied &&
+      ['supervisor-exit', 'supervisor-direct-exit'].includes(this.scenario)
+    ) {
       this.supervisionFixtureApplied = true;
       this.home = this.homeWith(
         this.appointmentWith(
           'IN_PROGRESS',
           true,
-          this.execution('EXIT_SUBMITTED', resourceAssignment),
+          this.execution(
+            this.scenario === 'supervisor-direct-exit' ? 'IN_PROGRESS' : 'EXIT_SUBMITTED',
+            resourceAssignment,
+          ),
         ),
       );
       return;
@@ -550,6 +623,8 @@ export class MockWashJourneyStore {
     const assignment = execution?.activeResourceAssignment;
     return {
       serviceDate: this.home.serviceDate,
+      canComplete:
+        !!assignment && ['IN_PROGRESS', 'EXIT_SUBMITTED'].includes(execution?.status ?? ''),
       nextAction:
         execution?.status === 'PENDING_ENTRY'
           ? 'ENTRY_DECISION'
@@ -751,6 +826,8 @@ export class MockWashJourneyStore {
   }
 
   cancel(command: CancelAppointmentCommand): Observable<AcceptedOperation> {
+    const recovered = this.recoverBooking(command);
+    if (recovered) return recovered;
     const key = `cancel:${command.idempotencyKey}`;
     const existing = this.acceptedByKey.get(key);
     if (existing) {
@@ -776,21 +853,32 @@ export class MockWashJourneyStore {
           ),
       );
     }
-    const accepted = this.createOperation(() => {
-      this.home = this.homeWith({
-        ...appointment,
-        appointmentStatus: 'CANCELLED',
-        appointmentVersion: command.expectedVersion + 1,
-        studentCancellationAction: 'NOT_APPLICABLE',
-        qrRepresentation: null,
-        qrUsageContext: 'NONE',
-      });
-    });
+    const accepted = this.rememberBooking(
+      'cancel',
+      command,
+      this.createOperation(() => {
+        this.home = this.homeWith({
+          ...appointment,
+          appointmentStatus: 'CANCELLED',
+          appointmentVersion: command.expectedVersion + 1,
+          studentCancellationAction: 'NOT_APPLICABLE',
+          qrRepresentation: null,
+          qrUsageContext: 'NONE',
+        });
+      }),
+    );
     this.acceptedByKey.set(key, { payload: JSON.stringify(command), response: accepted });
     return of(accepted).pipe(delay(250));
   }
 
   getOperation(operationId: string): Observable<DurableOperation> {
+    const booking = this.bookingDemo?.receipt.operationId === operationId ? this.bookingDemo : null;
+    if (booking?.result) return of(booking.result).pipe(delay(250));
+    if (booking && !this.operations.has(operationId)) {
+      if (booking.kind === 'schedule') this.schedule(booking.command as ScheduleAppointmentCommand);
+      else this.cancel(booking.command as CancelAppointmentCommand);
+    }
+
     if (this.completionDemo?.receipt.operationId === operationId) {
       const demo = this.completionDemo;
       if (demo.result) return of(demo.result).pipe(delay(250));
@@ -883,6 +971,10 @@ export class MockWashJourneyStore {
             },
     };
     this.completed.set(operationId, result);
+    if (booking) {
+      booking.result = result;
+      this.saveBookingDemo();
+    }
     if (record) {
       record.result = result;
       this.saveEntryDemo();

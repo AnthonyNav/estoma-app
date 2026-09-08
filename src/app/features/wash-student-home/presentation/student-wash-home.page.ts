@@ -224,15 +224,18 @@ export class StudentWashHomePage {
         next: (home) => {
           this.home.set(home);
           const cancellation = this.cancellation.pending();
-          if (cancellation?.result?.status === 'SUCCEEDED') {
+          if (cancellation) {
             if (
-              !home.appointment ||
-              (home.appointment.appointmentId === cancellation.command.appointmentId &&
-                home.appointment.appointmentStatus === 'CANCELLED')
+              home.appointment?.appointmentId === cancellation.command.appointmentId &&
+              home.appointment.appointmentStatus === 'CANCELLED' &&
+              (home.appointment.appointmentVersion ?? 0) > cancellation.command.expectedVersion &&
+              (!home.appointment.washExecution ||
+                (home.appointment.washExecution.status === 'CANCELLED' &&
+                  home.appointment.washExecution.activeResourceAssignment == null))
             ) {
               this.cancellation.clear();
               this.synchronizing.set(false);
-            } else if (attempt < 19) {
+            } else if (cancellation.result?.status === 'SUCCEEDED' && attempt < 19) {
               this.synchronizing.set(true);
               timer(1500)
                 .pipe(takeUntilDestroyed(this.destroyRef))

@@ -33,6 +33,8 @@ const profile: SessionProfile = {
   availableSystemCodes: ['LAVADO_ULTRASONICO'],
 };
 describe('AuthSessionService contract lifecycle', () => {
+  beforeEach(() => sessionStorage.removeItem('estoma.booking.receipts.v1'));
+  afterEach(() => sessionStorage.removeItem('estoma.booking.receipts.v1'));
   let auth: AuthSessionService;
   let gateway: jasmine.SpyObj<AuthenticationGateway>;
   let router: jasmine.SpyObj<Router>;

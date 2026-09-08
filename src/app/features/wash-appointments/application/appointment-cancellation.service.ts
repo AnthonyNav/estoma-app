@@ -13,6 +13,7 @@ import { WashAppointmentRegistrationUseCase } from './wash-appointment-registrat
 
 interface Cancellation {
   command: CancelAppointmentCommand;
+  attempted?: boolean;
   operationId?: string;
   result?: DurableOperation;
 }
@@ -22,7 +23,7 @@ export class AppointmentCancellationService {
   private readonly lifecycle = inject(SessionLifecycleService);
   private readonly useCase = inject(WashAppointmentRegistrationUseCase);
   private readonly tracker = inject(OperationTrackerService);
-  private readonly receipts = signal(new Map<string, Cancellation>());
+  private readonly receipts = signal(this.restore());
   readonly pending = computed(
     () => this.receipts().get(this.session.session()?.accountId ?? '') ?? null,
   );
@@ -35,25 +36,46 @@ export class AppointmentCancellationService {
       this.message.set(null);
     });
   }
-  private save(owner: string, value: Cancellation): void {
-    this.receipts.update((values) => new Map(values).set(owner, value));
+  private restore(): Map<string, Cancellation> {
+    try {
+      return new Map(JSON.parse(sessionStorage.getItem('estoma.cancellation.receipts.v1') ?? '[]'));
+    } catch {
+      return new Map();
+    }
+  }
+  private persist(values: Map<string, Cancellation>): boolean {
+    try {
+      sessionStorage.setItem('estoma.cancellation.receipts.v1', JSON.stringify([...values]));
+      this.receipts.set(values);
+      return true;
+    } catch {
+      if (this.pending()) this.receipts.set(values);
+      this.message.set(
+        'No pudimos guardar el seguimiento. Habilita el almacenamiento del navegador antes de continuar.',
+      );
+      return false;
+    }
+  }
+  private save(owner: string, value: Cancellation): boolean {
+    return this.persist(new Map(this.receipts()).set(owner, value));
   }
   clear(): void {
     const owner = this.session.session()?.accountId;
     if (!owner) return;
-    this.receipts.update((values) => {
-      const next = new Map(values);
-      next.delete(owner);
-      return next;
-    });
+    const next = new Map(this.receipts());
+    next.delete(owner);
+    this.persist(next);
   }
   start(appointmentId: string, expectedVersion: number): void {
     if (this.pending() || this.busy()) return;
     const owner = this.session.session()?.accountId;
     if (!owner) return;
-    this.save(owner, {
-      command: { appointmentId, expectedVersion, idempotencyKey: crypto.randomUUID() },
-    });
+    if (
+      !this.save(owner, {
+        command: { appointmentId, expectedVersion, idempotencyKey: crypto.randomUUID() },
+      })
+    )
+      return;
     this.resume();
   }
   resume(): void {
@@ -64,6 +86,10 @@ export class AppointmentCancellationService {
     this.message.set(null);
     if (pending.operationId) {
       this.poll(owner, pending);
+      return;
+    }
+    if (!this.save(owner, { ...pending, attempted: true })) {
+      this.busy.set(false);
       return;
     }
     this.useCase
@@ -77,7 +103,11 @@ export class AppointmentCancellationService {
         },
         error: (error: unknown) => {
           this.busy.set(false);
-          if (error instanceof ApplicationError && [400, 403, 422].includes(error.status ?? 0)) {
+          if (
+            !pending.attempted &&
+            error instanceof ApplicationError &&
+            [400, 403, 422].includes(error.status ?? 0)
+          ) {
             this.clear();
             this.settled.update((value) => value + 1);
             this.message.set(
@@ -140,6 +170,7 @@ export class AppointmentCancellationService {
           this.message.set(
             'La comprobación no pudo terminar. Puedes volver a consultar sin enviar otra cancelación.',
           );
+          this.settled.update((value) => value + 1);
         },
       });
   }
