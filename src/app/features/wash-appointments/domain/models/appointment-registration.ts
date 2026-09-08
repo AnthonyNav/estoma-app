@@ -52,7 +52,7 @@ export interface ScheduleAppointmentCommand extends AppointmentDraft {
 
 export interface AcceptedOperation {
   operationId: string;
-  status: 'PENDING';
+  status: DurableOperationStatus;
   pollPath: string;
   submittedAt: string;
 }

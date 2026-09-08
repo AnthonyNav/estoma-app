@@ -66,7 +66,7 @@ export function validateAccepted(value: AcceptedOperation): AcceptedOperation {
   if (
     !value ||
     !uuidPattern.test(value.operationId) ||
-    value.status !== 'PENDING' ||
+    !['PENDING', 'SUCCEEDED', 'REJECTED', 'FAILED', 'EXPIRED'].includes(value.status) ||
     value.pollPath !== `/api/v1/operations/${value.operationId}` ||
     !Number.isFinite(Date.parse(value.submittedAt))
   )
