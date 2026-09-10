@@ -13,6 +13,15 @@ import {
 import { AppointmentRegistrationDraftService } from './appointment-registration-draft.service';
 import { WashAppointmentAvailabilityPage } from './wash-appointment-availability.page';
 
+interface AvailabilityPageInternals {
+  lastRefreshAt: number;
+  loadAvailability(): void;
+  scheduleAvailabilityRefresh(): void;
+}
+
+const internals = (page: WashAppointmentAvailabilityPage): AvailabilityPageInternals =>
+  page as unknown as AvailabilityPageInternals;
+
 const availability: AppointmentAvailability = {
   canSchedule: true,
   blockingReasons: [],
@@ -24,10 +33,10 @@ const availability: AppointmentAvailability = {
   availableTimeSlots: [
     {
       appointmentTimeSlotId: 'slot-1',
-      startsAt: '2026-08-28T10:00:00-06:00',
-      endsAt: '2026-08-28T11:00:00-06:00',
+      startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      endsAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
       availableCapacity: 2,
-      bookingDeadlineAt: '2026-08-28T09:45:00-06:00',
+      bookingDeadlineAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     },
   ],
 };
@@ -152,6 +161,147 @@ describe('WashAppointmentAvailabilityPage', () => {
     page.selectTimeSlot(availability.availableTimeSlots[0]);
     page.confirmSchedule();
     expect(appointmentRegistration.schedule).not.toHaveBeenCalled();
+  });
+
+  it('removes a selected slot at its booking deadline and blocks confirmation', () => {
+    jasmine.clock().install();
+    jasmine.clock().mockDate(new Date('2026-09-10T14:00:00Z'));
+    try {
+      const fixture = TestBed.createComponent(WashAppointmentAvailabilityPage);
+      const page = fixture.componentInstance;
+      const expiringAvailability: AppointmentAvailability = {
+        ...availability,
+        availableTimeSlots: [
+          {
+            ...availability.availableTimeSlots[0],
+            bookingDeadlineAt: '2026-09-10T14:00:01Z',
+          },
+        ],
+      };
+      page.availability.set(expiringAvailability);
+      page.selectTimeSlot(expiringAvailability.availableTimeSlots[0]);
+      internals(page).scheduleAvailabilityRefresh();
+
+      jasmine.clock().tick(1000);
+
+      expect(page.availableTimeSlots()).toEqual([]);
+      expect(registration.selectedTimeSlot()).toBeNull();
+      expect(page.canSchedule()).toBeFalse();
+      page.confirmSchedule();
+      expect(appointmentRegistration.schedule).not.toHaveBeenCalled();
+      fixture.destroy();
+    } finally {
+      jasmine.clock().uninstall();
+    }
+  });
+
+  it('refreshes once when the page returns to the foreground', () => {
+    const page = TestBed.createComponent(WashAppointmentAvailabilityPage).componentInstance;
+    const initialRequests = appointmentRegistration.getAvailability.calls.count();
+    internals(page).lastRefreshAt = 0;
+
+    page.refreshOnFocus();
+    page.refreshOnVisibilityChange();
+
+    expect(appointmentRegistration.getAvailability.calls.count()).toBe(initialRequests + 1);
+  });
+
+  it('refreshes at the next Mexico City midnight', () => {
+    jasmine.clock().install();
+    jasmine.clock().mockDate(new Date('2026-09-11T05:59:59Z'));
+    try {
+      const page = TestBed.createComponent(WashAppointmentAvailabilityPage).componentInstance;
+      page.availability.set({
+        ...availability,
+        availableTimeSlots: [
+          {
+            ...availability.availableTimeSlots[0],
+            bookingDeadlineAt: '2026-09-12T14:00:00Z',
+          },
+        ],
+      });
+      const initialRequests = appointmentRegistration.getAvailability.calls.count();
+      internals(page).scheduleAvailabilityRefresh();
+
+      jasmine.clock().tick(1000);
+
+      expect(appointmentRegistration.getAvailability.calls.count()).toBe(initialRequests + 1);
+    } finally {
+      jasmine.clock().uninstall();
+    }
+  });
+
+  it('does not issue another POST while a durable operation is pending', () => {
+    const tracker = TestBed.inject(OperationTrackerService);
+    (tracker.trackWith as jasmine.Spy).and.returnValue(new Subject<DurableOperation>());
+    registration.beginSchedule({
+      ...registration.draft(),
+      appointmentTimeSlotId: 'slot-1',
+      exceptionalAuthorizationId: null,
+      idempotencyKey: 'durable-key',
+    });
+    registration.setScheduleOperation('operation-1');
+    const page = TestBed.createComponent(WashAppointmentAvailabilityPage).componentInstance;
+
+    page.confirmSchedule();
+
+    expect(appointmentRegistration.schedule).not.toHaveBeenCalled();
+    expect(tracker.trackWith).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not let an existing expiry timer alter a durable pending request', () => {
+    jasmine.clock().install();
+    jasmine.clock().mockDate(new Date('2026-09-10T14:00:00Z'));
+    try {
+      const page = TestBed.createComponent(WashAppointmentAvailabilityPage).componentInstance;
+      const slot = {
+        ...availability.availableTimeSlots[0],
+        bookingDeadlineAt: '2026-09-10T14:00:01Z',
+      };
+      page.availability.set({ ...availability, availableTimeSlots: [slot] });
+      page.selectTimeSlot(slot);
+      internals(page).scheduleAvailabilityRefresh();
+      registration.beginSchedule({
+        ...registration.draft(),
+        appointmentTimeSlotId: slot.appointmentTimeSlotId,
+        exceptionalAuthorizationId: null,
+        idempotencyKey: 'durable-key',
+      });
+
+      jasmine.clock().tick(1000);
+
+      expect(registration.selectedTimeSlot()?.appointmentTimeSlotId).toBe(
+        slot.appointmentTimeSlotId,
+      );
+      expect(registration.pendingSchedule()?.command.idempotencyKey).toBe('durable-key');
+    } finally {
+      jasmine.clock().uninstall();
+    }
+  });
+
+  it('ignores an older availability response after a newer refresh starts', () => {
+    const first = new Subject<AppointmentAvailability>();
+    const second = new Subject<AppointmentAvailability>();
+    appointmentRegistration.getAvailability.and.returnValues(first, second);
+    const page = TestBed.createComponent(WashAppointmentAvailabilityPage).componentInstance;
+
+    internals(page).loadAvailability();
+    second.next({ ...availability, canSchedule: false });
+    first.next(availability);
+
+    expect(page.availability()?.canSchedule).toBeFalse();
+  });
+
+  it('does not display availability that arrived for a previous session', () => {
+    const response = new Subject<AppointmentAvailability>();
+    appointmentRegistration.getAvailability.and.returnValue(response);
+    const page = TestBed.createComponent(WashAppointmentAvailabilityPage).componentInstance;
+    const session = TestBed.inject(SessionStore);
+    session.session.update((current) => ({ ...current!, accountId: 'another-account' }));
+
+    response.next(availability);
+
+    expect(page.availability()).toBeNull();
   });
   for (const status of [400, 403, 422]) {
     it(`retains a booking whose lost response is followed by a forbidden retry (HTTP ${status})`, () => {

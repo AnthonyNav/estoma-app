@@ -111,7 +111,7 @@
             <p>Actualiza tus datos o consulta nuevamente más tarde.</p>
           }
         </div>
-      } @else if (availability.availableTimeSlots.length === 0) {
+      } @else if (availableTimeSlots().length === 0) {
         <div class="feedback" role="status">
           <h2>No hay horarios disponibles</h2>
           <p>Puedes registrar una cita, pero no hay cupos disponibles en este momento.</p>
@@ -125,7 +125,7 @@
           <span>{{ serviceDayLabel() }} · Hoy</span>
         </div>
         <div class="time-options" role="radiogroup" aria-label="Horarios disponibles">
-          @for (timeSlot of availability.availableTimeSlots; track timeSlot.appointmentTimeSlotId) {
+          @for (timeSlot of availableTimeSlots(); track timeSlot.appointmentTimeSlotId) {
             <label class="time-option">
               <svg class="time-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="12" cy="12" r="8" />
