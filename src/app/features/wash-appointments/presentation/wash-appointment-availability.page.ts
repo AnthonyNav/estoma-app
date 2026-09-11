@@ -5,6 +5,7 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  HostListener,
   ViewChild,
   computed,
   inject,
@@ -18,6 +19,7 @@ import { Router, RouterLink } from '@angular/router';
 
 import { ApplicationError } from '../../../core/api/application-error';
 import { OperationTrackerService } from '../../../core/api/operation-tracker.service';
+import { SessionStore } from '../../authentication/application/session-store.service';
 import { WashAppointmentRegistrationUseCase } from '../application/wash-appointment-registration.use-case';
 import {
   AppointmentAvailability,
@@ -42,6 +44,18 @@ const timeFormatter = new Intl.DateTimeFormat('es-MX', {
   timeZone: 'America/Mexico_City',
 });
 
+const businessDayFormatter = new Intl.DateTimeFormat('en-CA', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  timeZone: 'America/Mexico_City',
+});
+
+const businessOffsetFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/Mexico_City',
+  timeZoneName: 'longOffset',
+});
+
 @Component({
   selector: 'app-wash-appointment-availability-page',
   imports: [RouterLink, NgTemplateOutlet],
@@ -53,6 +67,7 @@ export class WashAppointmentAvailabilityPage {
   private readonly injector = inject(Injector);
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
+  private readonly session = inject(SessionStore);
   private readonly registration = inject(AppointmentRegistrationDraftService);
   private readonly appointmentRegistration = inject(WashAppointmentRegistrationUseCase);
   private readonly operationTracker = inject(OperationTrackerService);
@@ -77,11 +92,12 @@ export class WashAppointmentAvailabilityPage {
       })[this.draft().pieceType],
   );
   readonly serviceDayLabel = computed(() => {
-    const first = this.availability()?.availableTimeSlots[0];
+    const first = this.availableTimeSlots()[0];
     return first ? dateFormatter.format(new Date(first.startsAt)) : '';
   });
 
   readonly availability = signal<AppointmentAvailability | null>(null);
+  private readonly clock = signal(Date.now());
   readonly loading = signal(true);
   readonly loadError = signal<string | null>(null);
   readonly submissionError = signal<string | null>(null);
@@ -89,6 +105,12 @@ export class WashAppointmentAvailabilityPage {
   readonly submissionState = signal<SubmissionState>('IDLE');
   readonly selectedTimeSlot = this.registration.selectedTimeSlot;
   readonly pendingSchedule = this.registration.pendingSchedule;
+  readonly availableTimeSlots = computed(() => {
+    const now = this.clock();
+    return (this.availability()?.availableTimeSlots ?? []).filter(
+      (slot) => Date.parse(slot.bookingDeadlineAt) > now,
+    );
+  });
   readonly bookingMessage = bookingMessage;
   readonly canSchedule = computed(() => {
     const availability = this.availability();
@@ -98,7 +120,7 @@ export class WashAppointmentAvailabilityPage {
       !this.pendingSchedule() &&
       availability?.canSchedule === true &&
       !!slot &&
-      availability.availableTimeSlots.some(
+      this.availableTimeSlots().some(
         (item) => item.appointmentTimeSlotId === slot.appointmentTimeSlotId,
       ) &&
       (!availability.exceptionalAuthorizationRequired ||
@@ -107,7 +129,12 @@ export class WashAppointmentAvailabilityPage {
     );
   });
 
+  private refreshTimer?: ReturnType<typeof setTimeout>;
+  private availabilityRequest = 0;
+  private lastRefreshAt = 0;
+
   constructor() {
+    this.destroyRef.onDestroy(() => this.clearAvailabilityRefresh());
     if (this.pendingSchedule()) {
       this.loading.set(false);
       return;
@@ -122,7 +149,11 @@ export class WashAppointmentAvailabilityPage {
   }
 
   selectTimeSlot(timeSlot: AvailableTimeSlot): void {
-    if (this.submissionState() !== 'SUBMITTING' && !this.pendingSchedule()) {
+    if (
+      this.submissionState() !== 'SUBMITTING' &&
+      !this.pendingSchedule() &&
+      Date.parse(timeSlot.bookingDeadlineAt) > Date.now()
+    ) {
       this.registration.selectTimeSlot(timeSlot);
       this.submissionState.set('IDLE');
       this.submissionError.set(null);
@@ -130,6 +161,7 @@ export class WashAppointmentAvailabilityPage {
   }
 
   openConfirmation(event: MouseEvent): void {
+    this.updateClock();
     if (this.canSchedule()) {
       this.confirmationTrigger = event.currentTarget as HTMLElement;
       this.submissionError.set(null);
@@ -175,6 +207,7 @@ export class WashAppointmentAvailabilityPage {
     }
 
     const pending = this.pendingSchedule();
+    if (!pending) this.updateClock();
     if (!pending && !this.canSchedule()) return;
     if (pending?.result?.status === 'SUCCEEDED') {
       void this.router.navigate(['/wash/student']);
@@ -213,6 +246,7 @@ export class WashAppointmentAvailabilityPage {
       this.submissionError.set(this.registration.storageError());
       return;
     }
+    this.clearAvailabilityRefresh();
     this.submitSchedule(command);
   }
 
@@ -235,6 +269,16 @@ export class WashAppointmentAvailabilityPage {
     this.loadAvailability();
   }
 
+  @HostListener('window:focus')
+  refreshOnFocus(): void {
+    this.refreshWhenVisible();
+  }
+
+  @HostListener('document:visibilitychange')
+  refreshOnVisibilityChange(): void {
+    if (document.visibilityState === 'visible') this.refreshWhenVisible();
+  }
+
   private submitSchedule(command: ScheduleAppointmentCommand): void {
     const previouslyAttempted = this.pendingSchedule()?.attempted === true;
     if (!this.registration.markAttempted()) {
@@ -254,11 +298,15 @@ export class WashAppointmentAvailabilityPage {
       });
   }
 
-  private loadAvailability(): void {
+  private loadAvailability(preserveSelection = false): void {
     if (this.pendingSchedule()) return;
+    this.clearAvailabilityRefresh();
+    const request = ++this.availabilityRequest;
+    const accountId = this.session.session()?.accountId ?? null;
+    this.lastRefreshAt = Date.now();
     this.loading.set(true);
     this.availability.set(null);
-    this.registration.selectedTimeSlot.set(null);
+    if (!preserveSelection) this.registration.selectedTimeSlot.set(null);
     this.loadError.set(null);
     const { appointmentType, instrumentCount, pieceType, courseSectionId } =
       this.registration.draft();
@@ -289,10 +337,24 @@ export class WashAppointmentAvailabilityPage {
       )
       .subscribe({
         next: (availability) => {
+          if (request !== this.availabilityRequest || this.pendingSchedule()) return;
+          if (this.session.session()?.accountId !== accountId) {
+            this.availability.set(null);
+            this.loading.set(false);
+            return;
+          }
           this.availability.set(availability);
           this.loading.set(false);
+          this.updateClock();
+          this.scheduleAvailabilityRefresh();
         },
         error: (error: unknown) => {
+          if (request !== this.availabilityRequest || this.pendingSchedule()) return;
+          if (this.session.session()?.accountId !== accountId) {
+            this.availability.set(null);
+            this.loading.set(false);
+            return;
+          }
           this.loadError.set(
             error instanceof ApplicationError
               ? error.message
@@ -301,6 +363,74 @@ export class WashAppointmentAvailabilityPage {
           this.loading.set(false);
         },
       });
+  }
+
+  private refreshWhenVisible(): void {
+    if (this.pendingSchedule() || this.loading() || Date.now() - this.lastRefreshAt < 1000) return;
+    this.lastRefreshAt = Date.now();
+    this.updateClock();
+    this.loadAvailability(true);
+  }
+
+  private updateClock(): void {
+    this.clock.set(Date.now());
+    const selected = this.selectedTimeSlot();
+    if (
+      selected &&
+      !this.availableTimeSlots().some(
+        (slot) => slot.appointmentTimeSlotId === selected.appointmentTimeSlotId,
+      )
+    ) {
+      this.registration.selectedTimeSlot.set(null);
+      this.closeConfirmation();
+    }
+  }
+
+  private scheduleAvailabilityRefresh(): void {
+    this.clearAvailabilityRefresh();
+    if (this.pendingSchedule() || !this.availability()) return;
+
+    const now = Date.now();
+    const deadlines = this.availableTimeSlots()
+      .map((slot) => Date.parse(slot.bookingDeadlineAt))
+      .filter((deadline) => deadline > now);
+    const nextRefreshAt = Math.min(this.nextBusinessMidnight(now), ...deadlines);
+    this.refreshTimer = setTimeout(
+      () => {
+        if (this.pendingSchedule()) {
+          this.clearAvailabilityRefresh();
+          return;
+        }
+        this.lastRefreshAt = Date.now();
+        this.updateClock();
+        this.loadAvailability(true);
+      },
+      Math.max(1, nextRefreshAt - now),
+    );
+  }
+
+  private clearAvailabilityRefresh(): void {
+    if (this.refreshTimer !== undefined) clearTimeout(this.refreshTimer);
+    this.refreshTimer = undefined;
+  }
+
+  private nextBusinessMidnight(now: number): number {
+    const date = businessDayFormatter
+      .formatToParts(new Date(now))
+      .reduce<Record<string, string>>((parts, part) => ({ ...parts, [part.type]: part.value }), {});
+    const nextDate = new Date(Date.UTC(+date['year'], +date['month'] - 1, +date['day'] + 1));
+    const localMidnight = Date.UTC(
+      nextDate.getUTCFullYear(),
+      nextDate.getUTCMonth(),
+      nextDate.getUTCDate(),
+    );
+    const offset = businessOffsetFormatter
+      .formatToParts(new Date(localMidnight))
+      .find((part) => part.type === 'timeZoneName')
+      ?.value.match(/GMT([+-])(\d{2}):(\d{2})/);
+    if (!offset) return localMidnight;
+    const minutes = +offset[2] * 60 + +offset[3];
+    return localMidnight - (offset[1] === '+' ? minutes : -minutes) * 60_000;
   }
 
   private trackScheduleOperation(operationId: string): void {
