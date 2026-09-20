@@ -27,7 +27,7 @@ describe('Real supervisor directory', () => {
           provide: SupervisorEntryWorkflowService,
           useValue: {
             search,
-            reset: () => {},
+            reset: jasmine.createSpy('reset'),
             busy: signal(false),
             pending: signal(null),
             error: signal(null),
