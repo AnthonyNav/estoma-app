@@ -15,6 +15,13 @@ describe('ExceptionalAuthorizationsService', () => {
   let results: Subject<OperationResult>;
   const key = 'estoma.exceptional-authorizations.receipts.v1';
   const url = '/api/v1/wash/exceptional-authorizations';
+  const operationId = '11111111-1111-1111-1111-111111111111';
+  const accepted = {
+    operationId,
+    status: 'PENDING',
+    pollPath: `/api/v1/operations/${operationId}`,
+    submittedAt: '2026-09-19T16:00:00Z',
+  };
   beforeEach(() => {
     localStorage.removeItem(key);
     results = new Subject();
@@ -22,7 +29,7 @@ describe('ExceptionalAuthorizationsService', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: OperationTrackerService, useValue: { track: () => results } },
+        { provide: OperationTrackerService, useValue: { trackWith: () => results } },
       ],
     });
     TestBed.inject(SessionStore).session.set({
@@ -56,14 +63,14 @@ describe('ExceptionalAuthorizationsService', () => {
     expect(retry.request.headers.get('Idempotency-Key')).toEqual(
       request.headers.get('Idempotency-Key'),
     );
-    retry.flush({ operationId: 'op' });
+    retry.flush(accepted);
   });
   it('retains uncertain terminal outcomes and permits acknowledgement only of confirmed results', () => {
     flow.cancel('authorization', 'No longer needed');
-    http.expectOne(`${url}/authorization/cancel`).flush({ operationId: 'op' });
+    http.expectOne(`${url}/authorization/cancel`).flush(accepted);
     results.next({ operationId: 'op', status: 'FAILED' });
     flow.acknowledge();
-    expect(flow.pending()?.operationId).toBe('op');
+    expect(flow.pending()?.operationId).toBe(operationId);
     flow.resume();
     http.expectNone(`${url}/authorization/cancel`);
     results.next({ operationId: 'op', status: 'SUCCEEDED' });

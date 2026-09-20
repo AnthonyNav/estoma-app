@@ -1,7 +1,19 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { takeUntil } from 'rxjs';
+import { map, takeUntil, timeout } from 'rxjs';
+import {
+  AcceptedOperation,
+  DurableOperation,
+} from '../../wash-appointments/domain/models/appointment-registration';
+import {
+  validateAccepted,
+  validateOperation,
+} from '../../wash-appointments/infrastructure/api/booking-validation';
+import {
+  validateStudents,
+  validateAuthorizations,
+} from '../infrastructure/api/exceptional-authorization-validation';
 import { environment } from '../../../../environments/environment';
 import { ApplicationError } from '../../../core/api/application-error';
 import {
@@ -19,7 +31,7 @@ export interface AuthorizationStudent {
 export interface ExceptionalAuthorization {
   authorizationId: string;
   status: string;
-  reason: string;
+  reason: string | null;
   canCancel: boolean;
 }
 interface Receipt {
@@ -54,12 +66,16 @@ export class ExceptionalAuthorizationsService {
     });
   }
   search(query: string) {
-    return this.http.get<AuthorizationStudent[]>(`${this.base}/students`, { params: { query } });
+    return this.http
+      .get<AuthorizationStudent[]>(`${this.base}/students`, { params: { query } })
+      .pipe(timeout(15000), map(validateStudents), takeUntil(this.lifecycle.ended$));
   }
   list(studentAccountId: string, serviceDate: string) {
-    return this.http.get<ExceptionalAuthorization[]>(this.base, {
-      params: { studentAccountId, serviceDate },
-    });
+    return this.http
+      .get<ExceptionalAuthorization[]>(this.base, {
+        params: { studentAccountId, serviceDate },
+      })
+      .pipe(timeout(15000), map(validateAuthorizations), takeUntil(this.lifecycle.ended$));
   }
   grant(studentAccountId: string, serviceDate: string, reason: string): void {
     this.start({
@@ -103,10 +119,10 @@ export class ExceptionalAuthorizationsService {
     }
     // The persisted payload and key are reused even if the initial response was lost.
     this.http
-      .post<{ operationId: string }>(`${this.base}${receipt.path}`, receipt.body, {
+      .post<AcceptedOperation>(`${this.base}${receipt.path}`, receipt.body, {
         headers: { 'Idempotency-Key': receipt.key },
       })
-      .pipe(takeUntil(this.lifecycle.ended$))
+      .pipe(timeout(15000), map(validateAccepted), takeUntil(this.lifecycle.ended$))
       .subscribe({
         next: (accepted) => {
           const next = { ...receipt, operationId: accepted.operationId };
@@ -134,7 +150,18 @@ export class ExceptionalAuthorizationsService {
   }
   private poll(owner: string, receipt: Receipt): void {
     this.tracker
-      .track(receipt.operationId!)
+      .trackWith(
+        () =>
+          this.http
+            .get<DurableOperation>(
+              `${environment.apiBaseUrl}/operations/${encodeURIComponent(receipt.operationId!)}`,
+            )
+            .pipe(
+              timeout(15000),
+              map((value) => validateOperation(value, receipt.operationId!)),
+            ),
+        { maxPendingPolls: 45 },
+      )
       .pipe(takeUntil(this.lifecycle.ended$))
       .subscribe({
         next: (result) => {

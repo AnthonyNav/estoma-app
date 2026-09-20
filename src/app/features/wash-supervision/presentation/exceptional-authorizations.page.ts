@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { takeUntil } from 'rxjs';
+import { SessionLifecycleService } from '../../../core/session/session-lifecycle.service';
 import { environment } from '../../../../environments/environment';
 import {
   AuthorizationStudent,
@@ -19,6 +21,7 @@ import {
 export class ExceptionalAuthorizationsPage {
   readonly flow = inject(ExceptionalAuthorizationsService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly lifecycle = inject(SessionLifecycleService);
   readonly demo = environment.useMockApi;
   readonly students = signal<AuthorizationStudent[]>([]);
   readonly selected = signal<AuthorizationStudent | null>(null);
@@ -43,6 +46,19 @@ export class ExceptionalAuthorizationsPage {
     EXPIRED: 'Vigencia concluida',
     UNKNOWN: 'Estado pendiente de verificar',
   };
+  constructor() {
+    this.lifecycle.ended$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.students.set([]);
+      this.selected.set(null);
+      this.authorizations.set([]);
+      this.loading.set(false);
+      this.loaded.set(false);
+      this.error.set('');
+      this.query = '';
+      this.reason = '';
+      this.cancellationReason = '';
+    });
+  }
   search(): void {
     if (this.demo || this.loading() || this.query.trim().length < 2) return;
     this.selected.set(null);
@@ -52,7 +68,7 @@ export class ExceptionalAuthorizationsPage {
     this.error.set('');
     this.flow
       .search(this.query.trim())
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(takeUntilDestroyed(this.destroyRef), takeUntil(this.lifecycle.ended$))
       .subscribe({
         next: (students) => {
           this.students.set(students);
@@ -78,7 +94,7 @@ export class ExceptionalAuthorizationsPage {
     this.error.set('');
     this.flow
       .list(student.accountId, this.date)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(takeUntilDestroyed(this.destroyRef), takeUntil(this.lifecycle.ended$))
       .subscribe({
         next: (items) => {
           this.authorizations.set(items);
