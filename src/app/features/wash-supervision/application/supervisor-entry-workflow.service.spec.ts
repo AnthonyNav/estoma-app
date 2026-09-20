@@ -25,6 +25,54 @@ describe('SupervisorEntryWorkflowService', () => {
   let api: jasmine.SpyObj<WashEntrySupervisionUseCase>;
   let operations: Subject<DurableOperation>;
   let flow: SupervisorEntryWorkflowService;
+  it('rechecks elapsed server time at the click even if timers have not fired', () => {
+    const monotonic = spyOn(performance, 'now').and.returnValue(1000);
+    flow.search(request);
+    monotonic.and.returnValue(1000 + 16 * 60 * 1000);
+    flow.decide('AUTHORIZED', true, true, '');
+    expect(flow.canArrive()).toBeFalse();
+    expect(api.registerArrival).not.toHaveBeenCalled();
+    expect(api.decideEntry).not.toHaveBeenCalled();
+  });
+  for (const status of ['TOO_EARLY', 'EXPIRED', 'WRONG_DATE', 'SLOT_INACTIVE'] as const) {
+    it(`blocks navigation and mutations when eligibility is ${status}`, () => {
+      api.lookup.and.returnValue(
+        of({ ...initial, arrivalEligibility: { ...initial.arrivalEligibility!, status } }),
+      );
+      const navigate = jasmine.createSpy('navigate');
+      flow.search(request, navigate);
+      flow.arrive();
+      flow.decide('AUTHORIZED', true, true, '');
+      expect(navigate).not.toHaveBeenCalled();
+      expect(flow.error()).toBeTruthy();
+      expect(api.registerArrival).not.toHaveBeenCalled();
+      expect(api.decideEntry).not.toHaveBeenCalled();
+    });
+  }
+  it('waits for eligibility before navigating and does not mutate on lookup', () => {
+    const response = new Subject<SupervisorEntryLookup>();
+    api.lookup.and.returnValue(response);
+    const navigate = jasmine.createSpy('navigate');
+    flow.search(request, navigate);
+    expect(navigate).not.toHaveBeenCalled();
+    response.next(initial);
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(api.registerArrival).not.toHaveBeenCalled();
+  });
+  it('keeps timely registered arrivals reviewable after the arrival window', () => {
+    api.lookup.and.returnValue(
+      of({ ...arrived, arrivalEligibility: { ...initial.arrivalEligibility!, status: 'EXPIRED' } }),
+    );
+    const navigate = jasmine.createSpy('navigate');
+    flow.search(request, navigate);
+    expect(navigate).toHaveBeenCalled();
+    expect(flow.canDecide()).toBeTrue();
+  });
+  it('fails closed if an older backend omits eligibility', () => {
+    api.lookup.and.returnValue(of({ ...initial, arrivalEligibility: undefined }));
+    flow.search(request);
+    expect(flow.canArrive()).toBeFalse();
+  });
   beforeEach(() => {
     sessionStorage.removeItem('estoma.entry.receipts.v2');
     api = jasmine.createSpyObj('api', ['lookup', 'registerArrival', 'decideEntry', 'getOperation']);

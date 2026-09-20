@@ -63,6 +63,9 @@
   @if (error()) {
     <p class="error" role="alert">{{ error() }}</p>
   }
+  @if (flow.error()) {
+    <p class="error" role="alert">{{ flow.error() }}</p>
+  }
   <div class="instructions" aria-live="polite">
     <h2>{{ state() === 'detected' ? 'Consultando la cita' : 'Apunta al código QR' }}</h2>
     <p>Centra el código del alumno en el recuadro.<br />La lectura se realiza automáticamente.</p>

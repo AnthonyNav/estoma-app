@@ -1,4 +1,5 @@
 import { SupervisorHome } from '../domain/models/supervisor-home';
+import { DirectoryQuery, SupervisorDirectory } from '../domain/models/supervisor-entry';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
@@ -16,8 +17,8 @@ import { WASH_SUPERVISION_GATEWAY } from '../domain/ports/wash-supervision.gatew
 export class WashEntrySupervisionUseCase {
   private readonly gateway = inject(WASH_SUPERVISION_GATEWAY);
 
-  getDirectory(): Observable<SupervisorEntryLookup[]> {
-    return this.gateway.getDirectory();
+  getDirectory(query?: DirectoryQuery): Observable<SupervisorDirectory> {
+    return this.gateway.getDirectory(query);
   }
   getHome(): Observable<SupervisorHome> {
     return this.gateway.getHome();

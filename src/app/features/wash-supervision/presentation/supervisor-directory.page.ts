@@ -46,20 +46,16 @@ export class SupervisorDirectoryPage {
   readonly error = signal(false);
   readonly query = signal('');
   readonly filter = signal<'ALL' | 'SCHEDULED' | 'IN_PROGRESS'>('ALL');
+  readonly nextOffset = signal<number | null>(null);
+  readonly serviceDate = signal('');
   readonly filters = [
     { key: 'ALL', label: 'Todas' },
     { key: 'SCHEDULED', label: 'Registradas' },
     { key: 'IN_PROGRESS', label: 'En proceso' },
   ] as const;
-  readonly visible = computed(() =>
-    this.rows().filter(
-      (row) =>
-        (this.filter() === 'ALL' || row.appointment.appointmentStatus === this.filter()) &&
-        matchesStudent(row, this.query()),
-    ),
-  );
+  readonly visible = this.rows;
   readonly day = computed(() => {
-    const date = this.rows()[0]?.serviceDate;
+    const date = this.serviceDate();
     return date
       ? new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(
           new Date(`${date}T12:00:00Z`),
@@ -67,18 +63,36 @@ export class SupervisorDirectoryPage {
       : '';
   });
   constructor() {
-    if (this.isDemo) this.load();
+    this.lifecycle.ended$.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.rows.set([]);
+      this.nextOffset.set(null);
+      this.query.set('');
+    });
+    this.load();
   }
-  load(): void {
-    if (this.loading() || !this.isDemo) return;
+  load(more = false): void {
+    if (this.loading()) return;
+    const offset = more ? this.nextOffset() : 0;
+    if (offset === null) return;
     this.loading.set(true);
     this.error.set(false);
     this.api
-      .getDirectory()
+      .getDirectory({ query: this.query().trim(), status: this.filter(), offset })
       .pipe(takeUntilDestroyed(this.destroyRef), takeUntil(this.lifecycle.ended$))
       .subscribe({
-        next: (rows) => {
-          this.rows.set(rows);
+        next: (page) => {
+          const sameDay = this.serviceDate() === page.serviceDate;
+          if (more && !sameDay) {
+            this.loading.set(false);
+            this.load();
+            return;
+          }
+          this.serviceDate.set(page.serviceDate);
+          const items = more ? [...this.rows(), ...page.items] : page.items;
+          this.rows.set([
+            ...new Map(items.map((row) => [row.appointment.appointmentId, row])).values(),
+          ]);
+          this.nextOffset.set(page.nextOffset);
           this.loading.set(false);
         },
         error: () => {
@@ -89,26 +103,44 @@ export class SupervisorDirectoryPage {
   }
   input(event: Event): void {
     this.query.set((event.target as HTMLInputElement).value);
+    this.nextOffset.set(null);
   }
   clear(): void {
     this.query.set('');
     this.filter.set('ALL');
+    this.load();
   }
   searchEnrollment(): void {
     const enrollment = this.query().trim();
     if (!enrollment || this.flow.busy() || this.flow.pending()) return;
     this.flow.reset();
-    this.flow.search({ lookupType: 'STUDENT_ENROLLMENT', studentEnrollment: enrollment });
-    void this.router.navigate(['/wash/supervision/entry']);
+    this.flow.search({ lookupType: 'STUDENT_ENROLLMENT', studentEnrollment: enrollment }, () => {
+      if (!this.destroyRef.destroyed) void this.router.navigate(['/wash/supervision/entry']);
+    });
   }
   select(row: SupervisorEntryLookup): void {
     if (this.flow.busy() || this.flow.pending()) return;
     this.flow.reset();
-    this.flow.search({
-      lookupType: 'STUDENT_ENROLLMENT',
-      studentEnrollment: row.student.studentEnrollment,
-    });
-    void this.router.navigate(['/wash/supervision/entry']);
+    this.flow.search(
+      {
+        lookupType: 'STUDENT_ENROLLMENT',
+        studentEnrollment: row.student.studentEnrollment,
+      },
+      () => {
+        if (!this.destroyRef.destroyed) void this.router.navigate(['/wash/supervision/entry']);
+      },
+    );
+  }
+  availability(row: SupervisorEntryLookup): string {
+    return {
+      OPEN: 'Puede ingresar',
+      TOO_EARLY: 'Aún no disponible',
+      EXPIRED: 'Tolerancia vencida',
+      WRONG_DATE: 'Otra fecha',
+      SLOT_INACTIVE: 'Turno no activo',
+      ALREADY_REGISTERED: 'Llegada registrada',
+      NOT_APPLICABLE: 'Atención en curso',
+    }[row.arrivalEligibility?.status ?? 'NOT_APPLICABLE'];
   }
   type(row: SupervisorEntryLookup): string {
     return {

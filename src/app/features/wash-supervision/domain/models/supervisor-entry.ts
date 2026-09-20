@@ -13,6 +13,19 @@ export type EntryLookupRequest =
   | { lookupType: 'QR'; qrRepresentation: string }
   | { lookupType: 'STUDENT_ENROLLMENT'; studentEnrollment: string };
 export interface SupervisorEntryLookup {
+  arrivalEligibility?: {
+    status:
+      | 'OPEN'
+      | 'TOO_EARLY'
+      | 'EXPIRED'
+      | 'WRONG_DATE'
+      | 'SLOT_INACTIVE'
+      | 'ALREADY_REGISTERED'
+      | 'NOT_APPLICABLE';
+    checkedAt: string;
+    opensAt: string | null;
+    closesAt: string | null;
+  };
   canComplete?: boolean;
   serviceDate: string;
   nextAction: 'ENTRY' | 'ENTRY_DECISION' | 'REASSIGNMENT' | 'EXIT_REVIEW' | 'NONE';
@@ -71,3 +84,14 @@ export interface DecideWashEntryCommand {
   idempotencyKey: string;
 }
 export type { AcceptedOperation, DurableOperation };
+
+export interface SupervisorDirectory {
+  serviceDate: string;
+  items: SupervisorEntryLookup[];
+  nextOffset: number | null;
+}
+export interface DirectoryQuery {
+  query?: string;
+  status?: 'ALL' | 'SCHEDULED' | 'IN_PROGRESS';
+  offset?: number;
+}

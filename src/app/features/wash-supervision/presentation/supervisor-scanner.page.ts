@@ -142,8 +142,11 @@ export class SupervisorScannerPage {
       return;
     }
     this.state.set('detected');
-    this.flow.search({ lookupType: 'QR', qrRepresentation: value });
-    void this.router.navigate(['/wash/supervision/entry'], { state: { from: 'scan' } });
+    this.flow.search({ lookupType: 'QR', qrRepresentation: value }, () => {
+      if (!this.destroyRef.destroyed)
+        void this.router.navigate(['/wash/supervision/entry'], { state: { from: 'scan' } });
+    });
+    this.state.set('idle');
   }
   stop(): void {
     this.generation++;
