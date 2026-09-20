@@ -78,6 +78,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'wash/supervision/exceptional-authorizations',
+    canActivate: [washAccessGuard('SUPERVISOR_LAVADO')],
+    loadComponent: () =>
+      import('./features/wash-supervision/presentation/exceptional-authorizations.page').then(
+        (m) => m.ExceptionalAuthorizationsPage,
+      ),
+  },
+  {
     path: 'wash/supervision/exit',
     canActivate: [washAccessGuard('SUPERVISOR_LAVADO')],
     loadComponent: () =>

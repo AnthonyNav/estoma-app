@@ -1,0 +1,74 @@
+:host {
+  display: block;
+  color: #243b53;
+}
+section {
+  max-width: 850px;
+  margin: 0 auto;
+  padding: 24px;
+}
+h1 {
+  font-size: 1.8rem;
+}
+h2 {
+  font-size: 1.25rem;
+}
+article,
+aside {
+  padding: 20px;
+  margin: 20px 0;
+  background: #fff;
+  border: 1px solid #d8e2ec;
+  border-radius: 14px;
+}
+aside {
+  background: #eef5ff;
+  overflow-wrap: anywhere;
+}
+label {
+  display: block;
+  margin: 16px 0 6px;
+  font-weight: 600;
+}
+input,
+textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #9fb3c8;
+  border-radius: 8px;
+  font: inherit;
+}
+textarea {
+  min-height: 96px;
+}
+button {
+  margin-top: 12px;
+  padding: 12px 18px;
+  background: #164f7c;
+  color: white;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid #df9800;
+  outline-offset: 3px;
+}
+ul {
+  padding: 0;
+  list-style: none;
+}
+li button {
+  text-align: left;
+  width: 100%;
+}
+[role='alert'] {
+  color: #a32424;
+}
