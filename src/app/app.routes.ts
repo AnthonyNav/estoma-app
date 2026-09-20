@@ -7,6 +7,14 @@ import { washAccessGuard } from './features/authentication/application/auth.guar
 
 export const routes: Routes = [
   {
+    path: 'wash/supervision/resources',
+    canActivate: [washAccessGuard('SUPERVISOR_LAVADO')],
+    loadComponent: () =>
+      import('./features/wash-supervision/presentation/operational-resources.page').then(
+        (m) => m.OperationalResourcesPage,
+      ),
+  },
+  {
     path: 'authentication',
     loadChildren: () =>
       import('./features/authentication/authentication.routes').then(

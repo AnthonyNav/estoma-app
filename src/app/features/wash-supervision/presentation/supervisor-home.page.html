@@ -73,7 +73,6 @@
   <section class="management" aria-labelledby="management-title">
     <div class="section-heading">
       <h2 id="management-title">Gestión operativa</h2>
-      <span>Próximamente</span>
     </div>
     <ul>
       @for (item of management; track item.title) {
@@ -85,7 +84,7 @@
             <h3>{{ item.title }}</h3>
             <p>{{ item.description }}</p>
           </div>
-          <span class="unavailable">No disponible</span>
+          <a routerLink="/wash/supervision/resources">Gestionar</a>
         </li>
       }
     </ul>
