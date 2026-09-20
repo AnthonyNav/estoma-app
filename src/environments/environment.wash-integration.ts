@@ -1,5 +1,5 @@
 export const environment = {
-  enableUnclassifiedEntryRejection: false,
+  enableUnclassifiedEntryRejection: true,
   enableSupervisorExecutionRead: true,
   enableSupervisorPreview: false,
   apiBaseUrl: '/api/v1',

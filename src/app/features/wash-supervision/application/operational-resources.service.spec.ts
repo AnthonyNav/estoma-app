@@ -111,23 +111,19 @@ describe('Operational resources', () => {
     flow.start(flow.resources()[0], 'Fuga');
     const operationId = '33333333-3333-3333-3333-333333333333';
     const unavailableId = '22222222-2222-2222-2222-222222222222';
-    http
-      .expectOne(url + '/disable')
-      .flush({
-        operationId,
-        status: 'PENDING',
-        pollPath: '/api/v1/operations/' + operationId,
-        submittedAt: '2026-09-19T12:00:00Z',
-      });
+    http.expectOne(url + '/disable').flush({
+      operationId,
+      status: 'PENDING',
+      pollPath: '/api/v1/operations/' + operationId,
+      submittedAt: '2026-09-19T12:00:00Z',
+    });
     flushMicrotasks();
     tick(0);
-    http
-      .expectOne('/api/v1/operations/' + operationId)
-      .flush({
-        operationId,
-        status: 'SUCCEEDED',
-        data: { resourceUnavailabilityId: unavailableId },
-      });
+    http.expectOne('/api/v1/operations/' + operationId).flush({
+      operationId,
+      status: 'SUCCEEDED',
+      data: { resourceUnavailabilityId: unavailableId },
+    });
     flushMicrotasks();
     http.expectOne(url).flush({ resources: [resource] });
     flushMicrotasks();
@@ -135,26 +131,22 @@ describe('Operational resources', () => {
     void flow.resume();
     tick(0);
     http.expectNone(url + '/disable');
-    http
-      .expectOne('/api/v1/operations/' + operationId)
-      .flush({
-        operationId,
-        status: 'SUCCEEDED',
-        data: { resourceUnavailabilityId: unavailableId },
-      });
+    http.expectOne('/api/v1/operations/' + operationId).flush({
+      operationId,
+      status: 'SUCCEEDED',
+      data: { resourceUnavailabilityId: unavailableId },
+    });
     flushMicrotasks();
-    http
-      .expectOne(url)
-      .flush({
-        resources: [
-          {
-            ...resource,
-            unavailabilities: [
-              { resourceUnavailabilityId: unavailableId, reason: 'Fuga', expectedVersion: 1 },
-            ],
-          },
-        ],
-      });
+    http.expectOne(url).flush({
+      resources: [
+        {
+          ...resource,
+          unavailabilities: [
+            { resourceUnavailabilityId: unavailableId, reason: 'Fuga', expectedVersion: 1 },
+          ],
+        },
+      ],
+    });
     flushMicrotasks();
     expect(flow.pending()).toBeNull();
   }));
