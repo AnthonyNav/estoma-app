@@ -138,6 +138,9 @@
               [class.action-panel--warning]="status() === 'PENDING_REASSIGNMENT'"
               [class.action-panel--rejected]="status() === 'ENTRY_REJECTED'"
             >
+              @if (flow.entryBlocked()) {
+                <p role="alert">{{ flow.entryBlocked() }}</p>
+              }
               @if (verifying()) {
                 <h2>Verifica antes de aprobar</h2>
                 <p class="verification-intro">

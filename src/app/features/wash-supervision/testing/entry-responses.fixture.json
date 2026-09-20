@@ -1,6 +1,12 @@
 {
   "notice": "EJEMPLOS SINTÉTICOS DE CONTRATO. No son capturas de runtime ni credenciales ni IDs utilizables. Fechas ilustrativas; no prueban una ventana vigente.",
   "lookupBeforeArrival": {
+    "arrivalEligibility": {
+      "status": "OPEN",
+      "checkedAt": "2026-09-06T19:55:00Z",
+      "opensAt": "2026-09-06T19:45:00Z",
+      "closesAt": "2026-09-06T20:10:00Z"
+    },
     "serviceDate": "2026-09-06",
     "nextAction": "ENTRY",
     "student": {

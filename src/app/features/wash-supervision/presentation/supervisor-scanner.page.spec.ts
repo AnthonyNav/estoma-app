@@ -52,10 +52,15 @@ describe('Supervisor camera lifecycle', () => {
     page.state.set('scanning');
     page.detected('https://example.invalid/opaque');
     page.detected('https://example.invalid/opaque');
-    expect(search).toHaveBeenCalledOnceWith({
-      lookupType: 'QR',
-      qrRepresentation: 'https://example.invalid/opaque',
-    });
+    expect(search).toHaveBeenCalledOnceWith(
+      {
+        lookupType: 'QR',
+        qrRepresentation: 'https://example.invalid/opaque',
+      },
+      jasmine.any(Function),
+    );
+    expect(navigate).not.toHaveBeenCalled();
+    search.calls.mostRecent().args[1]();
     expect(navigate).toHaveBeenCalledOnceWith(['/wash/supervision/entry'], {
       state: { from: 'scan' },
     });

@@ -8,6 +8,32 @@ export function validateSupervisorLookup(value: SupervisorEntryLookup): Supervis
   const appointment = value?.appointment;
   const slot = appointment?.appointmentTimeSlot;
   const course = appointment?.courseSectionReference;
+  const gate = value?.arrivalEligibility;
+  if (
+    gate !== undefined &&
+    (!gate ||
+      ![
+        'OPEN',
+        'TOO_EARLY',
+        'EXPIRED',
+        'WRONG_DATE',
+        'SLOT_INACTIVE',
+        'ALREADY_REGISTERED',
+        'NOT_APPLICABLE',
+      ].includes(gate.status) ||
+      !Number.isFinite(Date.parse(gate.checkedAt)) ||
+      [gate.opensAt, gate.closesAt].some(
+        (date) => date !== null && !Number.isFinite(Date.parse(date)),
+      ) ||
+      (value.nextAction === 'ENTRY' &&
+        (!gate.opensAt ||
+          !gate.closesAt ||
+          Date.parse(gate.closesAt) < Date.parse(gate.opensAt))) ||
+      (gate.status === 'OPEN' &&
+        (Date.parse(gate.checkedAt) < Date.parse(gate.opensAt!) ||
+          Date.parse(gate.checkedAt) > Date.parse(gate.closesAt!))))
+  )
+    return invalidBookingResponse();
   if (
     !value ||
     (value.canComplete !== undefined && typeof value.canComplete !== 'boolean') ||

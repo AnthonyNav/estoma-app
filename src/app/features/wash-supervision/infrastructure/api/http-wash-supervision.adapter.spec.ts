@@ -13,6 +13,26 @@ describe('Supervisor HTTP contract', () => {
     }),
   );
   afterEach(() => TestBed.inject(HttpTestingController).verify());
+  it('loads a bounded server-filtered directory without publishing commands', () => {
+    let received: unknown;
+    TestBed.inject(HttpWashSupervisionAdapter)
+      .getDirectory({ query: 'Ana', status: 'SCHEDULED', offset: 25 })
+      .subscribe((page) => (received = page));
+    const req = TestBed.inject(HttpTestingController).expectOne((r) =>
+      r.url.endsWith('/supervision/appointments'),
+    );
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.get('query')).toBe('Ana');
+    expect(req.request.params.get('offset')).toBe('25');
+    expect(req.request.params.get('limit')).toBe('25');
+    const page = {
+      serviceDate: '2026-09-06',
+      items: [examples.lookupBeforeArrival],
+      nextOffset: null,
+    };
+    req.flush(page);
+    expect(received).toEqual(page);
+  });
   it('reads the five home counters and pending assignments without a mutation key', () => {
     const home = {
       serviceDate: '2026-09-06',

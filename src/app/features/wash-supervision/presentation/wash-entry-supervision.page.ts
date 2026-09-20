@@ -32,6 +32,7 @@ export class WashEntrySupervisionPage {
   readonly verifying = computed(
     () =>
       ['ENTRY', 'ENTRY_DECISION'].includes(this.flow.lookup()?.nextAction ?? '') &&
+      !this.flow.entryBlocked() &&
       ['SCHEDULED', 'PENDING_ENTRY'].includes(this.status()),
   );
   readonly rejectionReason = signal('');

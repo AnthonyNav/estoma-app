@@ -54,6 +54,35 @@ export class SupervisorEntryWorkflowService {
   private readonly session = inject(SessionStore);
   private readonly receipts = signal(this.restore());
   private request: EntryLookupRequest | null = null;
+  private lookupReceivedAt = performance.now();
+  private readonly elapsed = signal(0);
+  readonly entryBlocked = computed(() => {
+    const lookup = this.lookup();
+    if (!lookup || lookup.nextAction !== 'ENTRY') return null;
+    const gate = lookup.arrivalEligibility;
+    if (!gate)
+      return environment.useMockApi
+        ? null
+        : 'No pudimos comprobar el horario. Consulta nuevamente.';
+    const time = (value: string | null) =>
+      value
+        ? new Intl.DateTimeFormat('es-MX', {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: lookup.appointment.appointmentTimeSlot.timezone,
+          }).format(new Date(value))
+        : '';
+    if (gate.status === 'TOO_EARLY')
+      return `Aún no puedes registrar el ingreso. Disponible a partir de las ${time(gate.opensAt)}. Consulta nuevamente al abrir la ventana.`;
+    if (gate.status === 'WRONG_DATE') return 'La cita no corresponde al día de hoy.';
+    if (gate.status === 'SLOT_INACTIVE') return 'El turno ya no está activo.';
+    if (
+      gate.status === 'EXPIRED' ||
+      (gate.closesAt && Date.parse(gate.checkedAt) + this.elapsed() > Date.parse(gate.closesAt))
+    )
+      return `La tolerancia de llegada terminó a las ${time(gate.closesAt)}.`;
+    return gate.status === 'OPEN' ? null : 'La cita no permite registrar el ingreso.';
+  });
   readonly lookup = signal<SupervisorEntryLookup | null>(null);
   readonly authorizedHere = signal(false);
   readonly busy = signal(false);
@@ -68,6 +97,7 @@ export class SupervisorEntryWorkflowService {
     () =>
       !this.busy() &&
       !this.pending() &&
+      !this.entryBlocked() &&
       this.lookup()?.nextAction === 'ENTRY' &&
       this.lookup()?.appointment.appointmentStatus === 'SCHEDULED' &&
       !this.lookup()?.washExecution,
@@ -82,6 +112,12 @@ export class SupervisorEntryWorkflowService {
       (this.lookup()?.washExecution?.executionVersion ?? 0) > 0,
   );
   constructor() {
+    timer(0, 1000)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => {
+        if (this.lookup()?.nextAction === 'ENTRY')
+          this.elapsed.set(performance.now() - this.lookupReceivedAt);
+      });
     this.lifecycle.ended$.pipe(takeUntilDestroyed()).subscribe(() => {
       this.busy.set(false);
       this.authorizedHere.set(false);
@@ -122,13 +158,13 @@ export class SupervisorEntryWorkflowService {
     values.delete(owner);
     this.persist(values);
   }
-  search(request: EntryLookupRequest): void {
+  search(request: EntryLookupRequest, onReady?: () => void): void {
     if (this.busy() || this.pending()) return;
     this.authorizedHere.set(false);
     this.request = request;
     this.lookup.set(null);
     this.error.set(null);
-    this.read(request);
+    this.read(request, 0, onReady);
   }
   reset(): void {
     if (!this.busy() && !this.pending()) {
@@ -147,6 +183,7 @@ export class SupervisorEntryWorkflowService {
     }
   }
   arrive(): void {
+    this.elapsed.set(performance.now() - this.lookupReceivedAt);
     if (!this.canArrive() || !this.request) return;
     const appointmentId = this.lookup()!.appointment.appointmentId;
     if (
@@ -170,6 +207,7 @@ export class SupervisorEntryWorkflowService {
     requirementsSatisfied: boolean,
     reason: string,
   ): void {
+    this.elapsed.set(performance.now() - this.lookupReceivedAt);
     if (!this.canStartDecision() || !this.request) return;
     if (decision === 'AUTHORIZED' && (!identityConfirmed || !requirementsSatisfied)) return;
     if (decision === 'REJECTED' && (!reason.trim() || reason.trim().length > 500)) return;
@@ -352,7 +390,7 @@ export class SupervisorEntryWorkflowService {
       }),
     );
   }
-  private read(request: EntryLookupRequest, attempt = 0): void {
+  private read(request: EntryLookupRequest, attempt = 0, onReady?: () => void): void {
     this.busy.set(true);
     const active = this.pending();
     const readContext = () =>
@@ -386,6 +424,8 @@ export class SupervisorEntryWorkflowService {
       .pipe(takeUntil(this.lifecycle.ended$))
       .subscribe({
         next: (lookup) => {
+          this.lookupReceivedAt = performance.now();
+          this.elapsed.set(0);
           this.lookup.set(lookup);
           this.request = request;
           const pending = this.pending();
@@ -436,14 +476,27 @@ export class SupervisorEntryWorkflowService {
               );
           }
           this.busy.set(false);
+          if (onReady) {
+            if (this.entryBlocked()) this.error.set(this.entryBlocked());
+            else if (lookup.nextAction === 'NONE')
+              this.error.set('Esta cita ya no permite el ingreso.');
+            else onReady();
+          }
         },
         error: (error: unknown) => {
           this.busy.set(false);
+          if (!this.pending()) this.lookup.set(null);
           this.error.set(
             error instanceof ApplicationError
-              ? error.code === 'BFF.PROJECTION_UNAVAILABLE'
-                ? 'La información aún no está disponible. Intenta consultar nuevamente.'
-                : error.message
+              ? error.code === 'BFF.WASH_QR_WRONG_DATE'
+                ? 'Este QR no corresponde a una cita de hoy.'
+                : error.code === 'BFF.WASH_ENTRY_NOT_FOUND'
+                  ? request.lookupType === 'QR'
+                    ? 'Este QR no es válido para el acceso.'
+                    : 'No se encontró una cita para hoy con esa matrícula.'
+                  : error.code === 'BFF.PROJECTION_UNAVAILABLE'
+                    ? 'La información aún no está disponible. Intenta consultar nuevamente.'
+                    : error.message
               : 'No pudimos consultar la cita. Revisa la conexión e inténtalo otra vez.',
           );
         },

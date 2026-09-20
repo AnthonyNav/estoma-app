@@ -1,4 +1,5 @@
 import { SupervisorHome } from '../models/supervisor-home';
+import { DirectoryQuery, SupervisorDirectory } from '../models/supervisor-entry';
 import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
 
@@ -12,7 +13,7 @@ import {
 } from '../models/supervisor-entry';
 
 export interface WashSupervisionGateway {
-  getDirectory(): Observable<SupervisorEntryLookup[]>;
+  getDirectory(query?: DirectoryQuery): Observable<SupervisorDirectory>;
   getHome(): Observable<SupervisorHome>;
   lookup(request: EntryLookupRequest): Observable<SupervisorEntryLookup>;
   registerArrival(command: RegisterWashArrivalCommand): Observable<AcceptedOperation>;

@@ -1,4 +1,5 @@
 import { ApplicationError } from '../../../../core/api/application-error';
+import { DirectoryQuery, SupervisorDirectory } from '../../domain/models/supervisor-entry';
 import { invalidBookingResponse } from '../../../wash-appointments/infrastructure/api/booking-validation';
 import { SupervisorHome } from '../../domain/models/supervisor-home';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
@@ -26,9 +27,32 @@ export class HttpWashSupervisionAdapter implements WashSupervisionGateway {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiBaseUrl}/wash/supervision`;
 
-  getDirectory(): Observable<SupervisorEntryLookup[]> {
-    // No public listing contract has been supplied by the BFF yet.
-    return throwError(() => new Error('SUPERVISOR_DIRECTORY_NOT_AVAILABLE'));
+  getDirectory(query: DirectoryQuery = {}): Observable<SupervisorDirectory> {
+    return this.http
+      .get<SupervisorDirectory>(`${this.baseUrl}/appointments`, {
+        params: {
+          query: query.query ?? '',
+          status: query.status ?? 'ALL',
+          offset: query.offset ?? 0,
+          limit: 25,
+        },
+      })
+      .pipe(
+        timeout(15000),
+        map((page) => {
+          if (
+            !page ||
+            !/^\d{4}-\d{2}-\d{2}$/.test(page.serviceDate) ||
+            !Array.isArray(page.items) ||
+            page.items.length > 25 ||
+            (page.nextOffset !== null &&
+              (!Number.isInteger(page.nextOffset) || page.nextOffset <= (query.offset ?? 0)))
+          ) {
+            return invalidBookingResponse();
+          }
+          return { ...page, items: page.items.map(validateSupervisorLookup) };
+        }),
+      );
   }
   getHome(): Observable<SupervisorHome> {
     return this.http.get<SupervisorHome>(`${this.baseUrl}/home`).pipe(
