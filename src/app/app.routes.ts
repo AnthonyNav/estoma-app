@@ -7,6 +7,14 @@ import { washAccessGuard } from './features/authentication/application/auth.guar
 
 export const routes: Routes = [
   {
+    path: 'wash/supervision/resources',
+    canActivate: [washAccessGuard('SUPERVISOR_LAVADO')],
+    loadComponent: () =>
+      import('./features/wash-supervision/presentation/operational-resources.page').then(
+        (m) => m.OperationalResourcesPage,
+      ),
+  },
+  {
     path: 'authentication',
     loadChildren: () =>
       import('./features/authentication/authentication.routes').then(
@@ -67,6 +75,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/wash-supervision/presentation/reassignments.page').then(
         (m) => m.ReassignmentsPage,
+      ),
+  },
+  {
+    path: 'wash/supervision/exceptional-authorizations',
+    canActivate: [washAccessGuard('SUPERVISOR_LAVADO')],
+    loadComponent: () =>
+      import('./features/wash-supervision/presentation/exceptional-authorizations.page').then(
+        (m) => m.ExceptionalAuthorizationsPage,
       ),
   },
   {
