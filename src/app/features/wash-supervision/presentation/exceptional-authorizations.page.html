@@ -1,41 +1,66 @@
-<section aria-labelledby="title">
-  <a routerLink="/wash/supervision">← Supervisión</a>
-  <h1 id="title">Autorizaciones excepcionales</h1>
-  <p>
-    Autoriza una cita adicional para un alumno y una fecha. El alumno debe reservar su horario
-    disponible.
-  </p>
+<section class="page" aria-labelledby="title">
+  <a class="back" routerLink="/wash/supervision">← Supervisión</a>
+  <header class="page-heading">
+    <p class="eyebrow">Gestión operativa</p>
+    <h1 id="title">Autorizaciones excepcionales</h1>
+    <p>
+      Autoriza una cita adicional para un alumno y una fecha. El alumno debe reservar su horario
+      disponible.
+    </p>
+  </header>
   @if (demo) {
-    <p role="status">Esta gestión requiere conexión al servicio operativo.</p>
+    <p class="feedback" role="status">Esta gestión requiere conexión al servicio operativo.</p>
   }
   @if (flow.pending(); as receipt) {
-    <aside aria-live="polite">
+    <aside class="notice" aria-live="polite">
       <h2>Solicitud en seguimiento</h2>
       <p>Referencia: {{ receipt.operationId ?? receipt.key }}</p>
       <p>{{ flow.message() || 'Retoma la consulta para conocer el resultado.' }}</p>
       @if (receipt.status === 'SUCCEEDED' || receipt.status === 'REJECTED') {
-        <button type="button" (click)="acknowledge()">Entendido y actualizar</button>
+        <button class="button" type="button" (click)="acknowledge()">Entendido y actualizar</button>
       } @else {
-        <button type="button" [disabled]="flow.busy()" (click)="flow.resume()">
+        <button class="button" type="button" [disabled]="flow.busy()" (click)="flow.resume()">
           {{ flow.busy() ? 'Comprobando…' : 'Consultar misma solicitud' }}
         </button>
       }
     </aside>
   } @else if (flow.message()) {
-    <p role="status">{{ flow.message() }}</p>
+    <p class="feedback" role="status">{{ flow.message() }}</p>
   }
-  <form (ngSubmit)="search()">
+  <form class="panel search-form" (ngSubmit)="search()">
+    <h2>Buscar alumno</h2>
+    <p>Selecciona al alumno para consultar y gestionar sus autorizaciones.</p>
     <label for="search">Matrícula o nombre del alumno</label>
-    <input id="search" name="query" [(ngModel)]="query" minlength="2" maxlength="100" required />
-    <button [disabled]="demo || loading() || query.trim().length < 2">Buscar</button>
+    <input
+      placeholder="Escribe al menos 2 caracteres"
+      id="search"
+      name="query"
+      [(ngModel)]="query"
+      minlength="2"
+      maxlength="100"
+      required
+    />
+    <button class="button" [disabled]="demo || loading() || query.trim().length < 2">
+      {{ loading() && !selected() ? 'Buscando…' : 'Buscar' }}
+    </button>
   </form>
-  <p role="alert">{{ error() }}</p>
+  @if (error()) {
+    <p class="feedback error" role="alert">{{ error() }}</p>
+  }
   @if (students().length) {
-    <ul aria-label="Alumnos encontrados">
+    <ul class="students" aria-label="Alumnos encontrados">
       @for (student of students(); track student.accountId) {
         <li>
-          <button type="button" [disabled]="loading()" (click)="select(student)">
-            {{ student.fullName }} · {{ student.enrollment }}
+          <button
+            class="button"
+            type="button"
+            [disabled]="loading()"
+            [attr.aria-pressed]="selected()?.accountId === student.accountId"
+            (click)="select(student)"
+          >
+            <span
+              >{{ student.fullName }}<small>Matrícula {{ student.enrollment }}</small></span
+            ><span aria-hidden="true">→</span>
           </button>
         </li>
       }
@@ -45,7 +70,8 @@
     }
   }
   @if (selected(); as student) {
-    <article>
+    <article class="panel student-detail">
+      <p class="eyebrow">Alumno seleccionado</p>
       <h2>{{ student.fullName }}</h2>
       <p>Matrícula {{ student.enrollment }}</p>
       <label for="date">Fecha de la autorización</label>
@@ -56,18 +82,21 @@
         [disabled]="loading() || !!flow.pending()"
         (ngModelChange)="refresh()"
       />
-      <button type="button" [disabled]="loading()" (click)="refresh()">Actualizar consulta</button>
+      <button class="button secondary" type="button" [disabled]="loading()" (click)="refresh()">
+        Actualizar consulta
+      </button>
       @if (loading()) {
         <p role="status">Consultando…</p>
       }
       @if (loaded()) {
         <h3>Autorizaciones de la fecha</h3>
         @for (item of authorizations(); track item.authorizationId) {
-          <article>
-            <strong>{{ labels[item.status] ?? item.status }}</strong>
+          <article class="authorization">
+            <strong class="badge">{{ labels[item.status] ?? labels['UNKNOWN'] }}</strong>
             <p>{{ item.reason }}</p>
             @if (item.canCancel) {
               <button
+                class="button"
                 type="button"
                 [disabled]="!!flow.pending() || !cancellationReason.trim()"
                 (click)="cancel(item)"
@@ -77,7 +106,7 @@
             }
           </article>
         } @empty {
-          <p>No hay autorizaciones registradas para esta fecha.</p>
+          <p class="empty">No hay autorizaciones registradas para esta fecha.</p>
         }
         <label for="cancel-reason">Motivo para cancelar una autorización disponible</label>
         <input
@@ -86,7 +115,7 @@
           maxlength="500"
           [disabled]="!!flow.pending()"
         />
-        <form (ngSubmit)="grant()">
+        <form class="grant-form" (ngSubmit)="grant()">
           <h3>Otorgar una autorización</h3>
           <label for="reason">Motivo</label>
           <textarea
@@ -101,7 +130,9 @@
             Válida únicamente para la fecha seleccionada. El servicio verificará que pueda
             otorgarse.
           </p>
-          <button [disabled]="!!flow.pending() || !reason.trim()">Autorizar cita adicional</button>
+          <button class="button" [disabled]="!!flow.pending() || !reason.trim()">
+            Autorizar cita adicional
+          </button>
         </form>
       }
     </article>

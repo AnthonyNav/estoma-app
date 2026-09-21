@@ -221,6 +221,28 @@ li p {
   font-size: 11px;
   white-space: nowrap;
 }
+.management-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-left: auto;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid #dde7ea;
+  border-radius: 12px;
+  color: #0f5c6e;
+  font-size: 13px;
+  font-weight: 800;
+}
+.management-link:hover {
+  background: #edf3f4;
+}
+@media (max-width: 560px) {
+  .management-link {
+    margin-left: 58px;
+  }
+}
 .demo {
   text-align: center;
   color: #677e87;
