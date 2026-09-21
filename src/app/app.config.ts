@@ -18,6 +18,7 @@ import { provideRouter } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
 
 import { environment } from '../environments/environment';
+import { updateActivityInterceptor } from './core/updates/update-activity.interceptor';
 import { apiErrorInterceptor } from './core/api/api-error.interceptor';
 import { correlationIdInterceptor } from './core/api/correlation-id.interceptor';
 import { routes } from './app.routes';
@@ -55,6 +56,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideHttpClient(
       withInterceptors([
+        updateActivityInterceptor,
         sessionInterceptor,
         apiErrorInterceptor,
         correlationIdInterceptor,

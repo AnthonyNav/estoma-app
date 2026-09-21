@@ -1,0 +1,118 @@
+<section class="page" aria-labelledby="resources-title">
+  <a class="back" routerLink="/wash/supervision">← Volver a supervisión</a>
+  <header class="page-heading">
+    <p class="eyebrow">Gestión operativa</p>
+    <h1 id="resources-title">Cabinas y tinas</h1>
+    <p>
+      Gestiona las inhabilitaciones de los espacios de atención. La activación administrativa y la
+      ocupación se consultan por separado.
+    </p>
+  </header>
+  @if (flow.pending(); as pending) {
+    <aside class="notice" aria-labelledby="pending-title">
+      <p class="eyebrow">Solicitud en seguimiento</p>
+      <h2 id="pending-title">{{ pending.label }}</h2>
+      <p>No repitas el cambio mientras comprobamos el resultado.</p>
+      <button class="button secondary" [disabled]="flow.busy()" (click)="flow.resume()">
+        {{ flow.busy() ? 'Comprobando…' : 'Consultar resultado' }}
+      </button>
+    </aside>
+  }
+  @if (flow.message()) {
+    <p class="feedback" role="status">{{ flow.message() }}</p>
+  }
+  <div class="section-heading">
+    <h2>Recursos registrados</h2>
+    <button class="button secondary" [disabled]="flow.busy() || loading()" (click)="refresh()">
+      {{ loading() ? 'Consultando…' : 'Actualizar recursos' }}
+    </button>
+  </div>
+  <div class="resource-list" [attr.aria-busy]="loading()">
+    @if (loading()) {
+      <p class="empty" role="status">Consultando cabinas y tinas…</p>
+    } @else if (flow.loaded() && !flow.resources().length) {
+      <div class="empty">
+        <h3>No hay recursos registrados</h3>
+        <p>Las cabinas y tinas aparecerán aquí cuando estén registradas.</p>
+      </div>
+    }
+    @for (resource of flow.resources(); track resource.resourceId) {
+      <article class="panel resource">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">
+              {{ resource.resourceType === 'CABIN' ? 'Cabina' : 'Tina' }} · {{ resource.code }}
+            </p>
+            <h3>{{ resource.name }}</h3>
+          </div>
+          <span class="badge" [class.warning]="resource.unavailabilities.length > 0">{{
+            resource.unavailabilities.length ? 'Inhabilitada' : 'Sin inhabilitaciones'
+          }}</span>
+        </div>
+        <p class="help">
+          Estado administrativo: {{ administrativeLabel(resource.administrativeStatus) }}
+        </p>
+        @for (
+          unavailable of resource.unavailabilities;
+          track unavailable.resourceUnavailabilityId
+        ) {
+          <div class="resource-action">
+            <p>{{ unavailable.reason }}</p>
+            <button
+              class="button secondary"
+              [disabled]="!!flow.pending() || flow.busy()"
+              (click)="select(resource, unavailable)"
+            >
+              Restablecer
+            </button>
+          </div>
+        } @empty {
+          <div class="resource-action">
+            <p class="help">
+              {{
+                resource.administrativeStatus === 'ACTIVE'
+                  ? 'Puedes inhabilitar este recurso si requiere atención.'
+                  : 'La inhabilitación requiere un recurso administrativamente activo.'
+              }}
+            </p>
+            <button
+              class="button secondary"
+              [disabled]="
+                resource.administrativeStatus !== 'ACTIVE' || !!flow.pending() || flow.busy()
+              "
+              (click)="select(resource)"
+            >
+              Inhabilitar
+            </button>
+          </div>
+        }
+        @if (selected?.resourceId === resource.resourceId && !flow.pending()) {
+          <form class="change-form" (ngSubmit)="submit()">
+            <h3>{{ unavailable ? 'Restablecer' : 'Inhabilitar' }} {{ resource.name }}</h3>
+            <label for="resource-reason">{{
+              unavailable ? 'Motivo de resolución' : 'Motivo de inhabilitación'
+            }}</label>
+            <textarea
+              id="resource-reason"
+              name="reason"
+              [(ngModel)]="reason"
+              required
+              maxlength="500"
+              aria-describedby="reason-help"
+            ></textarea>
+            <p class="help" id="reason-help">
+              Describe el motivo del cambio. Máximo 500 caracteres.
+            </p>
+            <div class="actions">
+              <button class="button" type="submit" [disabled]="!reason.trim() || flow.busy()">
+                Confirmar cambio</button
+              ><button class="button secondary" type="button" (click)="selected = null">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        }
+      </article>
+    }
+  </div>
+</section>

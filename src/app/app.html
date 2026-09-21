@@ -1,3 +1,25 @@
+@if (updates.ready()) {
+  <aside
+    class="update-notice"
+    role="status"
+    aria-live="polite"
+    aria-label="Actualización de la aplicación"
+  >
+    <div class="update-notice__copy">
+      <strong>{{
+        updates.broken() ? 'Necesitamos actualizar esta sesión' : 'Hay una nueva versión disponible'
+      }}</strong>
+      <p>{{ updates.blockedReason() || updates.message() }}</p>
+    </div>
+    <button
+      type="button"
+      [disabled]="!!updates.blockedReason() || updates.reloading()"
+      (click)="updates.apply()"
+    >
+      {{ updates.reloading() ? 'Actualizando…' : 'Actualizar aplicación' }}
+    </button>
+  </aside>
+}
 @if (isWash()) {
   <header class="wash-header">
     <div class="wash-header__inner">
@@ -38,3 +60,18 @@
   }
   <router-outlet />
 </main>
+<footer class="app-version">
+  <span>Estoma · Versión {{ updates.version }}</span>
+  @if (updates.enabled) {
+    <button
+      type="button"
+      [disabled]="updates.checking() || updates.reloading()"
+      (click)="updates.check(true)"
+    >
+      {{ updates.checking() ? 'Comprobando…' : 'Buscar actualización' }}
+    </button>
+    @if (!updates.ready() && updates.message()) {
+      <p role="status">{{ updates.message() }}</p>
+    }
+  }
+</footer>

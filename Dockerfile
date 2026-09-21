@@ -8,7 +8,7 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 ARG VCS_REF=unknown
-RUN pnpm build && printf '{"commit":"%s"}\n' "$VCS_REF" > /app/dist/estoma-app/browser/version.json
+RUN node scripts/stamp-version.mjs "$VCS_REF" && pnpm build && printf '{"commit":"%s"}\n' "$VCS_REF" > /app/dist/estoma-app/browser/version.json
 
 FROM nginxinc/nginx-unprivileged:1.29-alpine
 

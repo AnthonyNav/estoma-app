@@ -4,6 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
 import { SessionStore } from './features/authentication/application/session-store.service';
 import { AuthSessionService } from './features/authentication/application/auth-session.service';
+import { AppUpdateService } from './core/updates/app-update.service';
 
 @Component({
   selector: 'app-root',
@@ -13,6 +14,7 @@ import { AuthSessionService } from './features/authentication/application/auth-s
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {
+  readonly updates = inject(AppUpdateService);
   private readonly router = inject(Router);
   private readonly injector = inject(Injector);
   readonly sessionStore = inject(SessionStore);
