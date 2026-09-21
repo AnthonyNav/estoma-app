@@ -4,6 +4,66 @@
   background: #f2f5f6;
 }
 
+.update-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem max(1.25rem, calc((100vw - 64rem) / 2));
+  color: #004352;
+  background: #eaf2f3;
+  border-bottom: 1px solid #cbdfe2;
+  font-size: 0.875rem;
+  p {
+    margin: 0.25rem 0 0;
+    color: #53636a;
+  }
+  button {
+    flex-shrink: 0;
+    min-height: 2.75rem;
+    padding: 0.65rem 1rem;
+    border: 0;
+    border-radius: 0.75rem;
+    color: #fff;
+    background: #00696c;
+    font-weight: 700;
+    cursor: pointer;
+    &:disabled {
+      background: #d2dfe1;
+      color: #53636a;
+      cursor: default;
+    }
+  }
+  @media (max-width: 600px) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+.app-version {
+  padding: 0.75rem 1rem;
+  color: #53636a;
+  text-align: center;
+  font-size: 0.6875rem;
+  button {
+    border: 0;
+    background: transparent;
+    color: #0f5c6e;
+    min-height: 2.75rem;
+    margin-left: 0.5rem;
+    cursor: pointer;
+    font-size: inherit;
+    text-decoration: underline;
+    text-underline-offset: 0.2rem;
+  }
+  button:disabled {
+    color: #53636a;
+    cursor: default;
+  }
+  p {
+    margin: 0.25rem 0;
+  }
+}
+
 .app-content {
   margin: 0 auto;
   max-width: 84rem;
@@ -131,7 +191,9 @@
   app-supervisor-directory-page,
   app-reassignments-page,
   app-student-exit-page,
-  app-supervisor-exit-page
+  app-supervisor-exit-page,
+  app-operational-resources-page,
+  app-exceptional-authorizations-page
 ) {
   background: #f2f5f6;
 }
@@ -142,7 +204,9 @@
   app-wash-entry-supervision-page,
   app-reassignments-page,
   app-student-exit-page,
-  app-supervisor-exit-page
+  app-supervisor-exit-page,
+  app-operational-resources-page,
+  app-exceptional-authorizations-page
 ) {
   max-width: none;
   padding: 0;
