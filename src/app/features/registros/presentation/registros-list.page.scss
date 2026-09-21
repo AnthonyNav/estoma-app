@@ -1,0 +1,67 @@
+@use '../../jornadas/presentation/practicas-ui';
+
+.registros-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: var(--space-lg) var(--space-md);
+}
+
+@media (min-width: 768px) {
+  .registros-page {
+    padding: var(--space-xl) var(--space-lg);
+  }
+}
+
+.subtitle {
+  margin: var(--space-xs) 0 0;
+  color: var(--on-surface-variant);
+}
+
+.registros-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.empty {
+  color: var(--on-surface-variant);
+}
+
+.registros-table {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.registro-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.registro-row-muted {
+  opacity: 0.85;
+}
+
+.registro-info {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.registro-info p {
+  margin: 0;
+}
+
+.jornada-nombre {
+  color: var(--on-surface-variant);
+  margin-top: var(--space-xs) !important;
+}
+
+.registro-actions {
+  display: flex;
+  gap: var(--space-sm);
+}

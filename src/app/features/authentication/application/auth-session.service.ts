@@ -184,7 +184,14 @@ export class AuthSessionService {
               string
             >
           )[profile.roleCode]
-        : null;
+        : code === 'PRACTICAS_PROFESIONALES'
+          ? (
+              { ALUMNO: '/jornadas', ADMINISTRADOR_PRACTICAS: '/jornadas' } as Record<
+                string,
+                string
+              >
+            )[profile.roleCode]
+          : null;
     await this.router.navigate([route ?? '/authentication/context']);
   }
 

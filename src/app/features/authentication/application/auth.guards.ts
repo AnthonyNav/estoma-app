@@ -73,3 +73,27 @@ export function washAccessGuard(role: string): CanActivateFn {
     }
   };
 }
+
+/** Prácticas Profesionales — ALUMNO and ADMINISTRADOR_PRACTICAS share the /jornadas route. */
+export function practicasAccessGuard(roles: readonly string[]): CanActivateFn {
+  return async () => {
+    const auth = inject(AuthSessionService);
+    const router = inject(Router);
+    const session = auth.store.session();
+    if (!session) return router.parseUrl('/authentication/sign-in');
+    if (session.authState !== 'NORMAL') return router.parseUrl('/authentication/required-password');
+    try {
+      const profile = auth.store.profile() ?? (await auth.loadProfile());
+      return (
+        (auth.store.selectedSystemCode() === 'PRACTICAS_PROFESIONALES' &&
+          roles.includes(profile.roleCode) &&
+          profile.availableSystemCodes.includes('PRACTICAS_PROFESIONALES')) ||
+        router.parseUrl('/authentication/access')
+      );
+    } catch {
+      return router.parseUrl(
+        auth.store.session() ? '/authentication/access' : '/authentication/sign-in',
+      );
+    }
+  };
+}

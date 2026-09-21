@@ -3,7 +3,10 @@ import { SupervisorExitService } from './features/wash-exit/application/supervis
 import { SupervisorEntryWorkflowService } from './features/wash-supervision/application/supervisor-entry-workflow.service';
 import { inject } from '@angular/core';
 import { Router, Routes } from '@angular/router';
-import { washAccessGuard } from './features/authentication/application/auth.guards';
+import {
+  practicasAccessGuard,
+  washAccessGuard,
+} from './features/authentication/application/auth.guards';
 
 export const routes: Routes = [
   {
@@ -132,6 +135,26 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/wash-supervision/presentation/wash-entry-supervision.page').then(
         (m) => m.WashEntrySupervisionPage,
+      ),
+  },
+  {
+    path: 'jornadas',
+    canActivate: [practicasAccessGuard(['ALUMNO', 'ADMINISTRADOR_PRACTICAS'])],
+    loadChildren: () =>
+      import('./features/jornadas/jornadas.routes').then((m) => m.JORNADAS_ROUTES),
+  },
+  {
+    path: 'registros',
+    canActivate: [practicasAccessGuard(['ADMINISTRADOR_PRACTICAS'])],
+    loadChildren: () =>
+      import('./features/registros/registros.routes').then((m) => m.REGISTROS_ROUTES),
+  },
+  {
+    path: 'estadisticas',
+    canActivate: [practicasAccessGuard(['ADMINISTRADOR_PRACTICAS'])],
+    loadComponent: () =>
+      import('./features/estadisticas/presentation/estadisticas.page').then(
+        (m) => m.EstadisticasPage,
       ),
   },
   { path: '', pathMatch: 'full', redirectTo: 'authentication/sign-in' },
