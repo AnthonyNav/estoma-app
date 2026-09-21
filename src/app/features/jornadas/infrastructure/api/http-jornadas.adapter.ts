@@ -1,7 +1,13 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, map, timeout } from 'rxjs';
 
+import {
+  AcceptedOperation,
+  DurableOperation,
+  validateAccepted,
+  validateOperation,
+} from '../../../../core/api/durable-operation';
 import { environment } from '../../../../../environments/environment';
 import { Jornada, TipoJornada } from '../../domain/models/jornada';
 import {
@@ -10,32 +16,45 @@ import {
   PublicarJornadaCommand,
 } from '../../domain/ports/jornadas.gateway';
 
-/**
- * Provisional paths — platform-bff does not expose a Jornadas surface yet
- * (see estoma-services/platform-bff CommandRegistry / ProjectionEventRuntime;
- * wiring Jornadas commands+events into the BFF is scoped but not built).
- * Replace with the published BFF OpenAPI contract once it exists.
- */
 @Injectable()
 export class HttpJornadasAdapter implements JornadasGateway {
   private readonly http = inject(HttpClient);
+  private readonly baseUrl = `${environment.apiBaseUrl}/jornadas`;
 
   listTiposJornada(): Observable<TipoJornada[]> {
-    return this.http.get<TipoJornada[]>(`${environment.apiBaseUrl}/jornadas/tipos`);
+    return this.http.get<TipoJornada[]>(`${this.baseUrl}/tipos`).pipe(timeout(15000));
   }
 
   listJornadas(): Observable<Jornada[]> {
-    return this.http.get<Jornada[]>(`${environment.apiBaseUrl}/jornadas`);
+    return this.http.get<Jornada[]>(this.baseUrl).pipe(timeout(15000));
   }
 
-  publicarJornada(command: PublicarJornadaCommand): Observable<Jornada> {
-    return this.http.post<Jornada>(`${environment.apiBaseUrl}/jornadas`, command);
+  publicarJornada(command: PublicarJornadaCommand): Observable<AcceptedOperation> {
+    const { idempotencyKey, ...body } = command;
+    return this.http
+      .post<AcceptedOperation>(this.baseUrl, body, {
+        headers: new HttpHeaders({ 'Idempotency-Key': idempotencyKey }),
+      })
+      .pipe(timeout(15000), map(validateAccepted));
   }
 
-  cancelarJornada(command: CancelarJornadaCommand): Observable<Jornada> {
-    return this.http.post<Jornada>(
-      `${environment.apiBaseUrl}/jornadas/${command.jornadaId}/cancelar`,
-      command,
-    );
+  cancelarJornada(command: CancelarJornadaCommand): Observable<AcceptedOperation> {
+    const { jornadaId, idempotencyKey, ...body } = command;
+    return this.http
+      .post<AcceptedOperation>(`${this.baseUrl}/${encodeURIComponent(jornadaId)}/cancelar`, body, {
+        headers: new HttpHeaders({ 'Idempotency-Key': idempotencyKey }),
+      })
+      .pipe(timeout(15000), map(validateAccepted));
+  }
+
+  getOperation(operationId: string): Observable<DurableOperation> {
+    return this.http
+      .get<DurableOperation>(
+        `${environment.apiBaseUrl}/operations/${encodeURIComponent(operationId)}`,
+      )
+      .pipe(
+        timeout(15000),
+        map((value) => validateOperation(value, operationId)),
+      );
   }
 }

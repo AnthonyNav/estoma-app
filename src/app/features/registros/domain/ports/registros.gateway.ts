@@ -1,26 +1,31 @@
 import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
 
+import { AcceptedOperation, DurableOperation } from '../../../../core/api/durable-operation';
 import { Registro } from '../models/registro';
 
 export interface CrearRegistroCommand {
   jornadaId: string;
-  alumnoId: string;
-  alumnoNombre: string;
-  semestreAlumno: number;
+  idempotencyKey: string;
 }
 
 export interface RechazarRegistroCommand {
   registroId: string;
   motivo: string;
+  idempotencyKey: string;
 }
 
 export interface RegistrosGateway {
-  listRegistros(): Observable<Registro[]>;
-  crearRegistro(command: CrearRegistroCommand): Observable<Registro>;
-  confirmarRegistro(registroId: string): Observable<Registro>;
-  rechazarRegistro(command: RechazarRegistroCommand): Observable<Registro>;
-  cancelarRegistroPorAlumno(registroId: string): Observable<Registro>;
+  misRegistros(): Observable<Registro[]>;
+  registrosDeJornada(jornadaId: string): Observable<Registro[]>;
+  crearRegistro(command: CrearRegistroCommand): Observable<AcceptedOperation>;
+  confirmarRegistro(registroId: string, idempotencyKey: string): Observable<AcceptedOperation>;
+  rechazarRegistro(command: RechazarRegistroCommand): Observable<AcceptedOperation>;
+  cancelarRegistroPorAlumno(
+    registroId: string,
+    idempotencyKey: string,
+  ): Observable<AcceptedOperation>;
+  getOperation(operationId: string): Observable<DurableOperation>;
 }
 
 export const REGISTROS_GATEWAY = new InjectionToken<RegistrosGateway>('REGISTROS_GATEWAY');

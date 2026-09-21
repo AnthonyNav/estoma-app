@@ -8,7 +8,11 @@ import { REGISTROS_GATEWAY } from '../domain/ports/registros.gateway';
 export class ListRegistrosUseCase {
   private readonly gateway = inject(REGISTROS_GATEWAY);
 
-  execute(): Observable<Registro[]> {
-    return this.gateway.listRegistros();
+  misRegistros(): Observable<Registro[]> {
+    return this.gateway.misRegistros();
+  }
+
+  deJornada(jornadaId: string): Observable<Registro[]> {
+    return this.gateway.registrosDeJornada(jornadaId);
   }
 }

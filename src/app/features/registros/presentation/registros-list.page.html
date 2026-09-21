@@ -18,8 +18,7 @@
         @for (registro of pendientes(); track registro.registroId) {
           <article class="card registro-row">
             <div class="registro-info">
-              <p class="text-h3">{{ registro.alumnoNombre }}</p>
-              <p class="text-body-sm jornada-nombre">{{ registro.jornadaNombre }}</p>
+              <p class="text-h3">Alumno {{ registro.alumnoAccountId | slice: 0 : 8 }}</p>
             </div>
             <span class="badge" [class]="badgeClass(registro.estado)">{{
               estadoLabel(registro.estado)
@@ -55,8 +54,7 @@
         @for (registro of resueltos(); track registro.registroId) {
           <article class="card registro-row registro-row-muted">
             <div class="registro-info">
-              <p class="text-h3">{{ registro.alumnoNombre }}</p>
-              <p class="text-body-sm jornada-nombre">{{ registro.jornadaNombre }}</p>
+              <p class="text-h3">Alumno {{ registro.alumnoAccountId | slice: 0 : 8 }}</p>
               @if (registro.motivoRechazo) {
                 <p class="text-body-sm jornada-nombre">Motivo: {{ registro.motivoRechazo }}</p>
               }

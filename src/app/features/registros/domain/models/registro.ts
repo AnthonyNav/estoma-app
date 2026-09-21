@@ -3,15 +3,13 @@ export type RegistroEstado =
   | 'CONFIRMADO'
   | 'RECHAZADO'
   | 'CANCELADO_ALUMNO'
-  | 'CANCELADO_JORNADA_CANCELADA';
+  | 'CANCELADO_JORNADA_CANCELADA'
+  | 'COMPLETADO';
 
 export interface Registro {
   registroId: string;
   jornadaId: string;
-  jornadaNombre: string;
-  alumnoId: string;
-  alumnoNombre: string;
+  alumnoAccountId: string;
   estado: RegistroEstado;
   motivoRechazo: string | null;
-  version: number;
 }

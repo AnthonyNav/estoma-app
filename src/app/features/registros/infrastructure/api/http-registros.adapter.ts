@@ -1,7 +1,13 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, map, timeout } from 'rxjs';
 
+import {
+  AcceptedOperation,
+  DurableOperation,
+  validateAccepted,
+  validateOperation,
+} from '../../../../core/api/durable-operation';
 import { environment } from '../../../../../environments/environment';
 import { Registro } from '../../domain/models/registro';
 import {
@@ -10,37 +16,70 @@ import {
   RegistrosGateway,
 } from '../../domain/ports/registros.gateway';
 
-/** Provisional paths — platform-bff exposes no Registros surface yet (same gap as Jornadas). */
 @Injectable()
 export class HttpRegistrosAdapter implements RegistrosGateway {
   private readonly http = inject(HttpClient);
+  private readonly baseUrl = `${environment.apiBaseUrl}/registros`;
 
-  listRegistros(): Observable<Registro[]> {
-    return this.http.get<Registro[]>(`${environment.apiBaseUrl}/registros`);
+  misRegistros(): Observable<Registro[]> {
+    return this.http.get<Registro[]>(`${this.baseUrl}/mios`).pipe(timeout(15000));
   }
 
-  crearRegistro(command: CrearRegistroCommand): Observable<Registro> {
-    return this.http.post<Registro>(`${environment.apiBaseUrl}/registros`, command);
+  registrosDeJornada(jornadaId: string): Observable<Registro[]> {
+    return this.http
+      .get<Registro[]>(`${this.baseUrl}/jornada/${encodeURIComponent(jornadaId)}`)
+      .pipe(timeout(15000));
   }
 
-  confirmarRegistro(registroId: string): Observable<Registro> {
-    return this.http.post<Registro>(
-      `${environment.apiBaseUrl}/registros/${registroId}/confirmar`,
-      {},
-    );
+  crearRegistro(command: CrearRegistroCommand): Observable<AcceptedOperation> {
+    const { idempotencyKey, ...body } = command;
+    return this.http
+      .post<AcceptedOperation>(this.baseUrl, body, {
+        headers: new HttpHeaders({ 'Idempotency-Key': idempotencyKey }),
+      })
+      .pipe(timeout(15000), map(validateAccepted));
   }
 
-  rechazarRegistro(command: RechazarRegistroCommand): Observable<Registro> {
-    return this.http.post<Registro>(
-      `${environment.apiBaseUrl}/registros/${command.registroId}/rechazar`,
-      command,
-    );
+  confirmarRegistro(registroId: string, idempotencyKey: string): Observable<AcceptedOperation> {
+    return this.http
+      .post<AcceptedOperation>(
+        `${this.baseUrl}/${encodeURIComponent(registroId)}/confirmar`,
+        {},
+        { headers: new HttpHeaders({ 'Idempotency-Key': idempotencyKey }) },
+      )
+      .pipe(timeout(15000), map(validateAccepted));
   }
 
-  cancelarRegistroPorAlumno(registroId: string): Observable<Registro> {
-    return this.http.post<Registro>(
-      `${environment.apiBaseUrl}/registros/${registroId}/cancelar`,
-      {},
-    );
+  rechazarRegistro(command: RechazarRegistroCommand): Observable<AcceptedOperation> {
+    const { registroId, idempotencyKey, ...body } = command;
+    return this.http
+      .post<AcceptedOperation>(`${this.baseUrl}/${encodeURIComponent(registroId)}/rechazar`, body, {
+        headers: new HttpHeaders({ 'Idempotency-Key': idempotencyKey }),
+      })
+      .pipe(timeout(15000), map(validateAccepted));
+  }
+
+  cancelarRegistroPorAlumno(
+    registroId: string,
+    idempotencyKey: string,
+  ): Observable<AcceptedOperation> {
+    return this.http
+      .post<AcceptedOperation>(
+        `${this.baseUrl}/${encodeURIComponent(registroId)}/cancelar`,
+        {},
+        { headers: new HttpHeaders({ 'Idempotency-Key': idempotencyKey }) },
+      )
+      .pipe(timeout(15000), map(validateAccepted));
+  }
+
+  getOperation(operationId: string): Observable<DurableOperation> {
+    return this.http
+      .get<DurableOperation>(
+        `${environment.apiBaseUrl}/operations/${encodeURIComponent(operationId)}`,
+      )
+      .pipe(
+        timeout(15000),
+        map((value) => validateOperation(value, operationId)),
+      );
   }
 }

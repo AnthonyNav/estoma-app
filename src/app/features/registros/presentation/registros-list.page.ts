@@ -1,6 +1,18 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { SlicePipe } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
 import { LucideCheck, LucideX } from '@lucide/angular';
 
+import { rejectionMessage } from '../../../core/api/durable-operation';
+import { OperationTrackerService } from '../../../core/api/operation-tracker.service';
 import { ListRegistrosUseCase } from '../application/list-registros.use-case';
 import { ValidarRegistroUseCase } from '../application/validar-registro.use-case';
 import { Registro, RegistroEstado } from '../domain/models/registro';
@@ -11,6 +23,7 @@ const BADGE_BY_ESTADO: Record<RegistroEstado, string> = {
   RECHAZADO: 'badge-disabled',
   CANCELADO_ALUMNO: 'badge-maintenance',
   CANCELADO_JORNADA_CANCELADA: 'badge-maintenance',
+  COMPLETADO: 'badge-available',
 };
 
 const LABEL_BY_ESTADO: Record<RegistroEstado, string> = {
@@ -19,18 +32,24 @@ const LABEL_BY_ESTADO: Record<RegistroEstado, string> = {
   RECHAZADO: 'Rechazado',
   CANCELADO_ALUMNO: 'Cancelado por el Alumno',
   CANCELADO_JORNADA_CANCELADA: 'Jornada cancelada',
+  COMPLETADO: 'Completado',
 };
 
 @Component({
   selector: 'app-registros-list-page',
-  imports: [LucideCheck, LucideX],
+  imports: [SlicePipe, LucideCheck, LucideX],
   templateUrl: './registros-list.page.html',
   styleUrl: './registros-list.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RegistrosListPage {
+  private readonly route = inject(ActivatedRoute);
   private readonly listRegistros = inject(ListRegistrosUseCase);
   private readonly validarRegistro = inject(ValidarRegistroUseCase);
+  private readonly tracker = inject(OperationTrackerService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  private readonly jornadaId = this.route.snapshot.paramMap.get('jornadaId')!;
 
   readonly registros = signal<Registro[]>([]);
   readonly loading = signal(true);
@@ -49,10 +68,13 @@ export class RegistrosListPage {
 
   refresh(): void {
     this.loading.set(true);
-    this.listRegistros.execute().subscribe((registros) => {
-      this.registros.set(registros);
-      this.loading.set(false);
-    });
+    this.listRegistros
+      .deJornada(this.jornadaId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((registros) => {
+        this.registros.set(registros);
+        this.loading.set(false);
+      });
   }
 
   badgeClass(estado: RegistroEstado): string {
@@ -65,27 +87,42 @@ export class RegistrosListPage {
 
   confirmar(registro: Registro): void {
     this.workingId.set(registro.registroId);
-    this.validarRegistro.confirmar(registro.registroId).subscribe({
-      next: () => {
-        this.workingId.set(null);
-        this.refresh();
-      },
-      error: () => this.workingId.set(null),
-    });
+    this.validarRegistro
+      .confirmar(registro.registroId, crypto.randomUUID())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ({ operationId }) => this.track(operationId),
+        error: () => this.workingId.set(null),
+      });
   }
 
   rechazar(registro: Registro): void {
-    const motivo = window.prompt(`Motivo de rechazo para "${registro.alumnoNombre}":`);
+    const motivo = window.prompt(`Motivo de rechazo para el Registro ${registro.registroId}:`);
     if (!motivo) {
       return;
     }
     this.workingId.set(registro.registroId);
-    this.validarRegistro.rechazar({ registroId: registro.registroId, motivo }).subscribe({
-      next: () => {
-        this.workingId.set(null);
-        this.refresh();
-      },
-      error: () => this.workingId.set(null),
-    });
+    this.validarRegistro
+      .rechazar({ registroId: registro.registroId, motivo, idempotencyKey: crypto.randomUUID() })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ({ operationId }) => this.track(operationId),
+        error: () => this.workingId.set(null),
+      });
+  }
+
+  private track(operationId: string): void {
+    this.tracker
+      .trackWith(() => this.validarRegistro.getOperation(operationId), { maxPendingPolls: 30 })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (operation) => {
+          if (operation.status === 'PENDING') return;
+          this.workingId.set(null);
+          if (operation.status === 'SUCCEEDED') this.refresh();
+          else window.alert(rejectionMessage(operation));
+        },
+        error: () => this.workingId.set(null),
+      });
   }
 }

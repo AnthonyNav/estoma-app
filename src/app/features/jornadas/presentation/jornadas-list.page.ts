@@ -1,5 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import {
   LucideCalendarDays,
   LucideMapPin,
@@ -9,6 +18,9 @@ import {
   LucideX,
 } from '@lucide/angular';
 
+import { rejectionMessage } from '../../../core/api/durable-operation';
+import { OperationTrackerService } from '../../../core/api/operation-tracker.service';
+import { SessionStore } from '../../authentication/application/session-store.service';
 import { CrearRegistroUseCase } from '../../registros/application/crear-registro.use-case';
 import { CancelarJornadaUseCase } from '../application/cancelar-jornada.use-case';
 import { ListJornadasUseCase } from '../application/list-jornadas.use-case';
@@ -31,6 +43,7 @@ const LABEL_BY_ESTADO: Record<JornadaEstado, string> = {
   selector: 'app-jornadas-list-page',
   imports: [
     ReactiveFormsModule,
+    RouterLink,
     LucideCalendarDays,
     LucideMapPin,
     LucidePlus,
@@ -48,6 +61,14 @@ export class JornadasListPage {
   private readonly cancelarJornada = inject(CancelarJornadaUseCase);
   private readonly crearRegistro = inject(CrearRegistroUseCase);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly sessionStore = inject(SessionStore);
+  private readonly tracker = inject(OperationTrackerService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  readonly isAdministrador = computed(
+    () => this.sessionStore.profile()?.roleCode === 'ADMINISTRADOR_PRACTICAS',
+  );
+  readonly isAlumno = computed(() => this.sessionStore.profile()?.roleCode === 'ALUMNO');
 
   readonly registeringId = signal<string | null>(null);
 
@@ -58,9 +79,6 @@ export class JornadasListPage {
   readonly submitting = signal(false);
   readonly formError = signal<string | null>(null);
   readonly cancelingId = signal<string | null>(null);
-
-  readonly vigentes = computed(() => this.jornadas().filter((j) => j.estado === 'PUBLICADA'));
-  readonly historicas = computed(() => this.jornadas().filter((j) => j.estado !== 'PUBLICADA'));
 
   readonly form = this.formBuilder.nonNullable.group({
     tipoJornadaId: ['', Validators.required],
@@ -75,16 +93,28 @@ export class JornadasListPage {
   });
 
   constructor() {
-    this.listJornadas.tipos().subscribe((tipos) => this.tipos.set(tipos));
+    if (this.isAdministrador()) {
+      this.listJornadas
+        .tipos()
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((tipos) => this.tipos.set(tipos));
+    }
     this.refresh();
   }
 
   refresh(): void {
     this.loading.set(true);
-    this.listJornadas.execute().subscribe((jornadas) => {
-      this.jornadas.set(jornadas);
-      this.loading.set(false);
-    });
+    this.listJornadas
+      .execute()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((jornadas) => {
+        this.jornadas.set(jornadas);
+        this.loading.set(false);
+      });
+  }
+
+  tipoNombre(tipoJornadaId: string): string {
+    return this.tipos().find((t) => t.tipoJornadaId === tipoJornadaId)?.nombre ?? 'Tipo';
   }
 
   badgeClass(estado: JornadaEstado): string {
@@ -114,17 +144,42 @@ export class JornadasListPage {
     this.formError.set(null);
     this.submitting.set(true);
     const raw = this.form.getRawValue();
-    this.publicarJornada.execute({ ...raw, descripcion: raw.descripcion || undefined }).subscribe({
-      next: () => {
-        this.submitting.set(false);
-        this.closeForm();
-        this.refresh();
-      },
-      error: (error: Error) => {
-        this.submitting.set(false);
-        this.formError.set(error.message);
-      },
-    });
+    this.publicarJornada
+      .execute({
+        ...raw,
+        descripcion: raw.descripcion || undefined,
+        idempotencyKey: crypto.randomUUID(),
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ({ operationId }) => this.trackPublicar(operationId),
+        error: (error: Error) => {
+          this.submitting.set(false);
+          this.formError.set(error.message);
+        },
+      });
+  }
+
+  private trackPublicar(operationId: string): void {
+    this.tracker
+      .trackWith(() => this.publicarJornada.getOperation(operationId), { maxPendingPolls: 30 })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (operation) => {
+          if (operation.status === 'PENDING') return;
+          this.submitting.set(false);
+          if (operation.status === 'SUCCEEDED') {
+            this.closeForm();
+            this.refresh();
+            return;
+          }
+          this.formError.set(rejectionMessage(operation));
+        },
+        error: (error: Error) => {
+          this.submitting.set(false);
+          this.formError.set(error.message);
+        },
+      });
   }
 
   cancelar(jornada: Jornada): void {
@@ -133,42 +188,59 @@ export class JornadasListPage {
       return;
     }
     this.cancelingId.set(jornada.jornadaId);
-    this.cancelarJornada.execute({ jornadaId: jornada.jornadaId, motivo }).subscribe({
-      next: () => {
-        this.cancelingId.set(null);
-        this.refresh();
-      },
-      error: () => {
-        this.cancelingId.set(null);
-      },
-    });
+    this.cancelarJornada
+      .execute({ jornadaId: jornada.jornadaId, motivo, idempotencyKey: crypto.randomUUID() })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ({ operationId }) => this.trackCancelar(operationId),
+        error: () => this.cancelingId.set(null),
+      });
+  }
+
+  private trackCancelar(operationId: string): void {
+    this.tracker
+      .trackWith(() => this.cancelarJornada.getOperation(operationId), { maxPendingPolls: 30 })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (operation) => {
+          if (operation.status === 'PENDING') return;
+          this.cancelingId.set(null);
+          if (operation.status === 'SUCCEEDED') this.refresh();
+          else window.alert(rejectionMessage(operation));
+        },
+        error: () => this.cancelingId.set(null),
+      });
   }
 
   preRegistrarme(jornada: Jornada): void {
-    const alumnoNombre = window.prompt('Tu nombre (demo, sin sesión real todavía):');
-    if (!alumnoNombre) {
-      return;
-    }
-    const semestreTexto = window.prompt('Tu semestre actual:', '7');
-    const semestreAlumno = Number(semestreTexto);
-    if (!semestreTexto || Number.isNaN(semestreAlumno)) {
-      return;
-    }
-
     this.registeringId.set(jornada.jornadaId);
     this.crearRegistro
-      .execute({
-        jornadaId: jornada.jornadaId,
-        alumnoId: crypto.randomUUID(),
-        alumnoNombre,
-        semestreAlumno,
-      })
+      .execute({ jornadaId: jornada.jornadaId, idempotencyKey: crypto.randomUUID() })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: () => {
+        next: ({ operationId }) => this.trackPreRegistro(jornada, operationId),
+        error: (error: Error) => {
           this.registeringId.set(null);
-          window.alert(
-            `Pre-registro enviado para "${jornada.nombre}". Un Pasante revisará tu documentación.`,
-          );
+          window.alert(`No se pudo pre-registrar: ${error.message}`);
+        },
+      });
+  }
+
+  private trackPreRegistro(jornada: Jornada, operationId: string): void {
+    this.tracker
+      .trackWith(() => this.crearRegistro.getOperation(operationId), { maxPendingPolls: 30 })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (operation) => {
+          if (operation.status === 'PENDING') return;
+          this.registeringId.set(null);
+          if (operation.status === 'SUCCEEDED') {
+            window.alert(
+              `Pre-registro enviado para "${jornada.nombre}". Un Pasante revisará tu documentación.`,
+            );
+          } else {
+            window.alert(`No se pudo pre-registrar: ${rejectionMessage(operation)}`);
+          }
         },
         error: (error: Error) => {
           this.registeringId.set(null);

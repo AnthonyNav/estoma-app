@@ -3,7 +3,6 @@ export type JornadaEstado = 'PUBLICADA' | 'CANCELADA' | 'FINALIZADA';
 export interface Jornada {
   jornadaId: string;
   tipoJornadaId: string;
-  tipoNombre: string;
   nombre: string;
   fecha: string;
   horaInicio: string;
@@ -14,7 +13,6 @@ export interface Jornada {
   descripcion: string | null;
   estado: JornadaEstado;
   motivoCancelacion: string | null;
-  version: number;
 }
 
 export interface TipoJornada {

@@ -4,10 +4,12 @@
       <h1 class="text-h1">Jornadas de práctica clínica</h1>
       <p class="text-body-md subtitle">Registro de Jornadas / Prácticas Profesionales</p>
     </div>
-    <button class="btn btn-primary" type="button" (click)="openForm()">
-      <svg lucidePlus [size]="18"></svg>
-      Publicar Jornada
-    </button>
+    @if (isAdministrador()) {
+      <button class="btn btn-primary" type="button" (click)="openForm()">
+        <svg lucidePlus [size]="18"></svg>
+        Publicar Jornada
+      </button>
+    }
   </header>
 
   @if (formOpen()) {
@@ -26,6 +28,13 @@
 
       @if (formError(); as message) {
         <p class="toast toast-error" role="alert">{{ message }}</p>
+      }
+
+      @if (tipos().length === 0) {
+        <p class="text-body-sm empty">
+          Todavía no hay Tipos de Jornada configurados. Pide a un Superusuario que configure al
+          menos uno antes de publicar.
+        </p>
       }
 
       <form [formGroup]="form" (ngSubmit)="submit()" class="jornada-form">
@@ -122,14 +131,14 @@
   } @else {
     <div class="jornadas-section">
       <h2 class="text-h2">Vigentes</h2>
-      @if (vigentes().length === 0) {
+      @if (jornadas().length === 0) {
         <p class="text-body-md empty">No hay Jornadas publicadas por el momento.</p>
       }
       <div class="jornadas-grid">
-        @for (jornada of vigentes(); track jornada.jornadaId) {
+        @for (jornada of jornadas(); track jornada.jornadaId) {
           <article class="card jornada-card">
             <div class="jornada-card-header">
-              <span class="text-label-md tipo-tag">{{ jornada.tipoNombre }}</span>
+              <span class="text-label-md tipo-tag">{{ tipoNombre(jornada.tipoJornadaId) }}</span>
               <span class="badge" [class]="badgeClass(jornada.estado)">{{
                 estadoLabel(jornada.estado)
               }}</span>
@@ -147,50 +156,32 @@
               <p class="text-body-sm jornada-descripcion">{{ jornada.descripcion }}</p>
             }
             <div class="jornada-actions">
-              <button
-                class="btn btn-secondary"
-                type="button"
-                [disabled]="registeringId() === jornada.jornadaId"
-                (click)="preRegistrarme(jornada)"
-              >
-                <svg lucideUserPlus [size]="16"></svg>
-                {{ registeringId() === jornada.jornadaId ? 'Enviando...' : 'Pre-registrarme' }}
-              </button>
-              <button
-                class="btn btn-danger"
-                type="button"
-                [disabled]="cancelingId() === jornada.jornadaId"
-                (click)="cancelar(jornada)"
-              >
-                {{ cancelingId() === jornada.jornadaId ? 'Cancelando...' : 'Cancelar Jornada' }}
-              </button>
+              @if (isAlumno()) {
+                <button
+                  class="btn btn-secondary"
+                  type="button"
+                  [disabled]="registeringId() === jornada.jornadaId"
+                  (click)="preRegistrarme(jornada)"
+                >
+                  <svg lucideUserPlus [size]="16"></svg>
+                  {{ registeringId() === jornada.jornadaId ? 'Enviando...' : 'Pre-registrarme' }}
+                </button>
+              }
+              @if (isAdministrador()) {
+                <a class="btn btn-ghost" [routerLink]="['/registros/jornada', jornada.jornadaId]">
+                  <svg lucideUsers [size]="16"></svg>
+                  Ver registros
+                </a>
+                <button
+                  class="btn btn-danger"
+                  type="button"
+                  [disabled]="cancelingId() === jornada.jornadaId"
+                  (click)="cancelar(jornada)"
+                >
+                  {{ cancelingId() === jornada.jornadaId ? 'Cancelando...' : 'Cancelar Jornada' }}
+                </button>
+              }
             </div>
-          </article>
-        }
-      </div>
-    </div>
-
-    <div class="jornadas-section">
-      <h2 class="text-h2">Histórico</h2>
-      <div class="jornadas-grid">
-        @for (jornada of historicas(); track jornada.jornadaId) {
-          <article class="card jornada-card jornada-card-muted">
-            <div class="jornada-card-header">
-              <span class="text-label-md tipo-tag">{{ jornada.tipoNombre }}</span>
-              <span class="badge" [class]="badgeClass(jornada.estado)">{{
-                estadoLabel(jornada.estado)
-              }}</span>
-            </div>
-            <h3 class="text-h3">{{ jornada.nombre }}</h3>
-            <ul class="jornada-meta">
-              <li><svg lucideCalendarDays [size]="16"></svg> {{ jornada.fecha }}</li>
-              <li><svg lucideMapPin [size]="16"></svg> {{ jornada.lugar }}</li>
-            </ul>
-            @if (jornada.motivoCancelacion) {
-              <p class="text-body-sm jornada-descripcion">
-                Motivo: {{ jornada.motivoCancelacion }}
-              </p>
-            }
           </article>
         }
       </div>

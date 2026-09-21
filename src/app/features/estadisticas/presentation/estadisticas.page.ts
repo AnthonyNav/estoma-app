@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { forkJoin } from 'rxjs';
+import { forkJoin, map, of, switchMap } from 'rxjs';
 
 import { ListJornadasUseCase } from '../../jornadas/application/list-jornadas.use-case';
 import { Jornada } from '../../jornadas/domain/models/jornada';
@@ -90,14 +90,28 @@ export class EstadisticasPage {
       });
   });
 
+  /**
+   * platform-bff exposes no admin-wide "all Jornadas"/"all Registros" query yet — only the
+   * public PUBLICADA-only Jornadas listing and a per-Jornada Registros queue. This composes
+   * those into an approximate snapshot: Canceladas/Finalizadas jornadaStats stay at 0, and
+   * registroStats only cover Registros for currently vigente Jornadas. A real Director report
+   * (RF-DI-01) needs a dedicated read model — out of scope here.
+   */
   constructor() {
-    forkJoin({
-      jornadas: this.listJornadas.execute(),
-      registros: this.listRegistros.execute(),
-    }).subscribe(({ jornadas, registros }) => {
-      this.jornadas.set(jornadas);
-      this.registros.set(registros);
-      this.loading.set(false);
-    });
+    this.listJornadas
+      .execute()
+      .pipe(
+        switchMap((jornadas) => {
+          this.jornadas.set(jornadas);
+          if (jornadas.length === 0) return of<Registro[]>([]);
+          return forkJoin(jornadas.map((j) => this.listRegistros.deJornada(j.jornadaId))).pipe(
+            map((lists) => lists.flat()),
+          );
+        }),
+      )
+      .subscribe((registros) => {
+        this.registros.set(registros);
+        this.loading.set(false);
+      });
   }
 }

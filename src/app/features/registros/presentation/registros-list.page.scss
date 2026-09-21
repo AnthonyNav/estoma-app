@@ -1,44 +1,46 @@
+@use '../../jornadas/presentation/practicas-ui';
+
 .registros-page {
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--space-xl);
   max-width: 60rem;
   margin: 0 auto;
-  padding: var(--space-6) var(--space-4);
+  padding: var(--space-lg) var(--space-md);
 }
 
 @media (min-width: 768px) {
   .registros-page {
-    padding: var(--space-8) var(--space-6);
+    padding: var(--space-xl) var(--space-lg);
   }
 }
 
 .subtitle {
-  margin: var(--space-1) 0 0;
-  color: var(--color-neutral-600);
+  margin: var(--space-xs) 0 0;
+  color: var(--on-surface-variant);
 }
 
 .registros-section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-md);
 }
 
 .empty {
-  color: var(--color-neutral-600);
+  color: var(--on-surface-variant);
 }
 
 .registros-table {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-sm);
 }
 
 .registro-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-md);
 }
 
 .registro-row-muted {
@@ -55,11 +57,11 @@
 }
 
 .jornada-nombre {
-  color: var(--color-neutral-600);
-  margin-top: var(--space-1) !important;
+  color: var(--on-surface-variant);
+  margin-top: var(--space-xs) !important;
 }
 
 .registro-actions {
   display: flex;
-  gap: var(--space-2);
+  gap: var(--space-sm);
 }

@@ -1,15 +1,17 @@
+@use './practicas-ui';
+
 .jornadas-page {
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--space-xl);
   max-width: 72rem;
   margin: 0 auto;
-  padding: var(--space-6) var(--space-4);
+  padding: var(--space-lg) var(--space-md);
 }
 
 @media (min-width: 768px) {
   .jornadas-page {
-    padding: var(--space-8) var(--space-6);
+    padding: var(--space-xl) var(--space-lg);
   }
 }
 
@@ -18,18 +20,18 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
+  gap: var(--space-md);
 }
 
 .jornadas-header .subtitle {
-  margin: var(--space-1) 0 0;
-  color: var(--color-neutral-600);
+  margin: var(--space-xs) 0 0;
+  color: var(--on-surface-variant);
 }
 
 .form-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-md);
 }
 
 .form-card-header {
@@ -45,26 +47,26 @@
   width: 32px;
   height: 32px;
   border: none;
-  background: var(--color-neutral-200);
-  color: var(--color-neutral-600);
+  background: var(--surface-container-low);
+  color: var(--on-surface-variant);
   border-radius: var(--radius-sm);
   cursor: pointer;
 
   &:hover {
-    background: var(--color-neutral-300);
+    background: var(--outline-variant);
   }
 }
 
 .jornada-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-md);
 }
 
 .field-row {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--space-4);
+  gap: var(--space-md);
 }
 
 @media (min-width: 640px) {
@@ -76,24 +78,24 @@
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-3);
-  margin-top: var(--space-2);
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
 }
 
 .jornadas-section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-md);
 }
 
 .empty {
-  color: var(--color-neutral-600);
+  color: var(--on-surface-variant);
 }
 
 .jornadas-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--space-4);
+  gap: var(--space-md);
 }
 
 @media (min-width: 768px) {
@@ -111,7 +113,7 @@
 .jornada-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-sm);
 }
 
 .jornada-card-muted {
@@ -125,7 +127,7 @@
 }
 
 .tipo-tag {
-  color: var(--color-primary);
+  color: var(--primary);
   text-transform: uppercase;
 }
 
@@ -139,26 +141,25 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-sm);
 }
 
 .jornada-meta li {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  color: var(--color-neutral-600);
-  font-family: var(--font-body);
+  gap: var(--space-sm);
+  color: var(--on-surface-variant);
   font-size: 0.875rem;
 }
 
 .jornada-descripcion {
   margin: 0;
-  color: var(--color-neutral-600);
+  color: var(--on-surface-variant);
 }
 
 .jornada-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--space-sm);
   margin-top: auto;
 }
